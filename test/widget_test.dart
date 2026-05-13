@@ -1,30 +1,26 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:atlas/main.dart';
+import 'package:atlas/main.dart'; // ajuste se o nome do pacote for diferente
+import 'package:atlas/core/database/database_helper.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App deve iniciar sem erros', (WidgetTester tester) async {
+    // Inicializa o DatabaseHelper para o teste
+    final dbHelper = DatabaseHelper.instance;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Constrói o app
+    await tester.pumpWidget(
+      AtlasBlueOceanApp(dbHelper: dbHelper),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Verifica se o app carregou corretamente
+    expect(find.byType(BottomNavigationBar), findsOneWidget);
+    expect(find.text('Atlas Blue Ocean'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Cartas'), findsOneWidget);
+    expect(find.text('Produção'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verifica se a Dashboard está visível (aba 0)
+    expect(find.text('Bem-vindo, Mestre!'), findsOneWidget);
   });
 }
