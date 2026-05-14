@@ -1,3 +1,5 @@
+import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
+import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
@@ -9,6 +11,7 @@ import '../../viagem/presentation/nova_viagem_screen.dart';
 import '../../viagem/domain/models/viagem.dart';
 import 'package:atlas/core/auth/auth_service.dart';
 import '../../auth/presentation/login_screen.dart';
+import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
 
 class DashboardScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -37,6 +40,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isLoadingWindy = false;
   String? windyError;
 
+// ==================== RASTREAMENTO AUTOMÁTICO ====================
+  final LocationTrackingService _trackingService = LocationTrackingService();
+  bool isTracking = false;
+
   // Coordenadas padrão (atualizadas pela geolocalização)
   double lat = -23.55;
   double lon = -46.63;
@@ -48,25 +55,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _getCurrentPosition(); // Carrega posição
   }
 
-  // ==================== CARREGAMENTO DE DADOS LOCAIS ====================
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+// ==================== RASTREAMENTO ====================
+
+  // Chamado após o carregamento dos dados
+  Future<void> _iniciarRastreamentoAutomatico() async {
+    if (viagemAtual != null) {
+      // Inicia rastreamento em segundo plano (WorkManager)
+      await _trackingService.startBackgroundTracking(
+        viagemId: viagemAtual!.id ?? 0,
+      );
+
+      // Opcional: Inicia também rastreamento em foreground (a cada 5 min)
+      // await _trackingService.startForegroundTracking(viagemId: viagemAtual!.id ?? 0);
+
+      setState(() => isTracking = true);
+      print('🚢 Rastreamento iniciado para viagem ${viagemAtual!.id}');
+    }
+  }
+
+  // ==================== CARREGAMENTO DE DADOS ====================
   Future<void> _carregarDados() async {
     setState(() => isLoading = true);
 
     try {
       final cartas = await widget.dbHelper.query('carta_nautica');
       final cartasBaixadas = cartas.where((c) => c['esta_baixada'] == 1).length;
-
       final producoes = await widget.dbHelper.query('producao_registro');
 
-      // CARREGAR VIAGENS
+      // Carrega viagem atual
       final viagens = await widget.dbHelper.query('viagem');
-
       Viagem? viagem;
-
       if (viagens.isNotEmpty) {
-        final viagemMap = viagens.first;
-
-        viagem = Viagem.fromMap(viagemMap);
+        viagem = Viagem.fromMap(viagens.first);
       }
 
       setState(() {
@@ -75,14 +100,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         viagemAtual = viagem;
         isLoading = false;
       });
+
+      // Inicia rastreamento após carregar a viagem
+      if (viagem != null) {
+        await _iniciarRastreamentoAutomatico();
+      }
     } catch (e) {
       setState(() => isLoading = false);
-
       print('Erro ao carregar dashboard: $e');
     }
   }
 
-  // ==================== POSIÇÃO ====================
+  // ==================== POSIÇÃO ATUAL (MANUAL) ====================
   Future<void> _getCurrentPosition() async {
     setState(() {
       isLoadingPosition = true;
@@ -176,6 +205,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         title: const Text('Atlas Blue Ocean'),
         centerTitle: true,
+        actions: [
+          if (isTracking)
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: Icon(Icons.location_on, color: Colors.green),
+            ),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -204,6 +240,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     // Viagem Atual
                     _buildViagemCard(),
+
+                    if (viagemAtual != null) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        color: Colors.green[50],
+                        child: ListTile(
+                          leading: const Icon(Icons.location_on,
+                              color: Colors.green),
+                          title: const Text('Rastreamento Ativo'),
+                          subtitle:
+                              Text('Registrando posição a cada 5 minutos'),
+                          trailing: const Icon(Icons.check_circle,
+                              color: Colors.green),
+                        ),
+                      ),
+                    ],
 
                     if (viagemAtual == null) ...[
                       const SizedBox(height: 16),
@@ -246,15 +298,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 16),
                     _buildActionButton(
                         icon: Icons.map_outlined,
-                        label: 'Ver Cartas Náuticas',
+                        label: 'Mapa de Navegação',
                         color: Colors.blue,
-                        onTap: () => _changeTab(context, 1)),
+                        onTap: () => _abrirHistoricoPosicoes(context)),
                     const SizedBox(height: 12),
                     _buildActionButton(
-                        icon: Icons.add_circle_outline,
-                        label: 'Registrar Produção',
+                        icon: Icons.add_link_rounded,
+                        label: 'Solicitar Carta',
                         color: Colors.green,
-                        onTap: () => _changeTab(context, 2)),
+                        onTap: () => _abrirSolicitarCarta(context)),
 
                     const SizedBox(height: 40),
                     const Center(
@@ -621,6 +673,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _abrirSolicitarCarta(BuildContext context) async {
+    final resultado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SolicitarCartaScreen(
+          dbHelper: widget.dbHelper, // ou dbHelper se for variável local
+        ),
+      ),
+    );
+
+    // Se quiser fazer algo após voltar com sucesso
+    if (resultado == true) {
+      // Recarrega a lista de cartas ou atualiza a tela
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Carta solicitada com sucesso!')),
+      );
+    }
+  }
+
+  Future<void> _abrirHistoricoPosicoes(BuildContext context) async {
+    final resultado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HistoricoLocalizacoesScreen(
+          dbHelper: widget.dbHelper,
+        ),
+      ),
+    );
   }
 
   void _changeTab(BuildContext context, int index) {

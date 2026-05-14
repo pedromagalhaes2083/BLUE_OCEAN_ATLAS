@@ -28,6 +28,20 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    // Tabela Localização
+    await db.execute('''
+    CREATE TABLE localizacao_historico (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      data_hora TEXT NOT NULL,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      velocidade REAL,
+      precisao REAL,
+      viagem_id INTEGER,
+      sincronizado INTEGER NOT NULL DEFAULT 0
+    )
+  ''');
+
     // Tabela de Viagens
     await db.execute('''
     CREATE TABLE viagem (
