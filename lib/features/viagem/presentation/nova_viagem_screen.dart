@@ -5,8 +5,13 @@ import 'package:atlas/features/viagem/domain/models/viagem.dart';
 
 class NovaViagemScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
+  final String embarcacao;
 
-  const NovaViagemScreen({super.key, required this.dbHelper});
+  const NovaViagemScreen({
+    super.key,
+    required this.dbHelper,
+    required this.embarcacao,
+  });
 
   @override
   State<NovaViagemScreen> createState() => _NovaViagemScreenState();
@@ -29,7 +34,7 @@ class _NovaViagemScreenState extends State<NovaViagemScreen> {
           : _nomeController.text.trim(),
       dataInicio: _dataInicio,
       dataTermino: _dataTermino,
-      embarcacaoId: "PE-1234",
+      embarcacaoId: widget.embarcacao,
       status: 'em_andamento',
     );
 

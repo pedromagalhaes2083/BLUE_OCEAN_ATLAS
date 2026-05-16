@@ -1,4 +1,6 @@
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
+import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcaao_screen.dart';
+import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -12,6 +14,7 @@ import '../../viagem/domain/models/viagem.dart';
 import 'package:atlas/core/auth/auth_service.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
+import '../../embarcacao/domain/models/embarcacao.dart';
 
 class DashboardScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -29,6 +32,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int totalRegistrosProducao = 0;
   bool isLoading = true;
   Viagem? viagemAtual;
+  Embarcacao? embarcacaoAtual;
 
   // ==================== POSIÇÃO DO DISPOSITIVO ====================
   Position? currentPosition;
@@ -71,7 +75,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
 
       // Opcional: Inicia também rastreamento em foreground (a cada 5 min)
-      // await _trackingService.startForegroundTracking(viagemId: viagemAtual!.id ?? 0);
+      await _trackingService.startForegroundTracking(
+        viagemId: viagemAtual!.id ?? 0,
+      );
 
       setState(() => isTracking = true);
       print('🚢 Rastreamento iniciado para viagem ${viagemAtual!.id}');
@@ -86,18 +92,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final cartas = await widget.dbHelper.query('carta_nautica');
       final cartasBaixadas = cartas.where((c) => c['esta_baixada'] == 1).length;
       final producoes = await widget.dbHelper.query('producao_registro');
+      final embarcacoes = await widget.dbHelper.query('embarcacao');
 
       // Carrega viagem atual
       final viagens = await widget.dbHelper.query('viagem');
       Viagem? viagem;
+      Embarcacao? embarcacao;
+
       if (viagens.isNotEmpty) {
         viagem = Viagem.fromMap(viagens.first);
+      }
+      if (embarcacoes.isNotEmpty) {
+        embarcacao = Embarcacao.fromMap(embarcacoes.first);
       }
 
       setState(() {
         totalCartasBaixadas = cartasBaixadas;
         totalRegistrosProducao = producoes.length;
         viagemAtual = viagem;
+        print(embarcacao);
+        embarcacaoAtual = embarcacao;
+
         isLoading = false;
       });
 
@@ -229,8 +244,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: TextStyle(
                             fontSize: 28, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    const Text('Embarcação: PE-1234',
-                        style: TextStyle(fontSize: 18, color: Colors.grey)),
+                    Text(
+                      'Embarcação: ${embarcacaoAtual?.nome ?? "Não definida"}',
+                      style: const TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
                     const SizedBox(height: 32),
 
                     // Posição Atual
@@ -352,10 +369,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ListTile(
               leading: const Icon(Icons.map),
               title: const Text('Mapa de Navegação'),
-              onTap: () {
-                Navigator.pop(context); // fecha o drawer
-                // Adicione navegação se necessário
-              },
+              onTap: () => _abrirHistoricoPosicoes(context),
             ),
             ListTile(
               leading: const Icon(Icons.layers),
@@ -373,11 +387,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.people),
-              title: const Text('Compartilhar Localização'),
-              onTap: () {
-                Navigator.pop(context);
-              },
+              leading: const Icon(Icons.navigation),
+              title: const Text('Embarcação'),
+              onTap: () => _abrirCadastroEmbarcacao(context),
             ),
             const Divider(),
             ListTile(
@@ -634,10 +646,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 // ==================== MÉTODOS DE AÇÃO ====================
   Future<void> _iniciarNovaViagem() async {
+    final nome_barco = embarcacaoAtual?.nome.toString() ?? "Não definida";
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => NovaViagemScreen(dbHelper: widget.dbHelper),
+        builder: (_) =>
+            NovaViagemScreen(dbHelper: widget.dbHelper, embarcacao: nome_barco),
       ),
     );
 
@@ -696,7 +710,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _abrirHistoricoPosicoes(BuildContext context) async {
-    final resultado = await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => HistoricoLocalizacoesScreen(
@@ -704,13 +718,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     );
+
+    if (result == true) {
+      _carregarDados();
+    }
   }
 
-  void _changeTab(BuildContext context, int index) {
-    // Como estamos dentro de um Scaffold, precisamos acessar o estado do app
-    // Por enquanto, mostramos um SnackBar (pode ser melhorado depois)
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Indo para aba ${index + 1}...')),
-    );
+  Future<void> _abrirCadastroEmbarcacao(BuildContext context) async {
+    print("------------------------------------------------");
+    print(embarcacaoAtual);
+    print("------------------------------------------------");
+    if (embarcacaoAtual?.nome.isNotEmpty ?? false) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EmbarcacaoScreen(
+            dbHelper: widget.dbHelper,
+            embarcaoId: this.embarcacaoAtual,
+          ),
+        ),
+      );
+      print('not null');
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CadastrarEmbarcacaoScreen(
+            dbHelper: widget.dbHelper,
+          ),
+        ),
+      );
+      _carregarDados();
+    }
   }
 }
