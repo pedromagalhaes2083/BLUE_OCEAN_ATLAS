@@ -1,0 +1,32 @@
+{
+  "file": "gfs.t00z.pgrb2.0p25.f003",
+  "model": "GFS",
+  "run": "00Z",
+  "forecast_hour": 3,
+  "valid_time": "2026-05-18 03:00 UTC",
+  "resolution": "0.25°",
+  "total_records": 743,
+  "dados": [
+    {
+      "latitude": -2.55,
+      "longitude": -39.55,
+      "u10": 2.1,
+      "v10": -1.8,
+      "velocidade": 2.8,
+      "direcao": 229,
+      "tmp2m": 298.4,
+      "rh2m": 78
+    },
+    {
+      "latitude": -9.50,
+      "longitude": -44.75,
+      "u10": 2.4,
+      "v10": -2.1,
+      "velocidade": 3.2,
+      "direcao": 231,
+      "tmp2m": 298.1,
+      "rh2m": 79
+    }
+
+  ]
+}

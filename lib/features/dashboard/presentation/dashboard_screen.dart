@@ -1,6 +1,7 @@
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcaao_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
+import 'package:atlas/features/metereologia/presentation/gribs_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -391,6 +392,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: const Text('Embarcação'),
               onTap: () => _abrirCadastroEmbarcacao(context),
             ),
+            ListTile(
+              leading: const Icon(Icons.api_outlined),
+              title: const Text('Gribs'),
+              onTap: () => _abrirSolicitarGrib(context),
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.settings),
@@ -709,6 +715,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _abrirSolicitarGrib(BuildContext context) async {
+    final resultado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GribProcessorScreen(),
+      ),
+    );
+  }
+
   Future<void> _abrirHistoricoPosicoes(BuildContext context) async {
     final result = await Navigator.push(
       context,
@@ -734,7 +749,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         MaterialPageRoute(
           builder: (context) => EmbarcacaoScreen(
             dbHelper: widget.dbHelper,
-            embarcaoId: this.embarcacaoAtual,
+            embarcacao: this.embarcacaoAtual,
           ),
         ),
       );

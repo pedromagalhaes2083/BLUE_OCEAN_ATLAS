@@ -1,0 +1,64 @@
+{
+  "modelo": "HYCOM",
+  "tipo": "correntes_maritimas",
+  "timestamp": "2026-05-20T12:00:00Z",
+  "regiao": {
+    "toplat": 0,
+    "bottomlat": -10,
+    "leftlon": -45,
+    "rightlon": -30
+  },
+  "unidade_velocidade": "nós",
+  "dados": [
+    {
+      "latitude": -2.55,
+      "longitude": -39.55,
+      "u_corrente": 0.82,
+      "v_corrente": -0.15,
+      "velocidade": 1.01,
+      "direcao": 100,
+      "temperatura_agua": 28.4,
+      "salinidade": 35.1
+    },
+    {
+      "latitude": -2.5,
+      "longitude": -39.5,
+      "u_corrente": 0.65,
+      "v_corrente": -0.20,
+      "velocidade": 0.84,
+      "direcao": 107,
+      "temperatura_agua": 28.1,
+      "salinidade": 35.0
+    },
+    {
+      "latitude": -3.0,
+      "longitude": -39.0,
+      "u_corrente": 1.10,
+      "v_corrente": 0.32,
+      "velocidade": 1.45,
+      "direcao": 73,
+      "temperatura_agua": 27.9,
+      "salinidade": 35.2
+    },
+    {
+      "latitude": -3.5,
+      "longitude": -38.5,
+      "u_corrente": 0.48,
+      "v_corrente": -0.40,
+      "velocidade": 0.77,
+      "direcao": 130,
+      "temperatura_agua": 27.7,
+      "salinidade": 35.3
+    },
+    {
+      "latitude": -4.0,
+      "longitude": -38.0,
+      "u_corrente": 0.92,
+      "v_corrente": 0.10,
+      "velocidade": 1.05,
+      "direcao": 84,
+      "temperatura_agua": 27.5,
+      "salinidade": 35.4
+    }
+  ]
+}
