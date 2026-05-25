@@ -1,0 +1,45 @@
+{
+  "tipo": "clorofila",
+  "fonte": "NOAA CoastWatch VIIRS NPP Daily",
+  "dataset": "noaacwNPPVIIRSchlaDaily",
+  "data_consulta": "2026-05-22T12:00:00Z",
+  "unidade": "mg/m³",
+  "descricao": "Concentração de Clorofila-a",
+  "dados": [
+     {
+      "latitude": -2.55,
+      "longitude": -39.55,
+      "chlor_a": 1.85,
+      "time": "2026-05-22T12:00:00Z",
+      "altitude": 0.0
+    },
+    {
+      "latitude": -3.25,
+      "longitude": -39.45,
+      "chlor_a": 1.85,
+      "time": "2026-05-22T12:00:00Z",
+      "altitude": 0.0
+    },
+    {
+      "latitude": -3.18,
+      "longitude": -39.52,
+      "chlor_a": 2.34,
+      "time": "2026-05-22T12:00:00Z",
+      "altitude": 0.0
+    },
+    {
+      "latitude": -3.45,
+      "longitude": -39.38,
+      "chlor_a": 0.92,
+      "time": "2026-05-22T12:00:00Z",
+      "altitude": 0.0
+    },
+    {
+      "latitude": -2.95,
+      "longitude": -39.60,
+      "chlor_a": 3.12,
+      "time": "2026-05-22T12:00:00Z",
+      "altitude": 0.0
+    }
+  ]
+}

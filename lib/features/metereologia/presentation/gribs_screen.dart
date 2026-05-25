@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 class GribProcessorScreen extends StatefulWidget {
   const GribProcessorScreen({super.key});
@@ -18,43 +19,38 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
   bool loading = false;
   Map<String, dynamic>? resultadoVento;
   Map<String, dynamic>? resultadoCorrente;
+  Map<String, dynamic>? resultadoClorofila;
 
   List<dynamic> dadosExibidosVento = [];
   List<dynamic> dadosExibidosCorrentes = [];
+  List<dynamic> dadosExibidosClorofila = [];
+
+  bool loadingClorofila = false;
+  String? erroClorofila;
   // Posição
   Position? currentPosition;
   bool isLoadingPosition = false;
   String? positionError;
 
   // ============================================================
-  // CARREGAR JSON
+  // CARREGAR JSONs
   // ============================================================
   Future<void> carregarJsonDosAssets() async {
     setState(() => loading = true);
-
     try {
-      // ====================================================
-      // VENTO
-      // ====================================================
-
-      final String ventoString =
-          await rootBundle.loadString('assets/json/vento.json');
-
-      final Map<String, dynamic> ventoJson = jsonDecode(ventoString);
-
-      // ====================================================
-      // CORRENTES
-      // ====================================================
-
-      final String correnteString =
+      final ventoString = await rootBundle.loadString('assets/json/vento.json');
+      final correnteString =
           await rootBundle.loadString('assets/json/correntes.json');
-
-      final Map<String, dynamic> correnteJson = jsonDecode(correnteString);
+      final clorofilaString =
+          await rootBundle.loadString('assets/json/clorofila.json');
 
       setState(() {
-        resultadoVento = ventoJson;
-        resultadoCorrente = correnteJson;
+        resultadoVento = jsonDecode(ventoString);
+        resultadoCorrente = jsonDecode(correnteString);
+        resultadoClorofila = jsonDecode(clorofilaString);
       });
+
+      _aplicarFiltro(); // Atualiza as listas filtradas
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao carregar JSON: $e')),
@@ -85,64 +81,58 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
   // APLICAR FILTRO + ORDENAR POR PROXIMIDADE
   // ============================================================
   void _aplicarFiltro() {
+    if (currentPosition == null) {
+      setState(() {});
+      return;
+    }
+
     // =====================================================
     // VENTO
     // =====================================================
-
     if (resultadoVento != null) {
       List<dynamic> vento = List.from(resultadoVento!['dados'] ?? []);
-
-      if (currentPosition != null) {
-        vento.sort((a, b) {
-          double distA = _calcularDistanciaKm(
-            currentPosition!.latitude,
-            currentPosition!.longitude,
-            a['latitude'],
-            a['longitude'],
-          );
-
-          double distB = _calcularDistanciaKm(
-            currentPosition!.latitude,
-            currentPosition!.longitude,
-            b['latitude'],
-            b['longitude'],
-          );
-
-          return distA.compareTo(distB);
-        });
-      }
-
+      vento.sort((a, b) {
+        double distA = _calcularDistanciaKm(currentPosition!.latitude,
+            currentPosition!.longitude, a['latitude'], a['longitude']);
+        double distB = _calcularDistanciaKm(currentPosition!.latitude,
+            currentPosition!.longitude, b['latitude'], b['longitude']);
+        return distA.compareTo(distB);
+      });
       dadosExibidosVento = vento.take(50).toList();
     }
 
     // =====================================================
     // CORRENTES
     // =====================================================
-
     if (resultadoCorrente != null) {
       List<dynamic> correntes = List.from(resultadoCorrente!['dados'] ?? []);
-
-      if (currentPosition != null) {
-        correntes.sort((a, b) {
-          double distA = _calcularDistanciaKm(
-            currentPosition!.latitude,
-            currentPosition!.longitude,
-            a['latitude'],
-            a['longitude'],
-          );
-
-          double distB = _calcularDistanciaKm(
-            currentPosition!.latitude,
-            currentPosition!.longitude,
-            b['latitude'],
-            b['longitude'],
-          );
-
-          return distA.compareTo(distB);
-        });
-      }
-
+      correntes.sort((a, b) {
+        double distA = _calcularDistanciaKm(currentPosition!.latitude,
+            currentPosition!.longitude, a['latitude'], a['longitude']);
+        double distB = _calcularDistanciaKm(currentPosition!.latitude,
+            currentPosition!.longitude, b['latitude'], b['longitude']);
+        return distA.compareTo(distB);
+      });
       dadosExibidosCorrentes = correntes.take(50).toList();
+    }
+
+    // =====================================================
+    // CLOROFILA
+    // =====================================================
+    if (resultadoClorofila != null) {
+      List<dynamic> clorofila = List.from(resultadoClorofila!['dados'] ?? []);
+
+      clorofila.sort((a, b) {
+        double distA = _calcularDistanciaKm(currentPosition!.latitude,
+            currentPosition!.longitude, a['latitude'], a['longitude']);
+        double distB = _calcularDistanciaKm(currentPosition!.latitude,
+            currentPosition!.longitude, b['latitude'], b['longitude']);
+        return distA.compareTo(distB);
+      });
+
+      // Correção aqui:
+      dadosExibidosClorofila =
+          clorofila.take(50).map((e) => Map<String, dynamic>.from(e)).toList();
     }
 
     setState(() {});
@@ -224,8 +214,13 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
             style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: loading ? null : carregarJsonDosAssets),
+            icon: const Icon(Icons.refresh),
+            onPressed: loading
+                ? null
+                : () {
+                    carregarJsonDosAssets();
+                  },
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -234,15 +229,15 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
           children: [
             // Position Card
             _buildPositionCard(),
-
             const SizedBox(height: 16),
-
             // Card Vento
             _buildVentoCard(),
-
             const SizedBox(height: 16),
             // Card Correntes
             _buildCorrenteCard(),
+            const SizedBox(height: 16),
+            // Card Correntes
+            _buildChlorophyllCard(),
           ],
         ),
       ),
@@ -543,6 +538,19 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
         child: Column(
           children: [
             Row(
+              children: const [
+                Icon(Icons.air,
+                    color: Color.fromARGB(255, 62, 207, 243), size: 28),
+                SizedBox(width: 12),
+                Text('Rajadas de Vento',
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 62, 207, 243))),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(velocidade.toStringAsFixed(1),
@@ -582,6 +590,89 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
         Text(value,
             style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
       ],
+    );
+  }
+
+  Widget _buildChlorophyllCard() {
+    if (dadosExibidosClorofila.isEmpty) {
+      return Card(
+        color: const Color.fromARGB(255, 237, 239, 243),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: const Padding(
+          padding: EdgeInsets.all(40),
+          child: Center(
+              child: Text('Carregando clorofila...',
+                  style: TextStyle(fontSize: 18))),
+        ),
+      );
+    }
+
+    final item = dadosExibidosClorofila.first;
+    final double chl = (item['chlor_a'] ?? 0).toDouble();
+    final double distancia = currentPosition != null
+        ? _calcularDistanciaKm(
+            currentPosition!.latitude,
+            currentPosition!.longitude,
+            item['latitude'],
+            item['longitude'],
+          )
+        : 0;
+
+    return Card(
+      elevation: 8,
+      color: const Color(0xFFE0F2E9),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.eco, color: Colors.green, size: 28),
+                SizedBox(width: 12),
+                Text('Clorofila/Fitoplâncton',
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: Text(
+                chl.toStringAsFixed(2),
+                style:
+                    const TextStyle(fontSize: 64, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Center(
+              child: Text('mg/m³',
+                  style: TextStyle(fontSize: 20, color: Colors.grey)),
+            ),
+            const SizedBox(height: 24),
+
+            // Container com Row corrigido
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _infoColumn(Icons.location_on, 'Distância',
+                      '${distancia.toStringAsFixed(1)} km'),
+                  _infoColumn(Icons.calendar_today, 'Data',
+                      item['time'].toString().substring(0, 10)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
