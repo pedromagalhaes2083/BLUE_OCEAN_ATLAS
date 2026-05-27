@@ -16,6 +16,7 @@ import 'package:atlas/core/auth/auth_service.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
 import '../../embarcacao/domain/models/embarcacao.dart';
+import 'package:atlas/features/widgets/position_card.dart';
 
 class DashboardScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -252,7 +253,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 32),
 
                     // Posição Atual
-                    _buildPositionCard(),
+                    PositionCard(
+                      isLoadingPosition: isLoadingPosition,
+                      positionError: positionError,
+                      currentPosition: currentPosition,
+                      formatCoordinates: _formatCoordinates,
+                    ),
 
                     const SizedBox(height: 32),
 
@@ -526,62 +532,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPositionCard() {
-    return SizedBox(
-      width: double.infinity,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const Text(
-                '📍 Posição Atual',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (isLoadingPosition)
-                const CircularProgressIndicator()
-              else if (positionError != null)
-                Text(
-                  positionError!,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                )
-              else if (currentPosition != null)
-                SizedBox(
-                  width: double.infinity,
-                  child: Text(
-                    _formatCoordinates(
-                      currentPosition!.latitude,
-                      currentPosition!.longitude,
-                    ),
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              const SizedBox(height: 8),
-              const Text(
-                'Toque no botão para atualizar',
-                style: TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
         ),
       ),
     );

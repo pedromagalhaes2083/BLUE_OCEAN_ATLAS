@@ -7,17 +7,7 @@
   "resolution": "0.25°",
   "total_records": 743,
   "dados": [
-    {
-      "latitude": -2.55,
-      "longitude": -39.55,
-      "u10": 2.1,
-      "v10": -1.8,
-      "velocidade": 2.8,
-      "direcao": 229,
-      "tmp2m": 298.4,
-      "rh2m": 78
-    },
-    {
+     {
       "latitude": -9.50,
       "longitude": -44.75,
       "u10": 2.4,
@@ -25,8 +15,31 @@
       "velocidade": 3.2,
       "direcao": 231,
       "tmp2m": 298.1,
-      "rh2m": 79
+      "rh2m": 79,
+      "intensidade": 1 
+    },
+    {
+      "latitude": -2.55,
+      "longitude": -39.55,
+      "u10": 2.1,
+      "v10": -1.8,
+      "velocidade": 3.2,
+      "direcao": 229,
+      "tmp2m": 298.4,
+      "rh2m": 78
     }
+    ,
+    {
+      "latitude": -2.58,
+      "longitude": -38.55,
+      "u10": 2.1,
+      "v10": -1.8,
+      "velocidade": 2.8,
+      "direcao": 229,
+      "tmp2m": 298.4,
+      "rh2m": 78
+    }
+   
 
   ]
 }
