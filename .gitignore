@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Carta náutica bundled — arquivo grande demais para o GitHub (>100MB)
+assets/cartas/OUTPUT_FILE.mbtiles

@@ -1,4 +1,6 @@
-import 'dart:typed_data';
+import 'dart:io';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class MbtilesService {
@@ -13,6 +15,24 @@ class MbtilesService {
   String? get filePath => _filePath;
   String? get name => _name;
 
+  // Copia o asset para o armazenamento interno (apenas na primeira vez)
+  // e abre o arquivo resultante.
+  Future<void> openFromAsset(String assetPath) async {
+    final fileName = assetPath.split('/').last;
+    final dir = await getApplicationDocumentsDirectory();
+    final localFile = File('${dir.path}/$fileName');
+
+    if (!await localFile.exists()) {
+      final data = await rootBundle.load(assetPath);
+      await localFile.writeAsBytes(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        flush: true,
+      );
+    }
+
+    await open(localFile.path);
+  }
+
   Future<void> open(String filePath) async {
     await close();
     _db = await openDatabase(filePath, readOnly: true);
@@ -21,14 +41,12 @@ class MbtilesService {
     final meta = await getMetadata();
     _name = meta['name'];
 
-    // Detecta convenção pelo metadado "scheme" (nem sempre presente)
     final scheme = meta['scheme']?.toLowerCase();
     if (scheme == 'xyz') {
       _isTms = false;
     } else if (scheme == 'tms') {
       _isTms = true;
     }
-    // Se ausente, detecta automaticamente na primeira requisição de tile
   }
 
   Future<void> close() async {
@@ -51,28 +69,22 @@ class MbtilesService {
   Future<Uint8List?> getTileBytes(int z, int x, int y) async {
     if (_db == null) return null;
 
-    // Convenção já conhecida — usa direto
     if (_isTms != null) {
       final tileY = _isTms! ? (1 << z) - 1 - y : y;
       return _query(z, x, tileY);
     }
 
-    // Auto-detecção na primeira chamada: tenta TMS (flip) primeiro
-    final tmsY = (1 << z) - 1 - y;
-    final withFlip = await _query(z, x, tmsY);
+    // Auto-detecção: tenta TMS primeiro, depois XYZ
+    final withFlip = await _query(z, x, (1 << z) - 1 - y);
     if (withFlip != null) {
       _isTms = true;
       return withFlip;
     }
-
-    // Sem flip (XYZ)
     final withoutFlip = await _query(z, x, y);
     if (withoutFlip != null) {
       _isTms = false;
       return withoutFlip;
     }
-
-    // Tile genuinamente ausente nessa posição — não altera _isTms
     return null;
   }
 

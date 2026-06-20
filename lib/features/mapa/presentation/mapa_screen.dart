@@ -8,6 +8,8 @@ import '../../../core/services/mbtiles_service.dart';
 import '../../../core/services/geotiff_service.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 
+const _bundledAsset = 'assets/cartas/OUTPUT_FILE.mbtiles';
+
 enum _MapMode { none, mbtiles, geotiff }
 
 class MapaScreen extends StatefulWidget {
@@ -27,22 +29,20 @@ class _MapaScreenState extends State<MapaScreen> {
   String? _fileName;
   String? _error;
 
-  // Estado GeoTIFF
   GeotiffResult? _geotiff;
 
-  // Estado MBTiles (zoom/center)
   double _minZoom = 0;
   double _maxZoom = 18;
   LatLng _center = const LatLng(-15.0, -50.0);
   double _zoom = 4;
 
-  // GPS
   LatLng? _gpsPosition;
 
   @override
   void initState() {
     super.initState();
     _loadGpsPosition();
+    _loadBundledChart();
   }
 
   @override
@@ -50,6 +50,35 @@ class _MapaScreenState extends State<MapaScreen> {
     _mbtiles.close();
     super.dispose();
   }
+
+  // ── Carta bundled ──────────────────────────────────────────────────────────
+
+  Future<void> _loadBundledChart() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await _mbtiles.openFromAsset(_bundledAsset);
+      final meta = await _mbtiles.getMetadata();
+      _applyMetadata(meta);
+      setState(() {
+        _mode = _MapMode.mbtiles;
+        _fileName = _bundledAsset.split('/').last;
+        _loading = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mapController.move(_center, _zoom);
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Erro ao carregar carta: $e';
+        _loading = false;
+      });
+    }
+  }
+
+  // ── GPS ────────────────────────────────────────────────────────────────────
 
   Future<void> _loadGpsPosition() async {
     try {
@@ -67,9 +96,16 @@ class _MapaScreenState extends State<MapaScreen> {
     } catch (_) {}
   }
 
+  void _centerOnGps() {
+    if (_gpsPosition != null) {
+      _mapController.move(_gpsPosition!, _mapController.camera.zoom);
+    }
+  }
+
+  // ── Arquivo externo (opcional) ─────────────────────────────────────────────
+
   Future<void> _pickFile() async {
     setState(() => _error = null);
-
     final result = await FilePicker.platform.pickFiles(type: FileType.any);
     if (result == null || result.files.single.path == null) return;
 
@@ -87,40 +123,18 @@ class _MapaScreenState extends State<MapaScreen> {
     }
   }
 
-  // ── MBTiles ────────────────────────────────────────────────────────────────
-
   Future<void> _openMbtiles(String path, String name) async {
     setState(() => _loading = true);
     try {
-      // Fecha qualquer arquivo anterior
-      await _mbtiles.close();
       await _mbtiles.open(path);
       final meta = await _mbtiles.getMetadata();
-
-      if (meta.containsKey('center')) {
-        final parts = meta['center']!.split(',').map(double.parse).toList();
-        if (parts.length >= 2) {
-          _center = LatLng(parts[1], parts[0]);
-          if (parts.length >= 3) _zoom = parts[2];
-        }
-      } else if (meta.containsKey('bounds')) {
-        final b = meta['bounds']!.split(',').map(double.parse).toList();
-        if (b.length == 4) {
-          _center = LatLng((b[1] + b[3]) / 2, (b[0] + b[2]) / 2);
-        }
-      }
-
-      _minZoom = double.tryParse(meta['minzoom'] ?? '') ?? 0;
-      _maxZoom = double.tryParse(meta['maxzoom'] ?? '') ?? 18;
-      _zoom = _zoom.clamp(_minZoom, _maxZoom);
-
+      _applyMetadata(meta);
       setState(() {
         _mode = _MapMode.mbtiles;
         _geotiff = null;
         _fileName = name;
         _loading = false;
       });
-
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mapController.move(_center, _zoom);
       });
@@ -132,29 +146,23 @@ class _MapaScreenState extends State<MapaScreen> {
     }
   }
 
-  // ── GeoTIFF ────────────────────────────────────────────────────────────────
-
   Future<void> _openGeotiff(String path, String name) async {
     setState(() => _loading = true);
     try {
       final result = await _geotiffService.load(path);
-
-      // Fecha MBTiles se estava aberto
       await _mbtiles.close();
-
-      final centerLat = (result.north + result.south) / 2;
-      final centerLon = (result.east + result.west) / 2;
-
       setState(() {
         _mode = _MapMode.geotiff;
         _geotiff = result;
         _fileName = name;
-        _center = LatLng(centerLat, centerLon);
+        _center = LatLng(
+          (result.north + result.south) / 2,
+          (result.east + result.west) / 2,
+        );
         _minZoom = 0;
         _maxZoom = 22;
         _loading = false;
       });
-
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mapController.fitCamera(
           CameraFit.bounds(
@@ -174,12 +182,24 @@ class _MapaScreenState extends State<MapaScreen> {
     }
   }
 
-  // ── GPS ────────────────────────────────────────────────────────────────────
+  // ── Metadados ──────────────────────────────────────────────────────────────
 
-  void _centerOnGps() {
-    if (_gpsPosition != null) {
-      _mapController.move(_gpsPosition!, _mapController.camera.zoom);
+  void _applyMetadata(Map<String, String> meta) {
+    if (meta.containsKey('center')) {
+      final parts = meta['center']!.split(',').map(double.parse).toList();
+      if (parts.length >= 2) {
+        _center = LatLng(parts[1], parts[0]); // lon,lat → LatLng(lat,lon)
+        if (parts.length >= 3) _zoom = parts[2];
+      }
+    } else if (meta.containsKey('bounds')) {
+      final b = meta['bounds']!.split(',').map(double.parse).toList();
+      if (b.length == 4) {
+        _center = LatLng((b[1] + b[3]) / 2, (b[0] + b[2]) / 2);
+      }
     }
+    _minZoom = double.tryParse(meta['minzoom'] ?? '') ?? 0;
+    _maxZoom = double.tryParse(meta['maxzoom'] ?? '') ?? 18;
+    _zoom = _zoom.clamp(_minZoom, _maxZoom);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -189,7 +209,7 @@ class _MapaScreenState extends State<MapaScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _fileName ?? 'Visualizador de Mapa',
+          _fileName ?? 'Carregando carta...',
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
@@ -205,12 +225,12 @@ class _MapaScreenState extends State<MapaScreen> {
             ),
           IconButton(
             icon: const Icon(Icons.folder_open),
-            tooltip: 'Abrir arquivo',
+            tooltip: 'Carregar outro arquivo',
             onPressed: _loading ? null : _pickFile,
           ),
         ],
       ),
-      body: _mode != _MapMode.none ? _buildMap() : _buildEmpty(),
+      body: _buildBody(),
       floatingActionButton: _mode != _MapMode.none && _gpsPosition != null
           ? FloatingActionButton(
               onPressed: _centerOnGps,
@@ -218,6 +238,59 @@ class _MapaScreenState extends State<MapaScreen> {
             )
           : null,
     );
+  }
+
+  Widget _buildBody() {
+    // Carregando carta bundled pela primeira vez
+    if (_loading && _mode == _MapMode.none) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Carregando carta náutica...'),
+          ],
+        ),
+      );
+    }
+
+    // Erro ao carregar bundled (sem nenhum arquivo aberto)
+    if (_error != null && _mode == _MapMode.none) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red[200]!),
+                ),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _loadBundledChart,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return _buildMap();
   }
 
   Widget _buildMap() {
@@ -228,7 +301,6 @@ class _MapaScreenState extends State<MapaScreen> {
         initialZoom: _zoom,
         minZoom: _minZoom,
         maxZoom: _maxZoom,
-        // Fundo azul-oceano quando não há tiles de base (modo GeoTIFF)
         backgroundColor: const Color(0xFF1B3A5C),
       ),
       children: [
@@ -264,53 +336,6 @@ class _MapaScreenState extends State<MapaScreen> {
             ],
           ),
       ],
-    );
-  }
-
-  Widget _buildEmpty() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.map_outlined, size: 80, color: Colors.grey[400]),
-            const SizedBox(height: 24),
-            const Text(
-              'Nenhum arquivo carregado',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Formatos suportados: .mbtiles  •  .tif / .tiff (WGS84)',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red[200]!),
-                ),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _loading ? null : _pickFile,
-              icon: const Icon(Icons.folder_open),
-              label: const Text('Abrir arquivo'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
