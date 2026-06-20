@@ -85,13 +85,21 @@ class _MapaScreenState extends State<MapaScreen> {
       final permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) return;
-      final pos = await Geolocator.getCurrentPosition(
+
+      // Mostra a última posição conhecida imediatamente (cache do sistema)
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null && mounted) {
+        setState(() => _gpsPosition = LatLng(last.latitude, last.longitude));
+      }
+
+      // Atualiza com fix fresco em segundo plano
+      final fresh = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
+          accuracy: LocationAccuracy.high,
         ),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
       if (mounted) {
-        setState(() => _gpsPosition = LatLng(pos.latitude, pos.longitude));
+        setState(() => _gpsPosition = LatLng(fresh.latitude, fresh.longitude));
       }
     } catch (_) {}
   }
