@@ -25,6 +25,12 @@ dependencies:
   permission_handler: ^12.0.0
 
 
+  # Mapa offline (MBTiles + GeoTIFF)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  file_picker: ^8.1.6
+  image: ^4.5.0
+
   # Utils
   intl: ^0.19.0
   flutter_secure_storage: ^9.2.0

@@ -1,12 +1,11 @@
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
+import 'package:atlas/features/mapa/presentation/mapa_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcaao_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
 import 'package:atlas/features/metereologia/presentation/gribs_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 
 import '../../../core/database/database_helper.dart';
@@ -325,6 +324,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         label: 'Mapa de Navegação',
                         color: Colors.blue,
                         onTap: () => _abrirHistoricoPosicoes(context)),
+                    const SizedBox(height: 12),
+                    _buildActionButton(
+                        icon: Icons.layers,
+                        label: 'Mapa Offline (MBTiles)',
+                        color: Colors.teal,
+                        onTap: () => _abrirMapaOffline(context)),
                     const SizedBox(height: 12),
                     _buildActionButton(
                         icon: Icons.add_link_rounded,
@@ -663,6 +668,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SnackBar(content: Text('Carta solicitada com sucesso!')),
       );
     }
+  }
+
+  void _abrirMapaOffline(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MapaScreen()),
+    );
   }
 
   Future<void> _abrirSolicitarGrib(BuildContext context) async {
