@@ -6,9 +6,12 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../core/services/mbtiles_service.dart';
 import '../../../core/services/geotiff_service.dart';
+import '../../../core/services/pontos_service.dart';
 import '../widgets/mbtiles_tile_provider.dart';
+import '../widgets/meteorologia_sheet.dart';
 
 const _bundledAsset = 'assets/cartas/OUTPUT_FILE.mbtiles';
+const _pontosAsset = 'assets/json/posicoes/Routing3.json';
 
 enum _MapMode { none, mbtiles, geotiff }
 
@@ -22,7 +25,10 @@ class MapaScreen extends StatefulWidget {
 class _MapaScreenState extends State<MapaScreen> {
   final MbtilesService _mbtiles = MbtilesService();
   final GeotiffService _geotiffService = GeotiffService();
+  final PontosService _pontosService = PontosService();
   final MapController _mapController = MapController();
+
+  List<PontoMapa> _pontos = [];
 
   _MapMode _mode = _MapMode.none;
   bool _loading = false;
@@ -43,6 +49,7 @@ class _MapaScreenState extends State<MapaScreen> {
     super.initState();
     _loadGpsPosition();
     _loadBundledChart();
+    _loadPontos();
   }
 
   @override
@@ -75,6 +82,17 @@ class _MapaScreenState extends State<MapaScreen> {
         _error = 'Erro ao carregar carta: $e';
         _loading = false;
       });
+    }
+  }
+
+  // ── Pontos JSON ────────────────────────────────────────────────────────────
+
+  Future<void> _loadPontos() async {
+    try {
+      final pontos = await _pontosService.loadFromAsset(_pontosAsset);
+      if (mounted) setState(() => _pontos = pontos);
+    } catch (_) {
+      // Arquivo ausente ou mal-formado — não bloqueia o mapa
     }
   }
 
@@ -242,7 +260,7 @@ class _MapaScreenState extends State<MapaScreen> {
       floatingActionButton: _mode != _MapMode.none && _gpsPosition != null
           ? FloatingActionButton(
               onPressed: _centerOnGps,
-              child: const Icon(Icons.my_location),
+              child: const Icon(Icons.directions_boat),
             )
           : null,
     );
@@ -328,6 +346,58 @@ class _MapaScreenState extends State<MapaScreen> {
               ),
             ],
           ),
+        // Pontos precisos: widget 14x14 centralizado exatamente na coordenada
+        if (_pontos.isNotEmpty)
+          MarkerLayer(
+            markers: _pontos
+                .map((p) => Marker(
+                      point: LatLng(p.latitude, p.longitude),
+                      width: 14,
+                      height: 14,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+        // Labels: flutuam à direita do ponto, sem exigir precisão pixel-perfect
+        if (_pontos.isNotEmpty)
+          MarkerLayer(
+            markers: _pontos
+                .map((p) => Marker(
+                      point: LatLng(p.latitude, p.longitude),
+                      width: 150,
+                      height: 22,
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: GestureDetector(
+                          onTap: () => MeteorologiaSheet.show(context, p),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              p.label,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
         if (_gpsPosition != null)
           MarkerLayer(
             markers: [
@@ -336,7 +406,7 @@ class _MapaScreenState extends State<MapaScreen> {
                 width: 40,
                 height: 40,
                 child: const Icon(
-                  Icons.my_location,
+                  Icons.directions_boat,
                   color: Colors.blue,
                   size: 36,
                 ),

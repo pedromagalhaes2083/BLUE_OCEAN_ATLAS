@@ -45,4 +45,5 @@ flutter:
     - assets/cartas/
     - assets/icons/
     - assets/json/
+    - assets/json/posicoes/
    

@@ -1,0 +1,52 @@
+{
+  "empresa": {
+    "id": "0abf9c2e-7b41-4d8a-9c52-1e6f7a8b9c0d",
+    "nome": "Blue Ocean"
+  },
+  "embarcacao": {
+    "id": "019ec794-e0b9-7c8e-92b3-dc465c176f3d",
+    "nome": "Itiban"
+  },
+  "dispositivo": {
+    "id": "019ec239-380a-7531-9dad-0d01b4701b20",
+    "nome": "Mobile Pedro"
+  },
+  "fuso": "America/Fortaleza",
+  "instante": "2026-06-15T11:10:00Z",
+  "latitude": -3.758889,
+  "longitude": -32.3475,
+  "meteorologia": {
+    "tws_kts": 10.89,
+    "twd_deg": 117.36,
+    "twa_deg": 45.0,
+    "stw_kts": 8.05,
+    "ctw_deg": 72.36,
+    "sog_kts": 8.05,
+    "cog_deg": 72.36,
+    "aws_kts": 17.53,
+    "awa_deg": -26.06,
+    "gusts_kts": 12.69,
+    "rain_mm_h": 0.0,
+    "clouds_pct": 28.25,
+    "airtemp_c": 26.95,
+    "cape_j_kg": 1149.12,
+    "reflectivity_dbz": -20.0,
+    "pressure_hpa": 1013.7,
+    "comb_waves_height_m": 1.32,
+    "prim_waves_dir_deg": null,
+    "prim_waves_period_s": null,
+    "comb_waves_steepness_pct": null,
+    "max_waves_height_m": null,
+    "max_waves_dir_deg": null,
+    "max_waves_period_s": null,
+    "wind_waves_height_m": 0.99,
+    "wind_waves_dir_deg": 119.47,
+    "wind_waves_period_s": 6.7,
+    "wind_waves_steepness_pct": 2.1,
+    "swell_height_m": 0.76,
+    "swell_dir_deg": 21.67,
+    "swell_period_s": 8.8,
+    "swell_steepness_pct": 0.6,
+    "mean_waves_dir_deg": null
+  }
+}
