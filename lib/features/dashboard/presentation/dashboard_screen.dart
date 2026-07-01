@@ -1,3 +1,4 @@
+import 'package:atlas/features/api_tester/presentation/api_tester_screen.dart';
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
 import 'package:atlas/features/mapa/presentation/mapa_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcaao_screen.dart';
@@ -336,6 +337,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         label: 'Solicitar Carta',
                         color: Colors.green,
                         onTap: () => _abrirSolicitarCarta(context)),
+                    const SizedBox(height: 12),
+                    _buildActionButton(
+                        icon: Icons.api,
+                        label: 'Teste de API',
+                        color: Colors.deepPurple,
+                        onTap: () => _abrirApiTester(context)),
 
                     const SizedBox(height: 40),
                     const Center(
@@ -699,6 +706,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (result == true) {
       _carregarDados();
     }
+  }
+
+  void _abrirApiTester(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ApiTesterScreen()),
+    );
   }
 
   Future<void> _abrirCadastroEmbarcacao(BuildContext context) async {

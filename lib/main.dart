@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'core/database/database_helper.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/cartas/presentation/cartas_screen.dart';
@@ -9,6 +10,10 @@ void main() async {
 
   // Inicializa o banco SQLite
   final dbHelper = DatabaseHelper.instance;
+
+  // Inicializa Hive
+  await Hive.initFlutter();
+  await Hive.openBox('api_responses');
 
   runApp(AtlasBlueOceanApp(dbHelper: dbHelper));
 }

@@ -31,6 +31,9 @@ dependencies:
   file_picker: ^8.1.6
   image: ^4.5.0
 
+  # Armazenamento local NoSQL
+  hive_flutter: ^1.1.0
+
   # Utils
   intl: ^0.19.0
   flutter_secure_storage: ^9.2.0
