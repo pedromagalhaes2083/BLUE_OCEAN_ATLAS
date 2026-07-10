@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../core/models/wave_forecast.dart';
 import '../../../core/storage/api_storage_service.dart';
+import '../../widgets/wave_forecast/wave_hourly_timeline.dart';
+import '../../widgets/wave_forecast/wave_summary_card.dart';
 
 class ApiTesterScreen extends StatefulWidget {
   const ApiTesterScreen({super.key});
@@ -28,6 +31,7 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
   bool _loadingGps = true;
   bool _loadingRequest = false;
   _ApiResponse? _response;
+  WaveForecast? _waveForecast;
   String? _requestError;
 
   static const _methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
@@ -94,6 +98,7 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
     setState(() {
       _loadingRequest = true;
       _response = null;
+      _waveForecast = null;
       _requestError = null;
     });
 
@@ -142,7 +147,16 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
         savedAt: DateTime.now(),
       ));
 
-      setState(() => _response = apiResponse);
+      // Tenta parsear como WaveForecast; ignora se não for compatível
+      WaveForecast? wave;
+      try {
+        wave = WaveForecast.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+      } catch (_) {}
+
+      setState(() {
+        _response = apiResponse;
+        _waveForecast = wave;
+      });
     } catch (e) {
       setState(() => _requestError = e.toString());
     } finally {
@@ -337,61 +351,78 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
     final isOk = r.statusCode >= 200 && r.statusCode < 300;
     final color = isOk ? Colors.green[700]! : Colors.red[700]!;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Status bar ──────────────────────────────────────────────────
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border:
-                        Border.all(color: color.withValues(alpha: 0.4)),
+                    border: Border.all(color: color.withValues(alpha: 0.4)),
                   ),
                   child: Text('${r.statusCode}',
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: color,
-                          fontSize: 15)),
+                          fontWeight: FontWeight.bold, color: color, fontSize: 15)),
                 ),
                 const SizedBox(width: 12),
                 Text('${r.elapsed.inMilliseconds} ms',
-                    style:
-                        TextStyle(color: Colors.grey[600], fontSize: 13)),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13)),
                 const Spacer(),
-                const Icon(Icons.check_circle,
-                    color: Colors.green, size: 18),
+                const Icon(Icons.check_circle, color: Colors.green, size: 18),
                 const SizedBox(width: 4),
                 Text('Salvo',
-                    style: TextStyle(
-                        color: Colors.green[700], fontSize: 12)),
+                    style: TextStyle(color: Colors.green[700], fontSize: 12)),
               ],
             ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: SelectableText(
-                r.body.isEmpty ? '(sem conteúdo)' : r.body,
-                style: const TextStyle(
-                  color: Color(0xFFD4D4D4),
-                  fontFamily: 'monospace',
-                  fontSize: 12,
+          ),
+        ),
+
+        // ── Widgets de onda (se a resposta for compatível) ──────────────
+        if (_waveForecast != null) ...[
+          const SizedBox(height: 8),
+          WaveSummaryCard(forecast: _waveForecast!),
+          const SizedBox(height: 8),
+          WaveHourlyTimeline(forecast: _waveForecast!),
+          const SizedBox(height: 8),
+        ],
+
+        // ── JSON bruto (colapsável) ─────────────────────────────────────
+        Card(
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+            title: Text(
+              _waveForecast != null ? 'Ver JSON bruto' : 'Resposta',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+            initiallyExpanded: _waveForecast == null,
+            children: [
+              Container(
+                margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SelectableText(
+                  r.body.isEmpty ? '(sem conteúdo)' : r.body,
+                  style: const TextStyle(
+                    color: Color(0xFFD4D4D4),
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
