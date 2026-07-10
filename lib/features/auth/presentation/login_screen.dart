@@ -1,7 +1,7 @@
 import 'package:atlas/core/database/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:atlas/core/auth/auth_service.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
+import '../../../app_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -14,90 +14,117 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usuarioController = TextEditingController(text: "mestre");
-  final _senhaController = TextEditingController(text: "1234");
+  final _usuarioController = TextEditingController(text: 'admin@blueocean.io');
+  final _senhaController = TextEditingController(text: 'SuperSecret123!');
   bool _isLoading = false;
+  String? _erro;
 
   Future<void> _fazerLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _erro = null;
+    });
 
-    final auth = AuthService.instance;
-    final success = await auth.login(
-      _usuarioController.text.trim(),
-      _senhaController.text.trim(),
-    );
+    try {
+      await AuthService.login(
+        _usuarioController.text.trim(),
+        _senhaController.text.trim(),
+      );
 
-    setState(() => _isLoading = false);
-
-    if (success) {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => DashboardScreen(dbHelper: widget.dbHelper),
+          builder: (_) => AppShell(dbHelper: widget.dbHelper),
         ),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuário ou senha incorretos')),
-      );
+    } on UnauthorisedException {
+      setState(() => _erro = 'Usuário ou senha incorretos.');
+    } catch (e) {
+      setState(() => _erro = 'Erro ao conectar. Tente novamente.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _usuarioController.dispose();
+    _senhaController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.directions_boat, size: 100, color: Colors.blue),
-              const SizedBox(height: 40),
-              const Text(
-                'Atlas Blue Ocean',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text('Login do Mestre', style: TextStyle(fontSize: 18)),
-              const SizedBox(height: 40),
-              TextFormField(
-                controller: _usuarioController,
-                decoration: const InputDecoration(
-                  labelText: 'Usuário',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height -
+              MediaQuery.of(context).padding.top -
+              48,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/icons/blue_ocean.png',
+                  width: 160,
+                  height: 160,
+                  fit: BoxFit.contain,
                 ),
-                validator: (value) =>
-                    value?.isEmpty == true ? 'Informe o usuário' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _senhaController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Senha',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
+                const SizedBox(height: 40),
+                const Text(
+                  'Atlas Blue Ocean',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
-                validator: (value) =>
-                    value?.isEmpty == true ? 'Informe a senha' : null,
-              ),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _fazerLogin,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('ENTRAR', style: TextStyle(fontSize: 18)),
+                const SizedBox(height: 8),
+                const Text('Login do Mestre', style: TextStyle(fontSize: 18)),
+                const SizedBox(height: 40),
+                TextFormField(
+                  controller: _usuarioController,
+                  decoration: const InputDecoration(
+                    labelText: 'Usuário',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  validator: (v) => v?.isEmpty == true ? 'Informe o usuário' : null,
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _senhaController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Senha',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  validator: (v) => v?.isEmpty == true ? 'Informe a senha' : null,
+                ),
+                if (_erro != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _erro!,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _fazerLogin,
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('ENTRAR', style: TextStyle(fontSize: 18)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

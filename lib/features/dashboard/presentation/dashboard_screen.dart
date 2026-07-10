@@ -647,7 +647,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (confirm == true) {
-      await AuthService.instance.logout();
+      await AuthService.logout();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
