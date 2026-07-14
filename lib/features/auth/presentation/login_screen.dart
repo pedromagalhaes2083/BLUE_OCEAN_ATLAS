@@ -1,6 +1,7 @@
 import 'package:atlas/core/database/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:atlas/core/auth/auth_service.dart';
+import 'package:atlas/core/services/sincronizacao_service.dart';
 import '../../../app_shell.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -32,6 +33,14 @@ class _LoginScreenState extends State<LoginScreen> {
         _usuarioController.text.trim(),
         _senhaController.text.trim(),
       );
+
+      try {
+        await SincronizacaoService.sincronizar();
+      } catch (e) {
+        // Não bloqueia o login — dispositivo/recomendações são dados
+        // complementares, buscados de novo depois se falharem aqui.
+        debugPrint('Erro ao sincronizar dados do dispositivo: $e');
+      }
 
       if (!mounted) return;
       Navigator.pushReplacement(

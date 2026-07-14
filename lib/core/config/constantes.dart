@@ -3,4 +3,5 @@ class Constantes {
   static const String authToken = 'auth_token';
   static const String authCredencial = 'auth_credencial';
   static const String deviceId = 'device_id';
+  static const String organizacaoId = 'organizacao_id';
 }

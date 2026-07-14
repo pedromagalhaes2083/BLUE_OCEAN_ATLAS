@@ -18,6 +18,7 @@ import '../../../core/services/location_tracking_service.dart'; // ← Adicionad
 import '../../embarcacao/domain/models/embarcacao.dart';
 import 'package:atlas/features/widgets/position_card.dart';
 import '../../configuracoes/presentation/configuracoes_screen.dart';
+import '../../dispositivo/presentation/dispositivo_teste_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -344,6 +345,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         label: 'Teste de API',
                         color: Colors.deepPurple,
                         onTap: () => _abrirApiTester(context)),
+                    const SizedBox(height: 12),
+                    _buildActionButton(
+                        icon: Icons.smartphone,
+                        label: 'Teste — Dispositivo & Recomendações',
+                        color: Colors.indigo,
+                        onTap: () => _abrirDispositivoTeste(context)),
 
                     const SizedBox(height: 40),
                     const Center(
@@ -719,6 +726,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const ApiTesterScreen()),
+    );
+  }
+
+  void _abrirDispositivoTeste(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const DispositivoTesteScreen()),
     );
   }
 

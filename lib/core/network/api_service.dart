@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../auth/jwt_utils.dart';
 import '../config/config.dart';
 import '../config/constantes.dart';
 import 'excecoes.dart';
@@ -34,6 +35,13 @@ class ApiService {
     await Config.grava(Constantes.api, api);
     await Config.grava(Constantes.authToken, token);
     await Config.grava(Constantes.authCredencial, responseLogin.body);
+
+    // A organização não vem no corpo do login — é uma claim do próprio JWT.
+    final claims = decodeJwtPayload(token);
+    final organizacaoId = claims['organizacaoId'] as String?;
+    if (organizacaoId != null) {
+      await Config.grava(Constantes.organizacaoId, organizacaoId);
+    }
   }
 
   // ── GET ────────────────────────────────────────────────────────────────────
@@ -41,10 +49,9 @@ class ApiService {
   static Future<dynamic> get(String recurso) async {
     recurso = _limpaRota(recurso);
     final api = await _api();
-    final token = await _token();
     final response = await http.get(
-      Uri.parse('https://$api/api/$recurso'),
-      headers: {'Authorization': 'Bearer $token'},
+      Uri.parse('https://$api/api/v1/$recurso'),
+      headers: await _headers(),
     );
     return _analisa(response);
   }
@@ -54,15 +61,11 @@ class ApiService {
   static Future<dynamic> post(String recurso, dynamic data) async {
     recurso = _limpaRota(recurso);
     final api = await _api();
-    final token = await _token();
-    debugPrint('POST https://$api/api/$recurso');
+    debugPrint('POST https://$api/api/v1/$recurso');
     debugPrint(jsonEncode(data));
     final response = await http.post(
-      Uri.parse('https://$api/api/$recurso'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+      Uri.parse('https://$api/api/v1/$recurso'),
+      headers: await _headers(comCorpo: true),
       body: jsonEncode(data),
     );
     return _analisa(response);
@@ -73,13 +76,9 @@ class ApiService {
   static Future<dynamic> put(String recurso, dynamic data) async {
     recurso = _limpaRota(recurso);
     final api = await _api();
-    final token = await _token();
     final response = await http.put(
-      Uri.parse('https://$api/api/$recurso'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+      Uri.parse('https://$api/api/v1/$recurso'),
+      headers: await _headers(comCorpo: true),
       body: jsonEncode(data),
     );
     return _analisa(response);
@@ -94,7 +93,7 @@ class ApiService {
   ) async {
     recurso = _limpaRota(recurso);
     final api = await _api();
-    final token = await _token();
+    final headers = await _headers();
     final retorno = <Map<String, dynamic>>[];
     var pagina = 1;
     var paginas = 1;
@@ -102,10 +101,10 @@ class ApiService {
     while (pagina <= paginas) {
       final response = await http.get(
         Uri.parse(
-          'https://$api/api/$recurso/carga'
+          'https://$api/api/v1/$recurso/carga'
           '?inicio=${inicio.toIso8601String()}&pagina=$pagina',
         ),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: headers,
       );
       final resposta = await _analisa(response);
       paginas = (resposta['paginas'] as num?)?.toInt() ?? 0;
@@ -138,6 +137,20 @@ class ApiService {
 
   static Future<String> _token() async {
     return Config.obtem(Constantes.authToken);
+  }
+
+  // TODO: usar a organização do usuário/dispositivo em vez de um valor fixo.
+  static const _organizacaoIdEstatica = '11111111-1111-1111-1111-111111111111';
+
+  /// Cabeçalhos padrão de toda chamada autenticada: token do usuário e
+  /// organização atual (exigida pelos recursos em `base/estrutura`).
+  static Future<Map<String, String>> _headers({bool comCorpo = false}) async {
+    final token = await _token();
+    return {
+      if (comCorpo) 'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+      'x-organization-id': _organizacaoIdEstatica,
+    };
   }
 
   static String _limpaRota(String rota) {
