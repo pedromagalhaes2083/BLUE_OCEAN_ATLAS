@@ -17,6 +17,7 @@ import '../../auth/presentation/login_screen.dart';
 import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
 import '../../embarcacao/domain/models/embarcacao.dart';
 import 'package:atlas/features/widgets/position_card.dart';
+import '../../configuracoes/presentation/configuracoes_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -421,6 +422,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: const Text('Configurações'),
               onTap: () {
                 Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ConfiguracoesScreen(),
+                  ),
+                );
               },
             ),
             ListTile(

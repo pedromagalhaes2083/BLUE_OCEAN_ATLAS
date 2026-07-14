@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:atlas/features/widgets/meteorology_widgets/chlorophyll_card.dart';
+import 'package:atlas/features/widgets/meteorology_widgets/chlorophyll_widgets.dart';
 import 'package:atlas/features/widgets/meteorology_widgets/current_card.dart';
 import 'package:atlas/features/widgets/meteorology_widgets/wind_card.dart';
 import 'package:atlas/features/widgets/position_card.dart';
@@ -243,7 +243,11 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
     // Calcula distâncias uma vez
     double distVento = _distanciaDoPrimeiro(dadosExibidosVento);
     double distCorrente = _distanciaDoPrimeiro(dadosExibidosCorrentes);
-    double distClorofila = _distanciaDoPrimeiro(dadosExibidosClorofila);
+    final clorofilaDataset = ChlorophyllDataset.fromRawList(
+      dadosExibidosClorofila,
+      originLat: currentPosition?.latitude,
+      originLon: currentPosition?.longitude,
+    );
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
@@ -277,8 +281,9 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
             const SizedBox(height: 16),
             CurrentCard(dados: dadosExibidosCorrentes, distancia: distCorrente),
             const SizedBox(height: 16),
-            ChlorophyllCard(
-                dados: dadosExibidosClorofila, distancia: distClorofila),
+            ChlorophyllCard(dataset: clorofilaDataset),
+            const SizedBox(height: 16),
+            ChlorophyllNearbyList(dataset: clorofilaDataset),
           ],
         ),
       ),
