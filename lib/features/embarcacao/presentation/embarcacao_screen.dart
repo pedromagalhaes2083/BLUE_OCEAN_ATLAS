@@ -44,17 +44,19 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
         result = await db.query('embarcacao');
       }
 
+      if (!mounted) return;
       setState(() {
         _embarcacoes = result;
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao carregar embarcações: $e'),
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

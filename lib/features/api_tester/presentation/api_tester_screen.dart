@@ -62,7 +62,7 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        setState(() => _loadingGps = false);
+        if (mounted) setState(() => _loadingGps = false);
         return;
       }
       final last = await Geolocator.getLastKnownPosition();
@@ -153,11 +153,13 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
         wave = WaveForecast.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
       } catch (_) {}
 
+      if (!mounted) return;
       setState(() {
         _response = apiResponse;
         _waveForecast = wave;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _requestError = e.toString());
     } finally {
       if (mounted) setState(() => _loadingRequest = false);

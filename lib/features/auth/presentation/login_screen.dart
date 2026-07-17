@@ -50,8 +50,10 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } on UnauthorisedException {
+      if (!mounted) return;
       setState(() => _erro = 'Usuário ou senha incorretos.');
     } catch (e) {
+      if (!mounted) return;
       setState(() => _erro = 'Erro ao conectar. Tente novamente.');
     } finally {
       if (mounted) setState(() => _isLoading = false);

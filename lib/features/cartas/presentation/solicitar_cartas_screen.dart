@@ -25,6 +25,7 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
 
     try {
       Position? position = await _locationService.getCurrentPosition();
+      if (!mounted) return;
 
       if (position != null) {
         setState(() {
@@ -50,11 +51,12 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
           ? 'Permissão de localização negada permanentemente. Ative nas configurações.'
           : 'Não foi possível obter a localização: $e';
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), backgroundColor: Colors.red[700]),
       );
     } finally {
-      setState(() => _isLoadingLocation = false);
+      if (mounted) setState(() => _isLoadingLocation = false);
     }
   }
 

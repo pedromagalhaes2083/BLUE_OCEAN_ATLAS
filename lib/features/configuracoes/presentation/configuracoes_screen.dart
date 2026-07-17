@@ -23,6 +23,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   Future<void> _carregar() async {
     final id = await DeviceIdService.obtemId();
     final info = await DeviceIdService.obtemInfo();
+    if (!mounted) return;
     setState(() {
       _deviceId = id;
       _deviceInfo = info;

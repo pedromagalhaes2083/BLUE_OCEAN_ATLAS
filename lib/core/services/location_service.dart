@@ -35,9 +35,8 @@ class LocationService {
 
       // Obtém a posição
       return await Geolocator.getCurrentPosition(
-        desiredAccuracy: accuracy,
-        timeLimit: const Duration(seconds: 15),
-      );
+        locationSettings: LocationSettings(accuracy: accuracy),
+      ).timeout(const Duration(seconds: 15));
     } catch (e) {
       rethrow; // Deixa a tela tratar o erro
     }

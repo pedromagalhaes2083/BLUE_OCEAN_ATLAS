@@ -48,6 +48,7 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
       final clorofilaString =
           await rootBundle.loadString('assets/json/clorofila.json');
 
+      if (!mounted) return;
       setState(() {
         resultadoVento = jsonDecode(ventoString);
         resultadoCorrente = jsonDecode(correnteString);
@@ -56,11 +57,12 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
 
       _aplicarFiltro(); // Atualiza as listas filtradas
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao carregar JSON: $e')),
       );
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -173,6 +175,7 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
+        if (!mounted) return;
         setState(() => positionError = "❌ Localização está desativada");
         return;
       }
@@ -183,24 +186,28 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
       }
       if (permission == LocationPermission.deniedForever ||
           permission == LocationPermission.denied) {
+        if (!mounted) return;
         setState(() => positionError = "❌ Permissão de localização negada");
         return;
       }
 
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
-      );
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).timeout(const Duration(seconds: 15));
 
+      if (!mounted) return;
       setState(() {
         currentPosition = position;
       });
 
       _aplicarFiltro(); // Atualiza lista e card principal
     } catch (e) {
+      if (!mounted) return;
       setState(() => positionError = "❌ Erro: ${e.toString()}");
     } finally {
-      setState(() => isLoadingPosition = false);
+      if (mounted) setState(() => isLoadingPosition = false);
     }
   }
 

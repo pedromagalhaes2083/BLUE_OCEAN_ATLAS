@@ -102,6 +102,7 @@ class _MapaScreenState extends State<MapaScreen> {
       await _mbtiles.openFromAsset(_bundledAsset);
       final meta = await _mbtiles.getMetadata();
       _applyMetadata(meta);
+      if (!mounted) return;
       setState(() {
         _mode = _MapMode.mbtiles;
         _fileName = _bundledAsset.split('/').last;
@@ -115,6 +116,7 @@ class _MapaScreenState extends State<MapaScreen> {
         }
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Erro ao carregar carta: $e';
         _loading = false;
@@ -170,6 +172,7 @@ class _MapaScreenState extends State<MapaScreen> {
   Future<void> _pickFile() async {
     setState(() => _error = null);
     final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (!mounted) return;
     if (result == null || result.files.single.path == null) return;
 
     final path = result.files.single.path!;
@@ -192,6 +195,7 @@ class _MapaScreenState extends State<MapaScreen> {
       await _mbtiles.open(path);
       final meta = await _mbtiles.getMetadata();
       _applyMetadata(meta);
+      if (!mounted) return;
       setState(() {
         _mode = _MapMode.mbtiles;
         _geotiff = null;
@@ -202,6 +206,7 @@ class _MapaScreenState extends State<MapaScreen> {
         _mapController.move(_center, _zoom);
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Erro ao abrir MBTiles: $e';
         _loading = false;
@@ -214,6 +219,7 @@ class _MapaScreenState extends State<MapaScreen> {
     try {
       final result = await _geotiffService.load(path);
       await _mbtiles.close();
+      if (!mounted) return;
       setState(() {
         _mode = _MapMode.geotiff;
         _geotiff = result;
@@ -238,6 +244,7 @@ class _MapaScreenState extends State<MapaScreen> {
         );
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');
         _loading = false;

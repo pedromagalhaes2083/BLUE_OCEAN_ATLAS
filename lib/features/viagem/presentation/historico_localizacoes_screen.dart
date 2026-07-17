@@ -42,15 +42,17 @@ class _HistoricoLocalizacoesScreenState
         orderBy: 'data_hora DESC',
       );
 
+      if (!mounted) return;
       setState(() {
         _historico = result;
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao carregar histórico: $e')),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

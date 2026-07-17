@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'position_card.dart';
@@ -68,9 +70,10 @@ class PosicaoAtualWidgetState extends State<PosicaoAtualWidget> {
       }
 
       final posicao = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
-      );
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
       setState(() {
@@ -78,6 +81,10 @@ class PosicaoAtualWidgetState extends State<PosicaoAtualWidget> {
         _erro = null;
       });
       widget.onPosicaoObtida?.call(posicao);
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() => _erro =
+          '❌ Tempo esgotado ao obter a posição.\nTente novamente em área aberta.');
     } catch (e) {
       if (!mounted) return;
       setState(() => _erro = '❌ Erro: $e');

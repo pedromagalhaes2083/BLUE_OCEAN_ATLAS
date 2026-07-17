@@ -32,6 +32,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
   Future<void> _obterLocalizacao() async {
     try {
       final position = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
       setState(() => _posicaoAtual = position);
     } catch (e) {
       print('Erro ao obter localização: $e');
@@ -61,6 +62,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
 
       await widget.dbHelper.insert('producao_registro', registro.toMap());
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('✅ Produção salva com sucesso!'),
@@ -71,11 +73,12 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
       _quantidadeController.clear();
       _observacaoController.clear();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao salvar: $e')),
       );
     } finally {
-      setState(() => _isSalvando = false);
+      if (mounted) setState(() => _isSalvando = false);
     }
   }
 

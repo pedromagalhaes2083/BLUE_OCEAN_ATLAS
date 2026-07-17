@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../domain/models/recomendacao.dart';
 import 'recomendacao_list_tile.dart';
 
-/// Lista de recomendações ordenadas por score (maior primeiro), com
-/// estado vazio tratado.
+/// Lista de recomendações ordenadas pela data de criação (mais recentes
+/// primeiro), com estado vazio tratado.
 class RecomendacoesList extends StatelessWidget {
   final List<Recomendacao> recomendacoes;
   final void Function(Recomendacao)? onTap;
@@ -28,8 +28,16 @@ class RecomendacoesList extends StatelessWidget {
       );
     }
 
+    // Mais recentes primeiro; sem data de criação vai para o final.
     final ordenadas = [...recomendacoes]
-      ..sort((a, b) => b.score.compareTo(a.score));
+      ..sort((a, b) {
+        final dataA = a.criadoEm;
+        final dataB = b.criadoEm;
+        if (dataA == null && dataB == null) return 0;
+        if (dataA == null) return 1;
+        if (dataB == null) return -1;
+        return dataB.compareTo(dataA);
+      });
 
     return Column(
       children: ordenadas

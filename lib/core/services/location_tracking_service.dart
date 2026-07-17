@@ -74,7 +74,9 @@ class LocationTrackingService {
   Future<void> _saveCurrentLocation(int viagemId) async {
     try {
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       final String dataHora = DateTime.now().toIso8601String();

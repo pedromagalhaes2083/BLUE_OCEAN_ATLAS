@@ -42,6 +42,7 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
 
       final id = await widget.dbHelper.insert('embarcacao', data);
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Embarcação "$id" cadastrada com sucesso!'),
@@ -51,6 +52,7 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
 
       Navigator.pop(context, true); // Retorna sucesso
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao salvar: $e'),
@@ -58,7 +60,7 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

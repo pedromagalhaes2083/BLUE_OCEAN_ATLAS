@@ -50,8 +50,10 @@ class _DispositivoTesteScreenState extends State<DispositivoTesteScreen> {
       final id = _deviceId ?? await DeviceIdService.obtemId();
       final dispositivo =
           await DispositivoRepository().buscarPorIdentificador(id);
+      if (!mounted) return;
       setState(() => _dispositivo = dispositivo);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _erroDispositivo = e.toString());
     } finally {
       if (mounted) setState(() => _carregandoDispositivo = false);
@@ -66,8 +68,10 @@ class _DispositivoTesteScreenState extends State<DispositivoTesteScreen> {
     });
     try {
       final lista = await RecomendacaoRepository().listar();
+      if (!mounted) return;
       setState(() => _recomendacoes = lista);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _erroRecomendacoes = e.toString());
     } finally {
       if (mounted) setState(() => _carregandoRecomendacoes = false);

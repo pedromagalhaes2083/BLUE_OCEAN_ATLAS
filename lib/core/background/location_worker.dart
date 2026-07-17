@@ -11,9 +11,10 @@ void callbackDispatcher() {
 
       // Obtém posição
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 20),
-      );
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).timeout(const Duration(seconds: 20));
 
       final String dataHora = DateTime.now().toIso8601String();
       final int viagemId = inputData?['viagem_id'] ?? 0;
