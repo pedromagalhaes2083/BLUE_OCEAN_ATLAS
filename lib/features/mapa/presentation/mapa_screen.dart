@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/services/mbtiles_service.dart';
 import '../../../core/services/geotiff_service.dart';
 import '../../../core/services/pontos_service.dart';
+import '../../recomendacao/domain/models/recomendacao.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
 
@@ -16,7 +17,11 @@ const _pontosAsset = 'assets/json/posicoes/Routing3.json';
 enum _MapMode { none, mbtiles, geotiff }
 
 class MapaScreen extends StatefulWidget {
-  const MapaScreen({super.key});
+  /// Se informada, os pontos dessa recomendação são exibidos como
+  /// marcadores sobre a carta, com o mapa centralizado neles.
+  final Recomendacao? recomendacao;
+
+  const MapaScreen({super.key, this.recomendacao});
 
   @override
   State<MapaScreen> createState() => _MapaScreenState();
@@ -43,6 +48,34 @@ class _MapaScreenState extends State<MapaScreen> {
   double _zoom = 4;
 
   LatLng? _gpsPosition;
+
+  /// Pontos da recomendação a exibir sobre a carta (vazio se nenhuma).
+  List<LatLng> get _pontosRecomendacao {
+    final r = widget.recomendacao;
+    if (r == null) return [];
+    if (r.pontos != null && r.pontos!.isNotEmpty) {
+      return r.pontos!.map((p) => LatLng(p.latitude, p.longitude)).toList();
+    }
+    if (r.centroide != null) {
+      return [LatLng(r.centroide!.latitude, r.centroide!.longitude)];
+    }
+    return [];
+  }
+
+  void _focarRecomendacao() {
+    final pontos = _pontosRecomendacao;
+    if (pontos.isEmpty) return;
+    if (pontos.length == 1) {
+      _mapController.move(pontos.first, 10);
+    } else {
+      _mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: LatLngBounds.fromPoints(pontos),
+          padding: const EdgeInsets.all(48),
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -75,7 +108,11 @@ class _MapaScreenState extends State<MapaScreen> {
         _loading = false;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _mapController.move(_center, _zoom);
+        if (_pontosRecomendacao.isNotEmpty) {
+          _focarRecomendacao();
+        } else {
+          _mapController.move(_center, _zoom);
+        }
       });
     } catch (e) {
       setState(() {
@@ -235,7 +272,11 @@ class _MapaScreenState extends State<MapaScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _fileName ?? 'Carregando carta...',
+          widget.recomendacao != null
+              ? widget.recomendacao!.titulo.isEmpty
+                  ? 'Recomendação'
+                  : widget.recomendacao!.titulo
+              : _fileName ?? 'Carregando carta...',
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
@@ -412,6 +453,22 @@ class _MapaScreenState extends State<MapaScreen> {
                 ),
               ),
             ],
+          ),
+        if (_pontosRecomendacao.isNotEmpty)
+          MarkerLayer(
+            markers: _pontosRecomendacao
+                .map((p) => Marker(
+                      point: p,
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.topCenter,
+                      child: const Icon(
+                        Icons.tips_and_updates,
+                        color: Colors.deepOrange,
+                        size: 32,
+                      ),
+                    ))
+                .toList(),
           ),
       ],
     );

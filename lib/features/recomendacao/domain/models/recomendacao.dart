@@ -143,4 +143,9 @@ class Recomendacao {
           : null,
     );
   }
+
+  /// Se há coordenadas para exibir num mapa (pontos amostrados ou, na
+  /// falta deles, o centroide).
+  bool get temCoordenadas =>
+      (pontos != null && pontos!.isNotEmpty) || centroide != null;
 }

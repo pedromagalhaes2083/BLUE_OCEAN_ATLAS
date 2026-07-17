@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/models/recomendacao.dart';
 import 'recomendacao_confianca_dots.dart';
 import 'recomendacao_pontos_list.dart';
@@ -86,6 +87,23 @@ class RecomendacaoCard extends StatelessWidget {
                 ],
               ],
             ),
+
+            if (r.temCoordenadas) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MapaScreen(recomendacao: r),
+                    ),
+                  ),
+                  icon: const Icon(Icons.map_outlined, size: 18),
+                  label: const Text('Ver na Carta'),
+                ),
+              ),
+            ],
 
             if (r.estimativaCapturaKg != null) ...[
               const SizedBox(height: 8),

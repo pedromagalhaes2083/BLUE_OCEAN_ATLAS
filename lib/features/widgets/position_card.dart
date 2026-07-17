@@ -7,12 +7,17 @@ class PositionCard extends StatelessWidget {
   final Position? currentPosition;
   final String Function(double lat, double lon) formatCoordinates;
 
+  /// Se informado, mostra um botão de atualizar embutido no card —
+  /// dispensa a tela que hospeda o card de ter seu próprio FAB/botão.
+  final VoidCallback? onRefresh;
+
   const PositionCard({
     super.key,
     required this.isLoadingPosition,
     required this.positionError,
     required this.currentPosition,
     required this.formatCoordinates,
+    this.onRefresh,
   });
 
   @override
@@ -29,9 +34,24 @@ class PositionCard extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              const Text(
-                '📍 Posição Atual',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    '📍 Posição Atual',
+                    style:
+                        TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  if (onRefresh != null) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      tooltip: 'Atualizar posição',
+                      onPressed: isLoadingPosition ? null : onRefresh,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 12),
               if (isLoadingPosition)
@@ -51,9 +71,11 @@ class PositionCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               const SizedBox(height: 8),
-              const Text(
-                'Toque no botão para atualizar',
-                style: TextStyle(color: Colors.grey),
+              Text(
+                onRefresh != null
+                    ? 'Toque no ícone para atualizar'
+                    : 'Toque no botão para atualizar',
+                style: const TextStyle(color: Colors.grey),
               ),
             ],
           ),

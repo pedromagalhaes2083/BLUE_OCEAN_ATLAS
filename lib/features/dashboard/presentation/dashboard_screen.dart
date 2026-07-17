@@ -7,7 +7,6 @@ import 'package:atlas/features/metereologia/presentation/gribs_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../../../core/database/database_helper.dart';
 import '../../viagem/presentation/nova_viagem_screen.dart';
@@ -16,7 +15,7 @@ import 'package:atlas/core/auth/auth_service.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
 import '../../embarcacao/domain/models/embarcacao.dart';
-import 'package:atlas/features/widgets/position_card.dart';
+import 'package:atlas/features/widgets/posicao_atual_widget.dart';
 import '../../configuracoes/presentation/configuracoes_screen.dart';
 import '../../dispositivo/presentation/dispositivo_teste_screen.dart';
 
@@ -30,6 +29,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<PosicaoAtualWidgetState> _posicaoKey = GlobalKey();
 
   // ==================== DADOS LOCAIS ====================
   int totalCartasBaixadas = 0;
@@ -37,11 +37,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isLoading = true;
   Viagem? viagemAtual;
   Embarcacao? embarcacaoAtual;
-
-  // ==================== POSIÇÃO DO DISPOSITIVO ====================
-  Position? currentPosition;
-  bool isLoadingPosition = false;
-  String? positionError;
 
   // ==================== DADOS WINDY ====================
   Map<String, dynamic>? windyData;
@@ -52,15 +47,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final LocationTrackingService _trackingService = LocationTrackingService();
   bool isTracking = false;
 
-  // Coordenadas padrão (atualizadas pela geolocalização)
-  double lat = -23.55;
-  double lon = -46.63;
-
   @override
   void initState() {
     super.initState();
     _carregarDados();
-    _getCurrentPosition(); // Carrega posição
   }
 
   @override
@@ -83,6 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         viagemId: viagemAtual!.id ?? 0,
       );
 
+      if (!mounted) return;
       setState(() => isTracking = true);
       print('🚢 Rastreamento iniciado para viagem ${viagemAtual!.id}');
     }
@@ -110,6 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         embarcacao = Embarcacao.fromMap(embarcacoes.first);
       }
 
+      if (!mounted) return;
       setState(() {
         totalCartasBaixadas = cartasBaixadas;
         totalRegistrosProducao = producoes.length;
@@ -125,92 +117,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         await _iniciarRastreamentoAutomatico();
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => isLoading = false);
       print('Erro ao carregar dashboard: $e');
     }
-  }
-
-  // ==================== POSIÇÃO ATUAL (MANUAL) ====================
-  Future<void> _getCurrentPosition() async {
-    setState(() {
-      isLoadingPosition = true;
-      positionError = null;
-    });
-
-    try {
-      print("🔄 Iniciando verificação de localização...");
-
-      // Verifica se o serviço de localização está ativado
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        setState(() =>
-            positionError = "❌ Localização está desativada no dispositivo");
-        print("❌ Serviço de localização desativado");
-        return;
-      }
-
-      // Verifica permissões
-      LocationPermission permission = await Geolocator.checkPermission();
-      print("📍 Permissão atual: $permission");
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        print("📍 Permissão após solicitação: $permission");
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        setState(() => positionError =
-            "❌ Permissão negada permanentemente.\nVá em Configurações > Apps");
-        return;
-      }
-
-      if (permission == LocationPermission.denied) {
-        setState(() => positionError = "❌ Permissão de localização negada");
-        return;
-      }
-
-      // Tenta pegar a posição
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
-      );
-
-      setState(() {
-        currentPosition = position;
-        lat = position.latitude;
-        lon = position.longitude;
-        positionError = null;
-      });
-
-      print(
-          "✅ Posição obtida com sucesso: ${position.latitude}, ${position.longitude}");
-    } catch (e) {
-      print("❌ Erro no Geolocator: $e");
-      setState(() => positionError = "❌ Erro: ${e.toString()}");
-    } finally {
-      setState(() => isLoadingPosition = false);
-    }
-  }
-
-// ==================== FORMATO DMS (Graus, Minutos e Segundos) ====================
-  String _formatCoordinates(double lat, double lon) {
-    String formatDMS(double value, bool isLatitude) {
-      String direction =
-          isLatitude ? (value >= 0 ? 'N' : 'S') : (value >= 0 ? 'E' : 'W');
-
-      value = value.abs();
-      int degrees = value.floor();
-      double minutesDecimal = (value - degrees) * 60;
-      int minutes = minutesDecimal.floor();
-      double seconds = (minutesDecimal - minutes) * 60;
-
-      return '$degrees° ${minutes.toString().padLeft(2, '0')}\' ${seconds.toStringAsFixed(0).padLeft(2, '0')}" $direction';
-    }
-
-    String latDMS = formatDMS(lat, true);
-    String lonDMS = formatDMS(lon, false);
-
-    return '$latDMS\n$lonDMS';
   }
 
   @override
@@ -237,7 +147,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           : RefreshIndicator(
               onRefresh: () async {
                 await _carregarDados();
-                await _getCurrentPosition();
+                await _posicaoKey.currentState?.obterPosicaoAtual();
               },
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
@@ -255,12 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 32),
 
                     // Posição Atual
-                    PositionCard(
-                      isLoadingPosition: isLoadingPosition,
-                      positionError: positionError,
-                      currentPosition: currentPosition,
-                      formatCoordinates: _formatCoordinates,
-                    ),
+                    PosicaoAtualWidget(key: _posicaoKey),
 
                     const SizedBox(height: 32),
 
@@ -366,7 +271,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _getCurrentPosition,
+        onPressed: () => _posicaoKey.currentState?.obterPosicaoAtual(),
         child: const Icon(Icons.my_location),
       ),
       drawer: Drawer(
@@ -683,6 +588,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Se quiser fazer algo após voltar com sucesso
     if (resultado == true) {
+      if (!mounted) return;
       // Recarrega a lista de cartas ou atualiza a tela
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
