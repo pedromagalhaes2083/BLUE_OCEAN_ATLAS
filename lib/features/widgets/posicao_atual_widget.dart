@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../core/utils/coordenadas_format.dart';
 import 'position_card.dart';
 
 /// Widget autocontido de posição GPS atual: cuida de permissões, loading,
@@ -93,29 +94,13 @@ class PosicaoAtualWidgetState extends State<PosicaoAtualWidget> {
     }
   }
 
-  String _formatarCoordenadas(double lat, double lon) {
-    String formatarDMS(double valor, bool isLatitude) {
-      final direcao =
-          isLatitude ? (valor >= 0 ? 'N' : 'S') : (valor >= 0 ? 'E' : 'W');
-      valor = valor.abs();
-      final graus = valor.floor();
-      final minutosDecimal = (valor - graus) * 60;
-      final minutos = minutosDecimal.floor();
-      final segundos = (minutosDecimal - minutos) * 60;
-      return '$graus° ${minutos.toString().padLeft(2, '0')}\' '
-          '${segundos.toStringAsFixed(0).padLeft(2, '0')}" $direcao';
-    }
-
-    return '${formatarDMS(lat, true)}\n${formatarDMS(lon, false)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return PositionCard(
       isLoadingPosition: _carregando,
       positionError: _erro,
       currentPosition: _posicaoAtual,
-      formatCoordinates: _formatarCoordenadas,
+      formatCoordinates: formatarCoordenadasDMS,
       onRefresh: obterPosicaoAtual,
     );
   }

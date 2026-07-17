@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/coordenadas_format.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/models/recomendacao.dart';
 import 'recomendacao_confianca_dots.dart';
@@ -80,8 +81,10 @@ class RecomendacaoCard extends StatelessWidget {
                   const Icon(Icons.place, size: 13, color: Colors.grey),
                   const SizedBox(width: 4),
                   Text(
-                    '${r.centroide!.latitude.toStringAsFixed(3)}°, '
-                    '${r.centroide!.longitude.toStringAsFixed(3)}°',
+                    formatarCoordenadasDMSCompacta(
+                      r.centroide!.latitude,
+                      r.centroide!.longitude,
+                    ),
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],

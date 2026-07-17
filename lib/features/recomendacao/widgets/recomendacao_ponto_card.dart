@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/coordenadas_format.dart';
 import '../domain/models/recomendacao.dart';
 import 'recomendacao_variavel_chip.dart';
 
@@ -39,7 +40,10 @@ class RecomendacaoPontoCard extends StatelessWidget {
               const Icon(Icons.place, size: 14, color: Colors.grey),
               const SizedBox(width: 4),
               Text(
-                '${ponto.latitude.toStringAsFixed(3)}°, ${ponto.longitude.toStringAsFixed(3)}°',
+                formatarCoordenadasDMSCompacta(
+                  ponto.latitude,
+                  ponto.longitude,
+                ),
                 style:
                     const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
