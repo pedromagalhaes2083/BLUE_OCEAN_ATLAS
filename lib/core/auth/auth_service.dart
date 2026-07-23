@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../config/config.dart';
 import '../config/constantes.dart';
 import '../network/api_service.dart';
+import 'jwt_utils.dart';
 import 'models/usuario.dart';
 
 export '../network/excecoes.dart';
@@ -13,9 +14,23 @@ class AuthService {
     await ApiService.login(usuario, senha);
   }
 
+  /// Considera o usuário logado apenas enquanto o token salvo ainda for
+  /// válido — usa a claim `exp` do próprio JWT (definida pelo servidor),
+  /// então o tempo de sessão do app fica sincronizado com a validade real
+  /// do token, sem depender de um cálculo local separado.
   static Future<bool> isLoggedIn() async {
     final token = await Config.obtem(Constantes.authToken);
-    return token.isNotEmpty;
+    if (token.isEmpty) return false;
+
+    final claims = decodeJwtPayload(token);
+    final exp = claims['exp'] as int?;
+    if (exp == null) return true; // sem claim de expiração, assume válido
+
+    final expiraEm = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+    final valido = DateTime.now().isBefore(expiraEm);
+
+    if (!valido) await logout();
+    return valido;
   }
 
   /// Usuário autenticado no momento, montado a partir da resposta de login

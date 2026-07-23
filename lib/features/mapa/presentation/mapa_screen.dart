@@ -4,10 +4,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../core/database/database_helper.dart';
 import '../../../core/services/mbtiles_service.dart';
 import '../../../core/services/geotiff_service.dart';
 import '../../../core/services/pontos_service.dart';
+import '../../../core/utils/coordenadas_format.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
+import '../domain/models/ponto_marcado.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
 
@@ -49,6 +52,12 @@ class _MapaScreenState extends State<MapaScreen> {
 
   LatLng? _gpsPosition;
 
+  // ── Marcar ponto manualmente ─────────────────────────────────────────────
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  bool _modoMarcarPonto = false;
+  LatLng _centroMira = const LatLng(-15.0, -50.0);
+  List<PontoMarcado> _pontosMarcados = [];
+
   /// Pontos da recomendação a exibir sobre a carta (vazio se nenhuma).
   List<LatLng> get _pontosRecomendacao {
     final r = widget.recomendacao;
@@ -83,6 +92,7 @@ class _MapaScreenState extends State<MapaScreen> {
     _loadGpsPosition();
     _loadBundledChart();
     _loadPontos();
+    _carregarPontosMarcados();
   }
 
   @override
@@ -165,6 +175,85 @@ class _MapaScreenState extends State<MapaScreen> {
     if (_gpsPosition != null) {
       _mapController.move(_gpsPosition!, _mapController.camera.zoom);
     }
+  }
+
+  // ── Marcar ponto manualmente ─────────────────────────────────────────────
+
+  Future<void> _carregarPontosMarcados() async {
+    final maps = await _dbHelper.query('ponto_marcado');
+    if (!mounted) return;
+    setState(() {
+      _pontosMarcados = maps.map(PontoMarcado.fromMap).toList();
+    });
+  }
+
+  void _alternarModoMarcarPonto() {
+    setState(() {
+      _modoMarcarPonto = !_modoMarcarPonto;
+      if (_modoMarcarPonto) {
+        _centroMira = _mapController.camera.center;
+      }
+    });
+  }
+
+  Future<void> _confirmarPontoMarcado() async {
+    final novoPonto = PontoMarcado(
+      latitude: _centroMira.latitude,
+      longitude: _centroMira.longitude,
+      dataCriacao: DateTime.now(),
+    );
+    final id = await _dbHelper.insert('ponto_marcado', novoPonto.toMap());
+    if (!mounted) return;
+
+    setState(() {
+      _pontosMarcados = [
+        ..._pontosMarcados,
+        PontoMarcado(
+          id: id,
+          latitude: novoPonto.latitude,
+          longitude: novoPonto.longitude,
+          dataCriacao: novoPonto.dataCriacao,
+        ),
+      ];
+      _modoMarcarPonto = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Ponto marcado: '
+          '${formatarCoordenadasDMSCompacta(novoPonto.latitude, novoPonto.longitude)}',
+        ),
+      ),
+    );
+  }
+
+  void _mostrarInfoPontoMarcado(PontoMarcado ponto) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Ponto marcado'),
+        content: Text(
+          formatarCoordenadasDMSCompacta(ponto.latitude, ponto.longitude),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              if (ponto.id != null) {
+                await _dbHelper.delete('ponto_marcado', id: ponto.id!);
+              }
+              if (!mounted) return;
+              setState(() => _pontosMarcados.remove(ponto));
+            },
+            child: const Text('Remover', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Arquivo externo (opcional) ─────────────────────────────────────────────
@@ -298,6 +387,11 @@ class _MapaScreenState extends State<MapaScreen> {
               ),
             ),
           IconButton(
+            icon: Icon(_modoMarcarPonto ? Icons.close : Icons.add_location_alt),
+            tooltip: _modoMarcarPonto ? 'Cancelar marcação' : 'Marcar um ponto',
+            onPressed: _mode == _MapMode.none ? null : _alternarModoMarcarPonto,
+          ),
+          IconButton(
             icon: const Icon(Icons.folder_open),
             tooltip: 'Carregar outro arquivo',
             onPressed: _loading ? null : _pickFile,
@@ -305,12 +399,14 @@ class _MapaScreenState extends State<MapaScreen> {
         ],
       ),
       body: _buildBody(),
-      floatingActionButton: _mode != _MapMode.none && _gpsPosition != null
-          ? FloatingActionButton(
-              onPressed: _centerOnGps,
-              child: const Icon(Icons.directions_boat),
-            )
-          : null,
+      floatingActionButton: _modoMarcarPonto
+          ? null
+          : (_mode != _MapMode.none && _gpsPosition != null
+              ? FloatingActionButton(
+                  onPressed: _centerOnGps,
+                  child: const Icon(Icons.directions_boat),
+                )
+              : null),
     );
   }
 
@@ -368,6 +464,15 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   Widget _buildMap() {
+    return Stack(
+      children: [
+        _buildFlutterMap(),
+        if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
+      ],
+    );
+  }
+
+  Widget _buildFlutterMap() {
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
@@ -376,6 +481,11 @@ class _MapaScreenState extends State<MapaScreen> {
         minZoom: _minZoom,
         maxZoom: _maxZoom,
         backgroundColor: const Color(0xFF1B3A5C),
+        onPositionChanged: (camera, hasGesture) {
+          if (_modoMarcarPonto) {
+            setState(() => _centroMira = camera.center);
+          }
+        },
       ),
       children: [
         if (_mode == _MapMode.mbtiles)
@@ -454,14 +564,14 @@ class _MapaScreenState extends State<MapaScreen> {
                 width: 40,
                 height: 40,
                 child: const Icon(
-                  Icons.directions_boat,
+                  Icons.navigation,
                   color: Colors.blue,
                   size: 36,
                 ),
               ),
             ],
           ),
-        if (_pontosRecomendacao.isNotEmpty)
+        if (_pontosRecomendacao.isNotEmpty) ...[
           MarkerLayer(
             markers: _pontosRecomendacao
                 .map((p) => Marker(
@@ -470,14 +580,164 @@ class _MapaScreenState extends State<MapaScreen> {
                       height: 36,
                       alignment: Alignment.topCenter,
                       child: const Icon(
-                        Icons.tips_and_updates,
+                        Icons.location_on,
                         color: Colors.deepOrange,
                         size: 32,
                       ),
                     ))
                 .toList(),
           ),
+          // Coordenadas: flutuam à direita do ponto.
+          MarkerLayer(
+            markers: _pontosRecomendacao
+                .map((p) => Marker(
+                      point: p,
+                      width: 150,
+                      height: 22,
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            formatarCoordenadasDMSCompacta(
+                                p.latitude, p.longitude),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+        ],
+        if (_pontosMarcados.isNotEmpty) ...[
+          MarkerLayer(
+            markers: _pontosMarcados
+                .map((p) => Marker(
+                      point: LatLng(p.latitude, p.longitude),
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.topCenter,
+                      child: GestureDetector(
+                        onTap: () => _mostrarInfoPontoMarcado(p),
+                        child: const Icon(
+                          Icons.push_pin,
+                          color: Colors.green,
+                          size: 32,
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+          // Coordenadas: flutuam à direita do ponto.
+          MarkerLayer(
+            markers: _pontosMarcados
+                .map((p) => Marker(
+                      point: LatLng(p.latitude, p.longitude),
+                      width: 150,
+                      height: 22,
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            formatarCoordenadasDMSCompacta(
+                                p.latitude, p.longitude),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+        ],
       ],
     );
+  }
+
+  // ── Overlay do modo "marcar ponto" ───────────────────────────────────────
+
+  List<Widget> _buildOverlayMarcarPonto() {
+    return [
+      // Retículo fixo no centro da tela — não se move com o mapa.
+      const IgnorePointer(
+        child: Center(
+          child: Icon(
+            Icons.add,
+            size: 44,
+            color: Colors.red,
+            shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+          ),
+        ),
+      ),
+      Positioned(
+        left: 16,
+        right: 16,
+        bottom: 24,
+        child: Card(
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Aponte o centro do mapa para o local desejado',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  formatarCoordenadasDMSCompacta(
+                      _centroMira.latitude, _centroMira.longitude),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _alternarModoMarcarPonto,
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _confirmarPontoMarcado,
+                        icon: const Icon(Icons.check),
+                        label: const Text('Marcar ponto'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 }
