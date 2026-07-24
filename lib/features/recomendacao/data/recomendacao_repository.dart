@@ -2,6 +2,9 @@ import '../../../core/network/api_service.dart';
 import '../../../core/network/endpoints.dart';
 import '../domain/models/recomendacao.dart';
 
+/// Única classe que conhece a rota/formato da API para recomendações. Se
+/// o backend mudar, o ajuste fica isolado aqui — o modelo [Recomendacao]
+/// e quem o consome não precisam mudar.
 class RecomendacaoRepository {
   Future<List<Recomendacao>> listar() async {
     final json = await ApiService.get(Endpoints.recomendacoes);

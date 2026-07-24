@@ -4,11 +4,24 @@ class WaveHourEntry {
   final int waveDirection;
   final double wavePeriod;
 
+  // Só vêm preenchidos se a URL pedir os parâmetros `swell_wave_*` e
+  // `ocean_current_*` — por isso são opcionais.
+  final double? swellWaveHeight;
+  final int? swellWaveDirection;
+  final double? swellWavePeriod;
+  final double? oceanCurrentVelocity;
+  final int? oceanCurrentDirection;
+
   const WaveHourEntry({
     required this.time,
     required this.waveHeight,
     required this.waveDirection,
     required this.wavePeriod,
+    this.swellWaveHeight,
+    this.swellWaveDirection,
+    this.swellWavePeriod,
+    this.oceanCurrentVelocity,
+    this.oceanCurrentDirection,
   });
 
   // Converte graus para abreviação de ponto cardeal
@@ -51,23 +64,46 @@ class WaveForecast {
   }
 
   factory WaveForecast.fromJson(Map<String, dynamic> json) {
-    final times = (json['hourly']['time'] as List).cast<String>();
-    final heights = (json['hourly']['wave_height'] as List)
-        .map((v) => (v as num).toDouble())
-        .toList();
-    final directions = (json['hourly']['wave_direction'] as List)
-        .map((v) => (v as num).toInt())
-        .toList();
-    final periods = (json['hourly']['wave_period'] as List)
-        .map((v) => (v as num).toDouble())
-        .toList();
+    final hourly = json['hourly'] as Map<String, dynamic>;
 
-    final entries = List.generate(times.length, (i) => WaveHourEntry(
-      time: DateTime.parse(times[i]),
-      waveHeight: heights[i],
-      waveDirection: directions[i],
-      wavePeriod: periods[i],
-    ));
+    // Cada item pode vir `null` (ex: posição em terra, fora da cobertura
+    // do modelo marinho) — por isso preserva nulos item a item aqui, em
+    // vez de forçar um cast que quebraria a lista inteira.
+    List<num?>? valores(String chave) =>
+        (hourly[chave] as List?)?.map((v) => v as num?).toList();
+
+    final times = (hourly['time'] as List).cast<String>();
+    final heights = valores('wave_height');
+    final directions = valores('wave_direction');
+    final periods = valores('wave_period');
+
+    final swellHeights = valores('swell_wave_height');
+    final swellDirections = valores('swell_wave_direction');
+    final swellPeriods = valores('swell_wave_period');
+    final correnteVelocidade = valores('ocean_current_velocity');
+    final correnteDirecao = valores('ocean_current_direction');
+
+    final entries = <WaveHourEntry>[];
+    for (var i = 0; i < times.length; i++) {
+      final altura = heights?[i];
+      final direcao = directions?[i];
+      final periodo = periods?[i];
+      // Sem dado de onda nesse horário — não dá pra montar uma entrada
+      // válida (acontece fora de cobertura do modelo marinho).
+      if (altura == null || direcao == null || periodo == null) continue;
+
+      entries.add(WaveHourEntry(
+        time: DateTime.parse(times[i]),
+        waveHeight: altura.toDouble(),
+        waveDirection: direcao.toInt(),
+        wavePeriod: periodo.toDouble(),
+        swellWaveHeight: swellHeights?[i]?.toDouble(),
+        swellWaveDirection: swellDirections?[i]?.toInt(),
+        swellWavePeriod: swellPeriods?[i]?.toDouble(),
+        oceanCurrentVelocity: correnteVelocidade?[i]?.toDouble(),
+        oceanCurrentDirection: correnteDirecao?[i]?.toInt(),
+      ));
+    }
 
     return WaveForecast(
       latitude: (json['latitude'] as num).toDouble(),

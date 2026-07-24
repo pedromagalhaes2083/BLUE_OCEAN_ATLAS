@@ -1,15 +1,24 @@
 import 'package:workmanager/workmanager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:atlas/core/database/database_helper.dart';
-import 'package:intl/intl.dart';
+import 'package:atlas/core/services/localizacao_reporter_service.dart';
+
+/// Nome da tarefa periódica que envia a localização pra API (a cada 30 min).
+/// Compartilhado entre o registro (LocationTrackingService) e o dispatcher.
+const String enviarLocalizacaoApiTaskName = 'enviarLocalizacaoApiPeriodic';
 
 @pragma('vm:entry-point') // Obrigatório para background
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
+      if (task == enviarLocalizacaoApiTaskName) {
+        await LocalizacaoReporterService.enviarLocalizacaoAtual();
+        return true;
+      }
+
+      // Tarefa padrão: grava a posição no histórico local da viagem.
       final dbHelper = DatabaseHelper.instance;
 
-      // Obtém posição
       Position position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,

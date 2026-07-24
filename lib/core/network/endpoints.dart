@@ -11,4 +11,9 @@ class Endpoints {
 
   static String recomendacaoPorId(String id) =>
       'base/inteligencia/recomendacoes/$id';
+
+  /// TODO: substituir pelo path real assim que confirmado com o backend.
+  /// Usado por [LocalizacaoReporterService] para o envio periódico
+  /// (a cada 30 min) da localização do dispositivo.
+  static const localizacaoDispositivo = 'TODO_DEFINIR_ENDPOINT_LOCALIZACAO';
 }

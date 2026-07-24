@@ -1,6 +1,7 @@
 import 'package:atlas/core/database/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:atlas/core/auth/auth_service.dart';
+import 'package:atlas/core/services/location_tracking_service.dart';
 import 'package:atlas/core/services/sincronizacao_service.dart';
 import '../../../app_shell.dart';
 
@@ -40,6 +41,12 @@ class _LoginScreenState extends State<LoginScreen> {
         // Não bloqueia o login — dispositivo/recomendações são dados
         // complementares, buscados de novo depois se falharem aqui.
         debugPrint('Erro ao sincronizar dados do dispositivo: $e');
+      }
+
+      try {
+        await LocationTrackingService().startEnviarLocalizacaoParaApi();
+      } catch (e) {
+        debugPrint('Erro ao iniciar envio periódico de localização: $e');
       }
 
       if (!mounted) return;

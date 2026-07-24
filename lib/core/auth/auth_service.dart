@@ -22,15 +22,20 @@ class AuthService {
     final token = await Config.obtem(Constantes.authToken);
     if (token.isEmpty) return false;
 
-    final claims = decodeJwtPayload(token);
-    final exp = claims['exp'] as int?;
-    if (exp == null) return true; // sem claim de expiração, assume válido
+    try {
+      final claims = decodeJwtPayload(token);
+      final exp = (claims['exp'] as num?)?.toInt();
+      if (exp == null) return true; // sem claim de expiração, assume válido
 
-    final expiraEm = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
-    final valido = DateTime.now().isBefore(expiraEm);
+      final expiraEm = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+      final valido = DateTime.now().isBefore(expiraEm);
 
-    if (!valido) await logout();
-    return valido;
+      if (!valido) await logout();
+      return valido;
+    } catch (_) {
+      // Token ilegível/corrompido — mais seguro tratar como não logado.
+      return false;
+    }
   }
 
   /// Usuário autenticado no momento, montado a partir da resposta de login

@@ -8,6 +8,14 @@ import '../config/config.dart';
 import '../config/constantes.dart';
 import 'excecoes.dart';
 
+/// Cliente HTTP cru (URL, headers, token). Não deve ser chamado direto de
+/// telas/widgets — cada recurso da API tem um `<recurso>_repository.dart`
+/// (ex: [DispositivoRepository], [RecomendacaoRepository],
+/// [LocalizacaoRepository]) que é o único lugar que conhece a rota exata
+/// e o formato de corpo esperado, e converte a resposta num modelo de
+/// domínio estável. Assim, quando uma rota mudar, o ajuste fica isolado
+/// no repositório correspondente — os modelos e quem os consome não
+/// precisam mudar.
 class ApiService {
   // ── URL base da API de produção ────────────────────────────────────────────
   static const _apiPadrao = 'blue-ocean-app-api.up.railway.app';

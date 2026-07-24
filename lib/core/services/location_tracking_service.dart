@@ -98,6 +98,25 @@ class LocationTrackingService {
     }
   }
 
+  // ====================== ENVIO PERIÓDICO PRA API (30 em 30 min) ======================
+  Future<void> startEnviarLocalizacaoParaApi() async {
+    await initialize();
+
+    await Workmanager().registerPeriodicTask(
+      enviarLocalizacaoApiTaskName,
+      enviarLocalizacaoApiTaskName,
+      frequency: const Duration(minutes: 30),
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+      constraints: Constraints(networkType: NetworkType.connected),
+    );
+
+    print('🌐 WorkManager: Envio periódico de localização para a API iniciado (30 min)');
+  }
+
+  Future<void> stopEnviarLocalizacaoParaApi() async {
+    await Workmanager().cancelByUniqueName(enviarLocalizacaoApiTaskName);
+  }
+
   // ====================== PARAR RASTREAMENTO ======================
   Future<void> stopAllTracking() async {
     // Para WorkManager (background)

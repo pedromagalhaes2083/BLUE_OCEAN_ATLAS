@@ -4,6 +4,7 @@ import 'package:atlas/features/mapa/presentation/mapa_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcaao_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
 import 'package:atlas/features/metereologia/presentation/gribs_screen.dart';
+import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -328,6 +329,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: const Text('Gribs'),
               onTap: () => _abrirSolicitarGrib(context),
             ),
+            ListTile(
+              leading: const Icon(Icons.water_drop_outlined),
+              title: const Text('Condições do Mar'),
+              onTap: () => _abrirCondicoesMar(context),
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.settings),
@@ -566,7 +572,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (confirm == true) {
+      await _trackingService.stopEnviarLocalizacaoParaApi();
       await AuthService.logout();
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -610,6 +618,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       MaterialPageRoute(
         builder: (context) => GribProcessorScreen(),
       ),
+    );
+  }
+
+  void _abrirCondicoesMar(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CondicoesMarScreen()),
     );
   }
 
