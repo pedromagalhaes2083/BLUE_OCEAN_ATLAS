@@ -10,9 +10,12 @@ import '../../widgets/meteorology_widgets/current_card.dart';
 import '../../widgets/posicao_atual_widget.dart';
 import '../../widgets/posicao_manual_widget.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
+import '../../widgets/profundidade_card.dart';
 import '../../widgets/wave_forecast/wave_forecast_widgets.dart';
 import '../data/previsao_tempo_repository.dart';
+import '../data/profundidade_repository.dart';
 import '../data/wave_forecast_repository.dart';
+import '../domain/models/leitura_profundidade.dart';
 
 const _correntesAsset = 'assets/json/correntes.json';
 const _clorofilaAsset = 'assets/json/clorofila.json';
@@ -43,6 +46,7 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
   // ── Dados via API (Open-Meteo) ───────────────────────────────────────────
   WaveForecast? _waveForecast;
   PrevisaoTempo? _previsaoTempo;
+  LeituraProfundidade? _profundidade;
   bool _carregandoOceano = false;
   String? _erroOceano;
 
@@ -115,11 +119,14 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
           .buscar(latitude: _lat!, longitude: _lon!);
       final tempo = await PrevisaoTempoRepository()
           .buscar(latitude: _lat!, longitude: _lon!);
+      final profundidade = await ProfundidadeRepository()
+          .buscarPonto(latitude: _lat!, longitude: _lon!);
 
       if (!mounted) return;
       setState(() {
         _waveForecast = wave;
         _previsaoTempo = tempo;
+        _profundidade = profundidade;
       });
     } catch (e) {
       if (!mounted) return;
@@ -242,6 +249,10 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
                 ),
               )
             else ...[
+              if (_profundidade != null) ...[
+                ProfundidadeCard(leitura: _profundidade!),
+                const SizedBox(height: 16),
+              ],
               if (_previsaoTempo != null) ...[
                 PrevisaoTempoAtualCard(previsao: _previsaoTempo!),
                 const SizedBox(height: 12),
@@ -249,6 +260,8 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
                 const SizedBox(height: 16),
               ],
               if (_waveForecast != null) ...[
+                SeaSurfaceTemperatureCard(forecast: _waveForecast!),
+                const SizedBox(height: 16),
                 WaveSummaryCard(forecast: _waveForecast!),
                 if (_waveForecast!.current != null) ...[
                   const SizedBox(height: 8),

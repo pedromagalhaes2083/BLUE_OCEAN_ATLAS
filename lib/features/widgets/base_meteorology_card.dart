@@ -61,12 +61,15 @@ abstract class BaseMeteorologyCard extends StatelessWidget {
       children: [
         Icon(icon, color: color, size: iconSize),
         const SizedBox(width: 12),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: color,
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

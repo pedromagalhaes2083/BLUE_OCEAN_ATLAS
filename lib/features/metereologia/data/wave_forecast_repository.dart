@@ -4,8 +4,9 @@ import 'package:http/http.dart' as http;
 import '../../../core/models/wave_forecast.dart';
 
 /// Única classe que conhece a URL/parâmetros da API pública Open-Meteo
-/// Marine (ondas, swell e corrente oceânica). Não passa pelo [ApiService]
-/// do backend Blue Ocean — é um serviço externo, sem autenticação.
+/// Marine (ondas, swell, corrente oceânica e temperatura da superfície
+/// do mar). Não passa pelo [ApiService] do backend Blue Ocean — é um
+/// serviço externo, sem autenticação.
 class WaveForecastRepository {
   static const _baseUrl = 'https://marine-api.open-meteo.com/v1/marine';
 
@@ -18,7 +19,8 @@ class WaveForecastRepository {
       'longitude': longitude.toString(),
       'hourly': 'wave_height,wave_direction,wave_period,'
           'swell_wave_height,swell_wave_direction,swell_wave_period,'
-          'ocean_current_velocity,ocean_current_direction',
+          'ocean_current_velocity,ocean_current_direction,'
+          'sea_surface_temperature',
       'forecast_days': '2',
       'timezone': 'auto',
     });

@@ -4,13 +4,15 @@ class WaveHourEntry {
   final int waveDirection;
   final double wavePeriod;
 
-  // Só vêm preenchidos se a URL pedir os parâmetros `swell_wave_*` e
-  // `ocean_current_*` — por isso são opcionais.
+  // Só vêm preenchidos se a URL pedir os parâmetros correspondentes
+  // (`swell_wave_*`, `ocean_current_*`, `sea_surface_temperature`) —
+  // por isso são opcionais.
   final double? swellWaveHeight;
   final int? swellWaveDirection;
   final double? swellWavePeriod;
   final double? oceanCurrentVelocity;
   final int? oceanCurrentDirection;
+  final double? seaSurfaceTemperature;
 
   const WaveHourEntry({
     required this.time,
@@ -22,6 +24,7 @@ class WaveHourEntry {
     this.swellWavePeriod,
     this.oceanCurrentVelocity,
     this.oceanCurrentDirection,
+    this.seaSurfaceTemperature,
   });
 
   // Converte graus para abreviação de ponto cardeal
@@ -82,6 +85,7 @@ class WaveForecast {
     final swellPeriods = valores('swell_wave_period');
     final correnteVelocidade = valores('ocean_current_velocity');
     final correnteDirecao = valores('ocean_current_direction');
+    final temperaturaSuperficie = valores('sea_surface_temperature');
 
     final entries = <WaveHourEntry>[];
     for (var i = 0; i < times.length; i++) {
@@ -102,6 +106,7 @@ class WaveForecast {
         swellWavePeriod: swellPeriods?[i]?.toDouble(),
         oceanCurrentVelocity: correnteVelocidade?[i]?.toDouble(),
         oceanCurrentDirection: correnteDirecao?[i]?.toInt(),
+        seaSurfaceTemperature: temperaturaSuperficie?[i]?.toDouble(),
       ));
     }
 
