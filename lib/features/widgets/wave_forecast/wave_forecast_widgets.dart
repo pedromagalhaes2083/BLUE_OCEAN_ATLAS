@@ -3,8 +3,5 @@
 library;
 
 export '../../../core/models/wave_forecast.dart';
-export 'ocean_current_row.dart';
+export 'condicoes_atuais_card.dart';
 export 'sea_surface_temperature_card.dart';
-export 'swell_info_row.dart';
-export 'wave_hourly_timeline.dart';
-export 'wave_summary_card.dart';

@@ -25,32 +25,35 @@ class ProfundidadeCard extends BaseMeteorologyCard {
     return Column(
       children: [
         BaseMeteorologyCard.buildHeader(
-          icon: Icons.water,
-          title: 'Profundidade',
+          icon: Icons.terrain,
+          title: 'BAT',
           color: Colors.indigo,
         ),
         const SizedBox(height: 24),
         if (leitura.emAgua) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                leitura.profundidadeMetros.toStringAsFixed(0),
-                style:
-                    const TextStyle(fontSize: 62, fontWeight: FontWeight.bold),
-              ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 10, left: 4),
-                child: Text('m', style: TextStyle(fontSize: 22)),
-              ),
-            ],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  leitura.profundidadeMetros.toStringAsFixed(0),
+                  style: const TextStyle(
+                      fontSize: 44, fontWeight: FontWeight.bold),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 6, left: 4),
+                  child: Text('m', style: TextStyle(fontSize: 18)),
+                ),
+              ],
+            ),
           ),
         ] else ...[
-          const Icon(Icons.terrain, size: 48, color: Colors.brown),
+          const Icon(Icons.terrain, size: 40, color: Colors.brown),
           const SizedBox(height: 8),
           const Text(
-            'Ponto em terra — sem profundidade',
+            'Ponto em terra',
             style: TextStyle(color: Colors.brown),
             textAlign: TextAlign.center,
           ),

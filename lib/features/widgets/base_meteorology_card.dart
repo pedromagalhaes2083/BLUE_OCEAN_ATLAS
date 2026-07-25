@@ -19,6 +19,11 @@ abstract class BaseMeteorologyCard extends StatelessWidget {
   /// Se true, mostra o placeholder de loading
   bool get isLoading;
 
+  /// Conteúdo mostrado enquanto [isLoading] é true. Subclasses podem
+  /// sobrescrever pra usar um spinner/ícone em vez do texto padrão.
+  Widget buildLoading(BuildContext context) =>
+      Text(loadingMessage, style: const TextStyle(fontSize: 18));
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -29,9 +34,7 @@ abstract class BaseMeteorologyCard extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.all(40),
-          child: Center(
-            child: Text(loadingMessage, style: const TextStyle(fontSize: 18)),
-          ),
+          child: Center(child: buildLoading(context)),
         ),
       );
     }

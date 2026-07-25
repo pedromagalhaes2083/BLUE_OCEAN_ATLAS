@@ -3,5 +3,4 @@
 library;
 
 export '../../metereologia/domain/models/previsao_tempo.dart';
-export 'previsao_tempo_atual_card.dart';
-export 'previsao_tempo_hourly_timeline.dart';
+export 'condicoes_vento_card.dart';

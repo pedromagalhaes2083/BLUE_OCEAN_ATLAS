@@ -6,8 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/models/wave_forecast.dart';
 import '../../../core/storage/api_storage_service.dart';
-import '../../widgets/wave_forecast/wave_hourly_timeline.dart';
-import '../../widgets/wave_forecast/wave_summary_card.dart';
+import '../../widgets/wave_forecast/condicoes_atuais_card.dart';
 
 class ApiTesterScreen extends StatefulWidget {
   const ApiTesterScreen({super.key});
@@ -389,9 +388,7 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
         // ── Widgets de onda (se a resposta for compatível) ──────────────
         if (_waveForecast != null) ...[
           const SizedBox(height: 8),
-          WaveSummaryCard(forecast: _waveForecast!),
-          const SizedBox(height: 8),
-          WaveHourlyTimeline(forecast: _waveForecast!),
+          CondicoesAtuaisCard(forecast: _waveForecast!),
           const SizedBox(height: 8),
         ],
 

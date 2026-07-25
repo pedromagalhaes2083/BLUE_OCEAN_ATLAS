@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import '../../../core/models/chlorophyll_reading.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../widgets/meteorology_widgets/chlorophyll_card.dart';
-import '../../widgets/meteorology_widgets/current_card.dart';
 import '../../widgets/posicao_atual_widget.dart';
 import '../../widgets/posicao_manual_widget.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
@@ -17,7 +16,6 @@ import '../data/profundidade_repository.dart';
 import '../data/wave_forecast_repository.dart';
 import '../domain/models/leitura_profundidade.dart';
 
-const _correntesAsset = 'assets/json/correntes.json';
 const _clorofilaAsset = 'assets/json/clorofila.json';
 
 /// Tela com as condições do mar (clorofila, temperatura da água, corrente,
@@ -36,9 +34,7 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
   double? _lon;
 
   // ── Dados locais (JSON bundled) ──────────────────────────────────────────
-  List<dynamic> _correntes = [];
   List<dynamic> _clorofila = [];
-  List<dynamic> _correntesExibidas = [];
   List<dynamic> _clorofilaExibida = [];
   bool _carregandoDadosLocais = true;
   String? _erroDadosLocais;
@@ -64,12 +60,10 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
       _erroDadosLocais = null;
     });
     try {
-      final correntesStr = await rootBundle.loadString(_correntesAsset);
       final clorofilaStr = await rootBundle.loadString(_clorofilaAsset);
 
       if (!mounted) return;
       setState(() {
-        _correntes = (jsonDecode(correntesStr)['dados'] as List? ?? []);
         _clorofila = (jsonDecode(clorofilaStr)['dados'] as List? ?? []);
       });
       _aplicarFiltroLocal();
@@ -85,24 +79,12 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
     if (_lat == null || _lon == null) return;
 
     setState(() {
-      _correntesExibidas = ordenarPorProximidade(
-        _correntes,
-        originLat: _lat!,
-        originLon: _lon!,
-      ).take(50).toList();
-
       _clorofilaExibida = ordenarPorProximidade(
         _clorofila,
         originLat: _lat!,
         originLon: _lon!,
       ).take(50).toList();
     });
-  }
-
-  double _distanciaDoPrimeiro(List<dynamic> lista) {
-    if (lista.isEmpty || _lat == null || _lon == null) return 0;
-    final item = lista.first;
-    return calcularDistanciaNauticas(_lat!, _lon!, item['latitude'], item['longitude']);
   }
 
   // ── Dados via API ─────────────────────────────────────────────────────────
@@ -207,12 +189,6 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
               ),
             )
           else ...[
-            // Correntes já traz a temperatura da água junto.
-            CurrentCard(
-              dados: _correntesExibidas,
-              distancia: _distanciaDoPrimeiro(_correntesExibidas),
-            ),
-            const SizedBox(height: 16),
             ChlorophyllCard(
               dataset: ChlorophyllDataset.fromRawList(
                 _clorofilaExibida,
@@ -249,34 +225,31 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
                 ),
               )
             else ...[
-              if (_profundidade != null) ...[
-                ProfundidadeCard(leitura: _profundidade!),
+              if (_profundidade != null || _waveForecast != null) ...[
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_profundidade != null)
+                        Expanded(
+                            child: ProfundidadeCard(leitura: _profundidade!)),
+                      if (_profundidade != null && _waveForecast != null)
+                        const SizedBox(width: 12),
+                      if (_waveForecast != null)
+                        Expanded(
+                            child: SeaSurfaceTemperatureCard(
+                                forecast: _waveForecast!)),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 16),
               ],
               if (_previsaoTempo != null) ...[
-                PrevisaoTempoAtualCard(previsao: _previsaoTempo!),
-                const SizedBox(height: 12),
-                PrevisaoTempoHourlyTimeline(previsao: _previsaoTempo!),
+                CondicoesVentoCard(previsao: _previsaoTempo!),
                 const SizedBox(height: 16),
               ],
-              if (_waveForecast != null) ...[
-                SeaSurfaceTemperatureCard(forecast: _waveForecast!),
-                const SizedBox(height: 16),
-                WaveSummaryCard(forecast: _waveForecast!),
-                if (_waveForecast!.current != null) ...[
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 8,
-                    children: [
-                      SwellInfoRow(entry: _waveForecast!.current!),
-                      OceanCurrentRow(entry: _waveForecast!.current!),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 12),
-                WaveHourlyTimeline(forecast: _waveForecast!),
-              ],
+              if (_waveForecast != null)
+                CondicoesAtuaisCard(forecast: _waveForecast!),
             ],
           ],
         ],
