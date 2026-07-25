@@ -174,11 +174,27 @@ class CondicoesAtuaisCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${velocidade.toStringAsFixed(1)} km/h',
-                      style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold)),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        (velocidade * 0.539957).toStringAsFixed(1),
+                        style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontSize: 34,
+                            fontWeight: FontWeight.bold,
+                            height: 1),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4, left: 4),
+                        child: Text('nós',
+                            style: TextStyle(
+                                color: Colors.grey[700],
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500)),
+                      ),
+                    ],
+                  ),
                   if (direcao != null)
                     Text('$direcao°',
                         style: TextStyle(color: Colors.grey[600], fontSize: 12)),
@@ -188,8 +204,8 @@ class CondicoesAtuaisCard extends StatelessWidget {
             if (direcao != null)
               Transform.rotate(
                 angle: direcao * 3.14159265 / 180.0,
-                child: const Icon(Icons.navigation,
-                    color: Colors.blueGrey, size: 32),
+                child: Icon(Icons.navigation,
+                    color: Colors.blue.shade700, size: 32),
               ),
           ],
         ),
