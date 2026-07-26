@@ -8,11 +8,18 @@ import '../domain/models/localizacao_envio.dart';
 class LocalizacaoRepository {
   Future<void> enviar(LocalizacaoEnvio dados) async {
     await ApiService.post(Endpoints.localizacaoDispositivo, {
-      'dispositivoIdentificador': dados.dispositivoIdentificador,
+      'embarcacaoId': dados.embarcacaoId,
+      'dispositivoId': dados.dispositivoId,
+      'instante': dados.instante.toIso8601String(),
       'latitude': dados.latitude,
       'longitude': dados.longitude,
-      'precisao': dados.precisao,
-      'capturadoEm': dados.capturadoEm.toIso8601String(),
+      'precisaoMetros': dados.precisaoMetros,
+      if (dados.altitude != null) 'altitude': dados.altitude,
+      if (dados.velocidadeNos != null) 'velocidade': dados.velocidadeNos,
+      if (dados.direcao != null) 'direcao': dados.direcao,
+      if (dados.bateriaNivel != null) 'bateriaNivel': dados.bateriaNivel,
+      'gpsStatus': dados.gpsStatus,
+      'origem': dados.origem,
     });
   }
 }
