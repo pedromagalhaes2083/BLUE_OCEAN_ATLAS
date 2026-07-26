@@ -5,4 +5,6 @@ class Constantes {
   static const String deviceId = 'device_id';
   static const String organizacaoId = 'organizacao_id';
   static const String embarcacaoId = 'embarcacao_id';
+  static const String intervaloRastreamentoMinutos =
+      'intervalo_rastreamento_minutos';
 }

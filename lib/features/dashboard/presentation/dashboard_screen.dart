@@ -7,14 +7,20 @@ import 'package:atlas/features/metereologia/presentation/gribs_screen.dart';
 import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/database/database_helper.dart';
+import '../../metereologia/data/profundidade_repository.dart';
+import '../../metereologia/data/wave_forecast_repository.dart';
+import '../../metereologia/domain/models/leitura_profundidade.dart';
 import '../../viagem/presentation/nova_viagem_screen.dart';
 import '../../viagem/domain/models/viagem.dart';
 import 'package:atlas/core/auth/auth_service.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
+import '../../../core/config/config.dart';
+import '../../../core/config/constantes.dart';
 import '../../embarcacao/domain/models/embarcacao.dart';
 import 'package:atlas/features/widgets/posicao_atual_widget.dart';
 import '../../configuracoes/presentation/configuracoes_screen.dart';
@@ -33,8 +39,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<PosicaoAtualWidgetState> _posicaoKey = GlobalKey();
 
   // ==================== DADOS LOCAIS ====================
-  int totalCartasBaixadas = 0;
-  int totalRegistrosProducao = 0;
   bool isLoading = true;
   Viagem? viagemAtual;
   Embarcacao? embarcacaoAtual;
@@ -44,14 +48,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isLoadingWindy = false;
   String? windyError;
 
+  // ==================== BATIMETRIA / SST (posição atual) ====================
+  LeituraProfundidade? _profundidadeAtual;
+  double? _sstAtual;
+
 // ==================== RASTREAMENTO AUTOMÁTICO ====================
   final LocationTrackingService _trackingService = LocationTrackingService();
   bool isTracking = false;
+  int _intervaloRastreamentoMinutos = intervaloMinimoMinutos;
 
   @override
   void initState() {
     super.initState();
     _carregarDados();
+    _carregarBatimetriaESst();
+  }
+
+  // ==================== BATIMETRIA / SST ====================
+  Future<void> _carregarBatimetriaESst() async {
+    try {
+      final posicao = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).timeout(const Duration(seconds: 20));
+
+      final profundidade = await ProfundidadeRepository().buscarPonto(
+        latitude: posicao.latitude,
+        longitude: posicao.longitude,
+      );
+      final wave = await WaveForecastRepository().buscar(
+        latitude: posicao.latitude,
+        longitude: posicao.longitude,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _profundidadeAtual = profundidade;
+        _sstAtual = wave.current?.seaSurfaceTemperature;
+      });
+    } catch (e) {
+      debugPrint('❌ Erro ao buscar batimetria/SST do dashboard: $e');
+    }
   }
 
   @override
@@ -61,22 +99,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 // ==================== RASTREAMENTO ====================
 
-  // Chamado após o carregamento dos dados
-  Future<void> _iniciarRastreamentoAutomatico() async {
-    if (viagemAtual != null) {
-      // Inicia rastreamento em segundo plano (WorkManager)
-      await _trackingService.startBackgroundTracking(
-        viagemId: viagemAtual!.id ?? 0,
-      );
+  // O rastreamento único já roda desde o login (LocationTrackingService),
+  // com ou sem viagem ativa — aqui só refletimos o status real do serviço
+  // (e o intervalo configurado) pra UI. Cada execução periódica já associa
+  // os pontos à viagem em andamento automaticamente, sem precisar iniciar
+  // nada específico por viagem.
+  Future<void> _atualizarStatusRastreamento() async {
+    final ativo = _trackingService.isTracking;
+    final intervalo = int.tryParse(await Config.obtem(
+          Constantes.intervaloRastreamentoMinutos,
+          '$intervaloMinimoMinutos',
+        )) ??
+        intervaloMinimoMinutos;
 
-      // Opcional: Inicia também rastreamento em foreground (a cada 5 min)
-      await _trackingService.startForegroundTracking(
-        viagemId: viagemAtual!.id ?? 0,
-      );
-
-      if (!mounted) return;
-      setState(() => isTracking = true);
-      print('🚢 Rastreamento iniciado para viagem ${viagemAtual!.id}');
+    if (!mounted) return;
+    if (ativo != isTracking || intervalo != _intervaloRastreamentoMinutos) {
+      setState(() {
+        isTracking = ativo;
+        _intervaloRastreamentoMinutos = intervalo;
+      });
     }
   }
 
@@ -85,9 +126,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => isLoading = true);
 
     try {
-      final cartas = await widget.dbHelper.query('carta_nautica');
-      final cartasBaixadas = cartas.where((c) => c['esta_baixada'] == 1).length;
-      final producoes = await widget.dbHelper.query('producao_registro');
       final embarcacoes = await widget.dbHelper.query('embarcacao');
 
       // Carrega viagem atual
@@ -104,8 +142,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (!mounted) return;
       setState(() {
-        totalCartasBaixadas = cartasBaixadas;
-        totalRegistrosProducao = producoes.length;
         viagemAtual = viagem;
         print(embarcacao);
         embarcacaoAtual = embarcacao;
@@ -113,10 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         isLoading = false;
       });
 
-      // Inicia rastreamento após carregar a viagem
-      if (viagem != null) {
-        await _iniciarRastreamentoAutomatico();
-      }
+      await _atualizarStatusRastreamento();
     } catch (e) {
       if (!mounted) return;
       setState(() => isLoading = false);
@@ -173,7 +206,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Viagem Atual
                     _buildViagemCard(),
 
-                    if (viagemAtual != null) ...[
+                    if (isTracking) ...[
                       const SizedBox(height: 16),
                       Card(
                         color: Colors.green[50],
@@ -181,8 +214,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           leading: const Icon(Icons.location_on,
                               color: Colors.green),
                           title: const Text('Rastreamento Ativo'),
-                          subtitle:
-                              Text('Registrando posição a cada 5 minutos'),
+                          subtitle: Text(
+                              'Registrando posição a cada $_intervaloRastreamentoMinutos minutos'),
                           trailing: const Icon(Icons.check_circle,
                               color: Colors.green),
                         ),
@@ -202,24 +235,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
 
                     const SizedBox(height: 32),
-                    // Cards de estatísticas e ações rápidas (mantidos iguais)
+                    // Cards de estatísticas e ações rápidas
                     Row(
                       children: [
                         Expanded(
                             child: _buildStatCard(
-                                icon: Icons.map,
-                                title: 'Cartas',
-                                value: '$totalCartasBaixadas',
-                                subtitle: 'baixadas',
-                                color: Colors.blue)),
+                                icon: Icons.terrain,
+                                title: 'BAT',
+                                value: _profundidadeAtual == null
+                                    ? '--'
+                                    : (_profundidadeAtual!.emAgua
+                                        ? _profundidadeAtual!.profundidadeMetros
+                                            .toStringAsFixed(0)
+                                        : '--'),
+                                subtitle: 'metros',
+                                color: Colors.indigo)),
                         const SizedBox(width: 12),
                         Expanded(
                             child: _buildStatCard(
-                                icon: Icons.set_meal,
-                                title: 'Registros',
-                                value: '$totalRegistrosProducao',
-                                subtitle: 'de produção',
-                                color: Colors.green)),
+                                icon: Icons.thermostat,
+                                title: 'SST',
+                                value: _sstAtual == null
+                                    ? '--'
+                                    : _sstAtual!.toStringAsFixed(1),
+                                subtitle: '°C',
+                                color: Colors.blue)),
                       ],
                     ),
 
@@ -338,14 +378,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Configurações'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                Navigator.push(
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => const ConfiguracoesScreen(),
                   ),
                 );
+                // Ao voltar, atualiza o intervalo exibido caso tenha mudado.
+                await _atualizarStatusRastreamento();
               },
             ),
             ListTile(
@@ -572,7 +614,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (confirm == true) {
-      await _trackingService.stopEnviarLocalizacaoParaApi();
+      await _trackingService.pararRastreamento();
       await AuthService.logout();
       if (!mounted) return;
       Navigator.pushReplacement(

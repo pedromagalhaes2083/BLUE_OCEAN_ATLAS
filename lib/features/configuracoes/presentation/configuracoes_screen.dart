@@ -5,6 +5,7 @@ import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/services/device_id_service.dart';
 import '../../../core/services/localizacao_reporter_service.dart';
+import '../../../core/services/location_tracking_service.dart';
 
 class ConfiguracoesScreen extends StatefulWidget {
   const ConfiguracoesScreen({super.key});
@@ -17,6 +18,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   String? _deviceId;
   DeviceInfoResumo? _deviceInfo;
   final _embarcacaoIdController = TextEditingController();
+  int _intervaloMinutos = intervaloMinimoMinutos;
+
+  static const _opcoesIntervalo = [15, 30, 60, 120];
 
   @override
   void initState() {
@@ -35,14 +39,39 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
     final info = await DeviceIdService.obtemInfo();
     final embarcacaoId = await Config.obtem(
       Constantes.embarcacaoId,
-      '9b2aac19-ad31-4e6d-baf5-fb101a976c1b',
+      'c8f1da10-e015-41c9-920f-ce2c512c3a95',
     );
+    final intervalo = int.tryParse(await Config.obtem(
+          Constantes.intervaloRastreamentoMinutos,
+          '$intervaloMinimoMinutos',
+        )) ??
+        intervaloMinimoMinutos;
     if (!mounted) return;
     setState(() {
       _deviceId = id;
       _deviceInfo = info;
       _embarcacaoIdController.text = embarcacaoId;
+      _intervaloMinutos =
+          _opcoesIntervalo.contains(intervalo) ? intervalo : intervaloMinimoMinutos;
     });
+  }
+
+  Future<void> _alterarIntervalo(int? novoValor) async {
+    if (novoValor == null) return;
+    setState(() => _intervaloMinutos = novoValor);
+    await Config.grava(
+        Constantes.intervaloRastreamentoMinutos, '$novoValor');
+
+    // Se o rastreamento já estiver rodando, reinicia com o novo intervalo.
+    final service = LocationTrackingService();
+    if (service.isTracking) {
+      await service.iniciarRastreamento(intervaloMinutos: novoValor);
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Intervalo de rastreamento: $novoValor min')),
+    );
   }
 
   Future<void> _copiarId() async {
@@ -66,7 +95,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
 
   Future<void> _testarEnvioLocalizacao() async {
     setState(() => _testandoEnvio = true);
-    await LocalizacaoReporterService.enviarLocalizacaoAtual();
+    await LocalizacaoReporterService.registrarESincronizar();
     if (!mounted) return;
     setState(() => _testandoEnvio = false);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -198,6 +227,57 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                 label: const Text('Salvar'),
                               ),
                             ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Rastreamento de Localização',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.schedule, color: Colors.blue),
+                              SizedBox(width: 10),
+                              Text(
+                                'Intervalo de captura e envio',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'A cada intervalo, o app captura a posição, grava '
+                            'localmente e envia pra API. Sem internet, fica '
+                            'guardado e é enviado assim que a conexão voltar.',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<int>(
+                            initialValue: _intervaloMinutos,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _opcoesIntervalo
+                                .map((min) => DropdownMenuItem(
+                                      value: min,
+                                      child: Text('$min minutos'),
+                                    ))
+                                .toList(),
+                            onChanged: _alterarIntervalo,
                           ),
                         ],
                       ),

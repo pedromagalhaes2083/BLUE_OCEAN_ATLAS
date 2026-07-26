@@ -1,6 +1,8 @@
 import 'package:atlas/core/database/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:atlas/core/auth/auth_service.dart';
+import 'package:atlas/core/config/config.dart';
+import 'package:atlas/core/config/constantes.dart';
 import 'package:atlas/core/services/location_tracking_service.dart';
 import 'package:atlas/core/services/sincronizacao_service.dart';
 import '../../../app_shell.dart';
@@ -44,9 +46,15 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       try {
-        await LocationTrackingService().startEnviarLocalizacaoParaApi();
+        final intervalo = int.tryParse(await Config.obtem(
+              Constantes.intervaloRastreamentoMinutos,
+              '$intervaloMinimoMinutos',
+            )) ??
+            intervaloMinimoMinutos;
+        await LocationTrackingService()
+            .iniciarRastreamento(intervaloMinutos: intervalo);
       } catch (e) {
-        debugPrint('Erro ao iniciar envio periódico de localização: $e');
+        debugPrint('Erro ao iniciar rastreamento de localização: $e');
       }
 
       if (!mounted) return;

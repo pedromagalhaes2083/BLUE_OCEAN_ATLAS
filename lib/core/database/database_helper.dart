@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -51,6 +51,9 @@ class DatabaseHelper {
       longitude REAL NOT NULL,
       velocidade REAL,
       precisao REAL,
+      altitude REAL,
+      direcao INTEGER,
+      bateria_nivel INTEGER,
       viagem_id INTEGER,
       sincronizado INTEGER NOT NULL DEFAULT 0
     )
@@ -105,6 +108,12 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       await _criarTabelaPontoMarcado(db);
     }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE localizacao_historico ADD COLUMN altitude REAL');
+      await db.execute('ALTER TABLE localizacao_historico ADD COLUMN direcao INTEGER');
+      await db.execute(
+          'ALTER TABLE localizacao_historico ADD COLUMN bateria_nivel INTEGER');
+    }
   }
 
   Future<void> _criarTabelaPontoMarcado(Database db) async {
@@ -133,5 +142,22 @@ class DatabaseHelper {
   Future<int> delete(String table, {required int id}) async {
     final db = await database;
     return await db.delete(table, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<Map<String, dynamic>>> queryWhere(
+    String table, {
+    required String where,
+    List<Object?>? whereArgs,
+    String? orderBy,
+  }) async {
+    final db = await database;
+    return await db.query(table,
+        where: where, whereArgs: whereArgs, orderBy: orderBy);
+  }
+
+  Future<int> update(String table, Map<String, dynamic> data,
+      {required int id}) async {
+    final db = await database;
+    return await db.update(table, data, where: 'id = ?', whereArgs: [id]);
   }
 }

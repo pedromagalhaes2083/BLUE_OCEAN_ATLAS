@@ -130,10 +130,13 @@ class ApiService {
     final statusCode = response.statusCode;
     final conteudo = jsonDecode(response.body);
     if (statusCode >= 200 && statusCode < 300) return conteudo;
+    final detalhe = conteudo is Map
+        ? (conteudo['message'] ?? conteudo['errors'] ?? conteudo)
+        : conteudo;
     final mensagem =
         'A requisição falhou: $statusCode\n\n'
         'URL: ${response.request?.url}\n'
-        '${(conteudo as Map)['message'] ?? ''}';
+        'Detalhe: $detalhe';
     throw Exception(mensagem);
   }
 

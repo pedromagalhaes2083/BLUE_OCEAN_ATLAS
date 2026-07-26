@@ -1,9 +1,10 @@
-import 'dart:async';
-import 'package:geolocator/geolocator.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:atlas/core/background/location_worker.dart';
 import 'package:atlas/core/database/database_helper.dart';
-import 'package:intl/intl.dart';
+
+/// Intervalo mínimo confiável para tarefas periódicas do WorkManager no
+/// Android — valores menores são silenciosamente ajustados pra esse piso.
+const int intervaloMinimoMinutos = 15;
 
 class LocationTrackingService {
   static final LocationTrackingService _instance =
@@ -11,124 +12,46 @@ class LocationTrackingService {
   factory LocationTrackingService() => _instance;
   LocationTrackingService._internal();
 
-  static const String _taskName = "trackingLocationPeriodic";
-
-  Timer? _foregroundTimer;
-  bool _isForegroundTracking = false;
-  bool _isBackgroundTracking = false;
   bool _initialized = false;
+  bool _rastreando = false;
 
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
-  bool get isTracking => _isForegroundTracking || _isBackgroundTracking;
+  bool get isTracking => _rastreando;
 
-  // ====================== INICIALIZAÇÃO ======================
   Future<void> initialize() async {
     if (_initialized) return;
-
-    await Workmanager().initialize(
-      callbackDispatcher,
-      isInDebugMode: true, // ← Mude para false em produção
-    );
+    await Workmanager().initialize(callbackDispatcher);
     _initialized = true;
   }
 
-  // ====================== BACKGROUND (WorkManager) ======================
-  Future<void> startBackgroundTracking({int viagemId = 0}) async {
+  /// Inicia o rastreamento único: captura a posição, grava no histórico
+  /// local (associada à viagem em andamento, se houver) e sincroniza com a
+  /// API os registros pendentes — no intervalo configurado pelo usuário.
+  /// Roda do login até o logout, com ou sem viagem ativa.
+  Future<void> iniciarRastreamento({required int intervaloMinutos}) async {
     await initialize();
 
+    final intervalo = intervaloMinutos < intervaloMinimoMinutos
+        ? intervaloMinimoMinutos
+        : intervaloMinutos;
+
     await Workmanager().registerPeriodicTask(
-      _taskName,
-      _taskName,
-      frequency: const Duration(minutes: 15), // Mínimo confiável no Android
-      initialDelay: const Duration(minutes: 1),
-      inputData: {'viagem_id': viagemId},
+      rastreamentoLocalizacaoTaskName,
+      rastreamentoLocalizacaoTaskName,
+      frequency: Duration(minutes: intervalo),
       existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
-      constraints: Constraints(
-        networkType: NetworkType.notRequired,
-        requiresBatteryNotLow: false,
-      ),
+      constraints: Constraints(networkType: NetworkType.notRequired),
     );
 
-    _isBackgroundTracking = true;
-    print('🚀 WorkManager: Rastreamento em segundo plano iniciado');
+    _rastreando = true;
+    print('🚀 Rastreamento de localização iniciado (a cada $intervalo min)');
   }
 
-  // ====================== FOREGROUND (Timer - 5 em 5 min) ======================
-  Future<void> startForegroundTracking({int viagemId = 0}) async {
-    if (_isForegroundTracking) return;
-
-    _isForegroundTracking = true;
-
-    // Primeira gravação imediata
-    await _saveCurrentLocation(viagemId);
-
-    // Depois a cada 5 minutos
-    _foregroundTimer = Timer.periodic(const Duration(minutes: 5), (_) async {
-      await _saveCurrentLocation(viagemId);
-    });
-
-    print('📍 Timer (Foreground): Rastreamento a cada 5 minutos iniciado');
-  }
-
-  Future<void> _saveCurrentLocation(int viagemId) async {
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
-      final String dataHora = DateTime.now().toIso8601String();
-
-      await _dbHelper.insert('localizacao_historico', {
-        'data_hora': dataHora,
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-        'velocidade': position.speed,
-        'precisao': position.accuracy,
-        'viagem_id': viagemId,
-        'sincronizado': 0,
-      });
-
-      print(
-          '📍 Posição salva: ${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)} - ${DateFormat('HH:mm:ss').format(DateTime.now())}');
-    } catch (e) {
-      print('❌ Erro ao salvar localização: $e');
-    }
-  }
-
-  // ====================== ENVIO PERIÓDICO PRA API (30 em 30 min) ======================
-  Future<void> startEnviarLocalizacaoParaApi() async {
-    await initialize();
-
-    await Workmanager().registerPeriodicTask(
-      enviarLocalizacaoApiTaskName,
-      enviarLocalizacaoApiTaskName,
-      frequency: const Duration(minutes: 30),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
-
-    print('🌐 WorkManager: Envio periódico de localização para a API iniciado (30 min)');
-  }
-
-  Future<void> stopEnviarLocalizacaoParaApi() async {
-    await Workmanager().cancelByUniqueName(enviarLocalizacaoApiTaskName);
-  }
-
-  // ====================== PARAR RASTREAMENTO ======================
-  Future<void> stopAllTracking() async {
-    // Para WorkManager (background)
-    await Workmanager().cancelByUniqueName(_taskName);
-    _isBackgroundTracking = false;
-
-    // Para Timer (foreground)
-    _foregroundTimer?.cancel();
-    _foregroundTimer = null;
-    _isForegroundTracking = false;
-
-    print('⏹️ Todos os rastreamentos foram parados');
+  Future<void> pararRastreamento() async {
+    await Workmanager().cancelByUniqueName(rastreamentoLocalizacaoTaskName);
+    _rastreando = false;
+    print('⏹️ Rastreamento de localização parado');
   }
 
   // ====================== HISTÓRICO ======================
