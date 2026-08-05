@@ -5,10 +5,12 @@ import 'package:geolocator/geolocator.dart';
 import '../../features/dispositivo/data/dispositivo_repository.dart';
 import '../../features/localizacao/data/localizacao_repository.dart';
 import '../../features/localizacao/domain/models/localizacao_envio.dart';
+import '../auth/auth_service.dart';
 import '../config/config.dart';
 import '../config/constantes.dart';
 import '../database/database_helper.dart';
 import 'device_id_service.dart';
+import 'location_tracking_service.dart';
 
 /// Captura a posição atual, grava no histórico local (`localizacao_historico`,
 /// associada à viagem em andamento se houver) e sincroniza com a API todos
@@ -71,6 +73,13 @@ class LocalizacaoReporterService {
   /// funciona tanto pro registro que acabou de ser gravado quanto pra
   /// qualquer backlog acumulado enquanto o aparelho estava sem internet.
   static Future<void> sincronizarPendentes() async {
+    if (!await AuthService.isLoggedIn()) {
+      debugPrint(
+          '⚠️ Sessão expirada — parando rastreamento em vez de tentar sincronizar sem token.');
+      await LocationTrackingService().pararRastreamento();
+      return;
+    }
+
     final embarcacaoId = await Config.obtem(
       Constantes.embarcacaoId,
       _embarcacaoIdPadrao,
@@ -89,6 +98,9 @@ class LocalizacaoReporterService {
     );
     if (pendentes.isEmpty) return;
 
+    // O backend exige um UUID nesse campo (confirmado via erro de
+    // validação "dispositivoId must be a UUID") — não aceita o
+    // identificador bruto do aparelho, só o UUID do registro correspondente.
     String dispositivoId;
     try {
       final deviceIdentificador = await DeviceIdService.obtemId();
