@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -38,7 +38,13 @@ class DatabaseHelper {
     quantidade_urnas INTEGER NOT NULL DEFAULT 1,
     registro TEXT,
     data_cadastro TEXT NOT NULL,
-    ativo INTEGER NOT NULL DEFAULT 1
+    ativo INTEGER NOT NULL DEFAULT 1,
+    capacidade_gelo_kg REAL,
+    capacidade_diesel_litros REAL,
+    numero_tripulantes INTEGER,
+    mestre_id TEXT,
+    motor_usado TEXT,
+    foto TEXT
   )
 ''');
 
@@ -113,6 +119,18 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE localizacao_historico ADD COLUMN direcao INTEGER');
       await db.execute(
           'ALTER TABLE localizacao_historico ADD COLUMN bateria_nivel INTEGER');
+    }
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE embarcacao ADD COLUMN capacidade_gelo_kg REAL');
+      await db.execute('ALTER TABLE embarcacao ADD COLUMN capacidade_diesel_litros REAL');
+      await db.execute('ALTER TABLE embarcacao ADD COLUMN numero_tripulantes INTEGER');
+      await db.execute('ALTER TABLE embarcacao ADD COLUMN mestre_id TEXT');
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE embarcacao ADD COLUMN motor_usado TEXT');
+    }
+    if (oldVersion < 6) {
+      await db.execute('ALTER TABLE embarcacao ADD COLUMN foto TEXT');
     }
   }
 

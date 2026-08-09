@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../app_shell.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/config/config.dart';
+import '../../core/config/constantes.dart';
 import '../../core/database/database_helper.dart';
+import '../../core/services/location_tracking_service.dart';
 import '../auth/presentation/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -44,6 +47,27 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 2500));
 
     final estaLogado = await AuthService.isLoggedIn();
+
+    // O rastreamento periódico (WorkManager) sobrevive a reaberturas do
+    // app, mas o flag em memória de LocationTrackingService não — reseta
+    // a cada cold start. Sem isso, um usuário que reabre o app já logado
+    // (pula a LoginScreen, que é o único outro lugar que chama isso) via
+    // uma sessão iniciada antes ficaria com o indicador de rastreamento
+    // da Dashboard sempre "desligado", mesmo com a tarefa ainda ativa.
+    // `existingWorkPolicy: replace` faz disso uma chamada idempotente.
+    if (estaLogado) {
+      try {
+        final intervalo = int.tryParse(await Config.obtem(
+              Constantes.intervaloRastreamentoMinutos,
+              '$intervaloMinimoMinutos',
+            )) ??
+            intervaloMinimoMinutos;
+        await LocationTrackingService()
+            .iniciarRastreamento(intervaloMinutos: intervalo);
+      } catch (e) {
+        debugPrint('Erro ao reconfirmar rastreamento de localização: $e');
+      }
+    }
 
     if (!mounted) return;
 

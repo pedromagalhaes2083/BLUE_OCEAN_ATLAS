@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../core/services/localizacao_reporter_service.dart';
 import '../../core/utils/coordenadas_format.dart';
 import 'position_card.dart';
 
@@ -82,6 +83,15 @@ class PosicaoAtualWidgetState extends State<PosicaoAtualWidget> {
         _erro = null;
       });
       widget.onPosicaoObtida?.call(posicao);
+
+      // Dispara gravação + sincronização em segundo plano (não trava a UI
+      // nem o carregamento do card) — cobre a abertura do app com o mesmo
+      // fluxo de fila offline usado no rastreamento periódico.
+      unawaited(
+        LocalizacaoReporterService.registrarESincronizar(
+          posicaoConhecida: posicao,
+        ),
+      );
     } on TimeoutException {
       if (!mounted) return;
       setState(() => _erro =

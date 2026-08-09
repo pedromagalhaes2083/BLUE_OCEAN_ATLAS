@@ -3,12 +3,15 @@ import 'package:flutter/services.dart';
 
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
+import '../../../core/database/database_helper.dart';
 import '../../../core/services/device_id_service.dart';
-import '../../../core/services/localizacao_reporter_service.dart';
 import '../../../core/services/location_tracking_service.dart';
+import '../../embarcacao/presentation/embarcacao_configuracao_screen.dart';
 
 class ConfiguracoesScreen extends StatefulWidget {
-  const ConfiguracoesScreen({super.key});
+  final DatabaseHelper dbHelper;
+
+  const ConfiguracoesScreen({super.key, required this.dbHelper});
 
   @override
   State<ConfiguracoesScreen> createState() => _ConfiguracoesScreenState();
@@ -17,7 +20,6 @@ class ConfiguracoesScreen extends StatefulWidget {
 class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   String? _deviceId;
   DeviceInfoResumo? _deviceInfo;
-  final _embarcacaoIdController = TextEditingController();
   int _intervaloMinutos = intervaloMinimoMinutos;
 
   static const _opcoesIntervalo = [15, 30, 60, 120];
@@ -28,19 +30,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
     _carregar();
   }
 
-  @override
-  void dispose() {
-    _embarcacaoIdController.dispose();
-    super.dispose();
-  }
-
   Future<void> _carregar() async {
     final id = await DeviceIdService.obtemId();
     final info = await DeviceIdService.obtemInfo();
-    final embarcacaoId = await Config.obtem(
-      Constantes.embarcacaoId,
-      'c8f1da10-e015-41c9-920f-ce2c512c3a95',
-    );
     final intervalo = int.tryParse(await Config.obtem(
           Constantes.intervaloRastreamentoMinutos,
           '$intervaloMinimoMinutos',
@@ -50,10 +42,18 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
     setState(() {
       _deviceId = id;
       _deviceInfo = info;
-      _embarcacaoIdController.text = embarcacaoId;
       _intervaloMinutos =
           _opcoesIntervalo.contains(intervalo) ? intervalo : intervaloMinimoMinutos;
     });
+  }
+
+  Future<void> _abrirConfiguracaoEmbarcacao() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EmbarcacaoConfiguracaoScreen(dbHelper: widget.dbHelper),
+      ),
+    );
   }
 
   Future<void> _alterarIntervalo(int? novoValor) async {
@@ -80,27 +80,6 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('ID copiado para a área de transferência')),
-    );
-  }
-
-  Future<void> _salvarEmbarcacaoId() async {
-    await Config.grava(Constantes.embarcacaoId, _embarcacaoIdController.text.trim());
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ID da embarcação salvo')),
-    );
-  }
-
-  bool _testandoEnvio = false;
-
-  Future<void> _testarEnvioLocalizacao() async {
-    setState(() => _testandoEnvio = true);
-    await LocalizacaoReporterService.registrarESincronizar();
-    if (!mounted) return;
-    setState(() => _testandoEnvio = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Teste disparado — veja o resultado no console/log')),
     );
   }
 
@@ -163,7 +142,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'Embarcação (envio de localização)',
+                    'Embarcação',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
@@ -171,65 +150,19 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     elevation: 3,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.directions_boat, color: Colors.blue),
-                              SizedBox(width: 10),
-                              Text(
-                                'ID da Embarcação (backend)',
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'UUID cadastrado no backend, usado no envio periódico '
-                            'de localização da embarcação.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _embarcacaoIdController,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: 'ex: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-                            ),
-                            style: const TextStyle(
-                                fontSize: 14, fontFamily: 'monospace'),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed:
-                                    _testandoEnvio ? null : _testarEnvioLocalizacao,
-                                icon: _testandoEnvio
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                      )
-                                    : const Icon(Icons.send, size: 18),
-                                label: const Text('Testar envio agora'),
-                              ),
-                              const SizedBox(width: 8),
-                              FilledButton.icon(
-                                onPressed: _salvarEmbarcacaoId,
-                                icon: const Icon(Icons.save, size: 18),
-                                label: const Text('Salvar'),
-                              ),
-                            ],
-                          ),
-                        ],
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      leading: const Icon(Icons.directions_boat, color: Colors.blue),
+                      title: const Text(
+                        'Configurar Embarcação',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
+                      subtitle: const Text(
+                        'Capacidades, tripulação, mestre e ID de envio de localização.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _abrirConfiguracaoEmbarcacao,
                     ),
                   ),
                   const SizedBox(height: 24),

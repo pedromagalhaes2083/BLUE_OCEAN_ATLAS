@@ -19,19 +19,25 @@ import 'location_tracking_service.dart';
 ///
 /// Chamado periodicamente pela tarefa registrada em
 /// [LocationTrackingService.iniciarRastreamento], no intervalo configurado
-/// pelo usuário.
+/// pelo usuário, e também na abertura do app (ver [PosicaoAtualWidget]).
 class LocalizacaoReporterService {
   /// Valor padrão informado pelo usuário — usado enquanto a tela de
   /// Configurações não tiver um valor próprio salvo para este aparelho.
   static const _embarcacaoIdPadrao = 'c8f1da10-e015-41c9-920f-ce2c512c3a95';
 
-  static Future<void> registrarESincronizar() async {
+  /// [posicaoConhecida] evita um novo fix de GPS quando quem chamou (ex:
+  /// [PosicaoAtualWidget] na abertura do app) já obteve a posição atual
+  /// segundos antes.
+  static Future<void> registrarESincronizar({
+    Position? posicaoConhecida,
+  }) async {
     try {
-      final posicao = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      ).timeout(const Duration(seconds: 20));
+      final posicao = posicaoConhecida ??
+          await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+            ),
+          ).timeout(const Duration(seconds: 20));
 
       int? bateriaNivel;
       try {

@@ -6,7 +6,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:atlas/features/widgets/meteorology_widgets/chlorophyll_widgets.dart';
 import 'package:atlas/features/widgets/meteorology_widgets/current_card.dart';
 import 'package:atlas/features/widgets/meteorology_widgets/wind_card.dart';
@@ -20,6 +19,8 @@ class GribProcessorScreen extends StatefulWidget {
 }
 
 class _GribProcessorScreenState extends State<GribProcessorScreen> {
+  static const double _raioMaximoNm = 80.0; // ≈ 150 km (em milhas náuticas)
+
   bool loading = false;
   Map<String, dynamic>? resultadoVento;
   Map<String, dynamic>? resultadoCorrente;
@@ -94,7 +95,7 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
 
     final double userLat = currentPosition!.latitude;
     final double userLon = currentPosition!.longitude;
-    const double raioMaximoNm = 80.0; // ≈ 150 km (em milhas náuticas)
+    const double raioMaximoNm = _raioMaximoNm;
 
     // VENTO
     if (resultadoVento != null) {
@@ -247,57 +248,201 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Calcula distâncias uma vez
-    double distVento = _distanciaDoPrimeiro(dadosExibidosVento);
-    double distCorrente = _distanciaDoPrimeiro(dadosExibidosCorrentes);
+    final bool carregamentoInicial = loading && resultadoVento == null;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FC),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+        titleSpacing: 20,
+        title: const Text('Meteorologia',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        actions: [
+          IconButton(
+            icon: loading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            tooltip: 'Recarregar dados',
+            onPressed: loading ? null : carregarJsonDosAssets,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: carregamentoInicial
+          ? const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Carregando dados meteorológicos...',
+                      style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: carregarJsonDosAssets,
+              child: _buildConteudo(context),
+            ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.blue,
+        tooltip: 'Atualizar posição',
+        onPressed: isLoadingPosition ? null : _getCurrentPosition,
+        child: isLoadingPosition
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : const Icon(Icons.my_location),
+      ),
+    );
+  }
+
+  Widget _buildConteudo(BuildContext context) {
+    final double distVento = _distanciaDoPrimeiro(dadosExibidosVento);
+    final double distCorrente = _distanciaDoPrimeiro(dadosExibidosCorrentes);
     final clorofilaDataset = ChlorophyllDataset.fromRawList(
       dadosExibidosClorofila,
       originLat: currentPosition?.latitude,
       originLon: currentPosition?.longitude,
     );
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-        elevation: 0,
-        title: const Text('METEOROLOGIA - GRIBS',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: loading
-                ? null
-                : () {
-                    carregarJsonDosAssets();
-                  },
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+      children: [
+        PositionCard(
+          isLoadingPosition: isLoadingPosition,
+          positionError: positionError,
+          currentPosition: currentPosition,
+          formatCoordinates: _formatCoordinates,
+          onRefresh: _getCurrentPosition,
+        ),
+        if (currentPosition != null) ...[
+          const SizedBox(height: 10),
+          Center(
+            child: Text(
+              'Dados num raio de ${_raioMaximoNm.toStringAsFixed(0)} mn da posição atual',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ),
         ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            PositionCard(
-              isLoadingPosition: isLoadingPosition,
-              positionError: positionError,
-              currentPosition: currentPosition,
-              formatCoordinates: _formatCoordinates,
-            ),
-            const SizedBox(height: 16),
-            WindCard(dados: dadosExibidosVento, distancia: distVento),
-            const SizedBox(height: 16),
-            CurrentCard(dados: dadosExibidosCorrentes, distancia: distCorrente),
-            const SizedBox(height: 16),
-            ChlorophyllCard(dataset: clorofilaDataset),
-            const SizedBox(height: 16),
-            ChlorophyllNearbyList(dataset: clorofilaDataset),
-          ],
+        const SizedBox(height: 24),
+        _SectionHeader(
+          icon: Icons.air,
+          label: 'Vento',
+          color: const Color(0xFF3ECFF3),
+          count: dadosExibidosVento.length,
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: _getCurrentPosition,
-        child: const Icon(Icons.my_location),
+        const SizedBox(height: 12),
+        dadosExibidosVento.isEmpty
+            ? const _EmptyDatasetCard(mensagem: 'Nenhum dado de vento por perto')
+            : WindCard(dados: dadosExibidosVento, distancia: distVento),
+        const SizedBox(height: 24),
+        _SectionHeader(
+          icon: Icons.waves,
+          label: 'Correntes',
+          color: Colors.blue,
+          count: dadosExibidosCorrentes.length,
+        ),
+        const SizedBox(height: 12),
+        dadosExibidosCorrentes.isEmpty
+            ? const _EmptyDatasetCard(
+                mensagem: 'Nenhum dado de correntes por perto')
+            : CurrentCard(dados: dadosExibidosCorrentes, distancia: distCorrente),
+        const SizedBox(height: 24),
+        _SectionHeader(
+          icon: Icons.eco,
+          label: 'Clorofila',
+          color: Colors.green,
+          count: dadosExibidosClorofila.length,
+        ),
+        const SizedBox(height: 12),
+        clorofilaDataset.isEmpty
+            ? const _EmptyDatasetCard(mensagem: 'Nenhum dado de clorofila por perto')
+            : Column(
+                children: [
+                  ChlorophyllCard(dataset: clorofilaDataset),
+                  const SizedBox(height: 16),
+                  ChlorophyllNearbyList(dataset: clorofilaDataset),
+                ],
+              ),
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final int count;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.count,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+        const Spacer(),
+        if (count > 0)
+          Text(
+            '$count ${count == 1 ? 'ponto' : 'pontos'}',
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+      ],
+    );
+  }
+}
+
+class _EmptyDatasetCard extends StatelessWidget {
+  final String mensagem;
+
+  const _EmptyDatasetCard({required this.mensagem});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+        color: const Color(0xFFEDF1F3),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.grey.shade300),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+          child: Column(
+            children: [
+              Icon(Icons.location_searching, color: Colors.grey.shade400, size: 28),
+              const SizedBox(height: 8),
+              Text(
+                mensagem,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

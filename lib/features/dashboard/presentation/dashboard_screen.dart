@@ -1,6 +1,7 @@
 import 'package:atlas/features/api_tester/presentation/api_tester_screen.dart';
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
 import 'package:atlas/features/mapa/presentation/mapa_screen.dart';
+import 'package:atlas/features/mapa/presentation/mapa_widget.dart';
 import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcaao_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
 import 'package:atlas/features/metereologia/presentation/gribs_screen.dart';
@@ -8,7 +9,6 @@ import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.da
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/database/database_helper.dart';
 import '../../metereologia/data/profundidade_repository.dart';
@@ -201,11 +201,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Posição Atual
                     PosicaoAtualWidget(key: _posicaoKey),
 
-                    const SizedBox(height: 32),
-
-                    // Viagem Atual
-                    _buildViagemCard(),
-
                     if (isTracking) ...[
                       const SizedBox(height: 16),
                       Card(
@@ -218,18 +213,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               'Registrando posição a cada $_intervaloRastreamentoMinutos minutos'),
                           trailing: const Icon(Icons.check_circle,
                               color: Colors.green),
-                        ),
-                      ),
-                    ],
-
-                    if (viagemAtual == null) ...[
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _iniciarNovaViagem,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Nova Viagem'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
                         ),
                       ),
                     ],
@@ -264,39 +247,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     const SizedBox(height: 32),
-                    const Text('Ações Rápidas',
+                    const Text('Mapa',
                         style: TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
-                    _buildActionButton(
-                        icon: Icons.map_outlined,
-                        label: 'Mapa de Navegação',
-                        color: Colors.blue,
-                        onTap: () => _abrirHistoricoPosicoes(context)),
-                    const SizedBox(height: 12),
-                    _buildActionButton(
-                        icon: Icons.layers,
-                        label: 'Mapa Offline (MBTiles)',
-                        color: Colors.teal,
-                        onTap: () => _abrirMapaOffline(context)),
-                    const SizedBox(height: 12),
-                    _buildActionButton(
-                        icon: Icons.add_link_rounded,
-                        label: 'Solicitar Carta',
-                        color: Colors.green,
-                        onTap: () => _abrirSolicitarCarta(context)),
-                    const SizedBox(height: 12),
-                    _buildActionButton(
-                        icon: Icons.api,
-                        label: 'Teste de API',
-                        color: Colors.deepPurple,
-                        onTap: () => _abrirApiTester(context)),
-                    const SizedBox(height: 12),
-                    _buildActionButton(
-                        icon: Icons.smartphone,
-                        label: 'Teste — Dispositivo & Recomendações',
-                        color: Colors.indigo,
-                        onTap: () => _abrirDispositivoTeste(context)),
+                    SizedBox(
+                      height: 450,
+                      width: double.infinity,
+                      child: const MapaWidget(),
+                    ),
 
                     const SizedBox(height: 40),
                     const Center(
@@ -340,12 +299,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             ListTile(
+              leading: Icon(viagemAtual == null ? Icons.add : Icons.sailing),
+              title: Text(
+                  viagemAtual == null ? 'Nova Viagem' : 'Viagem Atual'),
+              onTap: () => viagemAtual == null
+                  ? _iniciarNovaViagem()
+                  : _abrirHistoricoPosicoes(context),
+            ),
+            ListTile(
               leading: const Icon(Icons.map),
               title: const Text('Mapa de Navegação'),
               onTap: () => _abrirHistoricoPosicoes(context),
             ),
             ListTile(
               leading: const Icon(Icons.layers),
+              title: const Text('Mapa Offline (MBTiles)'),
+              onTap: () => _abrirMapaOffline(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_link_rounded),
+              title: const Text('Solicitar Carta'),
+              onTap: () => _abrirSolicitarCarta(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.layers_outlined),
               title: const Text('Cartas Náuticas'),
               onTap: () {
                 Navigator.pop(context);
@@ -374,6 +351,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: const Text('Condições do Mar'),
               onTap: () => _abrirCondicoesMar(context),
             ),
+            ListTile(
+              leading: const Icon(Icons.api),
+              title: const Text('Teste de API'),
+              onTap: () => _abrirApiTester(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.smartphone),
+              title: const Text('Teste — Dispositivo & Recomendações'),
+              onTap: () => _abrirDispositivoTeste(context),
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.settings),
@@ -383,7 +370,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const ConfiguracoesScreen(),
+                    builder: (_) => ConfiguracoesScreen(dbHelper: widget.dbHelper),
                   ),
                 );
                 // Ao voltar, atualiza o intervalo exibido caso tenha mudado.
@@ -405,117 +392,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
 // ==================== WIDGETS AUXILIARES ====================
-  Widget _buildViagemCard() {
-    if (viagemAtual == null) {
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Padding(
-          padding: EdgeInsets.all(20),
-          child: Center(
-            child: Text(
-              'Nenhuma viagem em andamento',
-              style: TextStyle(fontSize: 18),
-            ),
-          ),
-        ),
-      );
-    }
-
-    final int diasEmViagem =
-        DateTime.now().difference(viagemAtual!.dataInicio).inDays;
-
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            // LADO ESQUERDO - INFORMAÇÕES
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(
-                        Icons.sailing,
-                        color: Colors.blue,
-                        size: 28,
-                      ),
-                      SizedBox(width: 10),
-                      Text(
-                        'Viagem Atual',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    viagemAtual!.nome ?? 'Viagem em andamento',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Início: ${DateFormat('dd/MM/yyyy').format(viagemAtual!.dataInicio)}',
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // LADO DIREITO - DIAS EM DESTAQUE
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 16,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '$diasEmViagem',
-                    style: const TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  const Text(
-                    'DIAS',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildStatCard({
     required IconData icon,
     required String title,
@@ -541,39 +417,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text(subtitle,
                 style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          child: Row(
-            children: [
-              Icon(icon, size: 32, color: color),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w500),
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, color: Colors.grey[400]),
-            ],
-          ),
         ),
       ),
     );
@@ -704,7 +547,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     print(embarcacaoAtual);
     print("------------------------------------------------");
     if (embarcacaoAtual?.nome.isNotEmpty ?? false) {
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => EmbarcacaoScreen(
@@ -713,7 +556,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       );
-      print('not null');
+      _carregarDados();
     } else {
       Navigator.push(
         context,
