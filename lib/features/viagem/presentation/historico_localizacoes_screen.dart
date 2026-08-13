@@ -320,8 +320,12 @@ class _HistoricoLocalizacoesScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Viagem em andamento',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    viagem.nome?.isNotEmpty == true
+                        ? viagem.nome!
+                        : 'Viagem em andamento',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   Text(
                     'Iniciada em ${DateFormat('dd/MM/yyyy HH:mm').format(viagem.dataInicio)}',
                     style: TextStyle(color: Colors.grey[700], fontSize: 13),

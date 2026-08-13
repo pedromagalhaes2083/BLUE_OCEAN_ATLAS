@@ -169,6 +169,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
       setState(() => isLoading = false);
       debugPrint('Erro ao carregar dashboard: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Não foi possível carregar os dados do painel.'),
+          action: SnackBarAction(
+            label: 'Tentar novamente',
+            onPressed: _carregarDados,
+          ),
+        ),
+      );
     }
   }
 

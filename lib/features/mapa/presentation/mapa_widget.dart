@@ -8,6 +8,7 @@ import '../../../core/database/database_helper.dart';
 import '../../../core/services/mbtiles_service.dart';
 import '../../../core/services/geotiff_service.dart';
 import '../../../core/services/pontos_service.dart';
+import '../../../core/services/street_map_cache_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../metereologia/data/profundidade_repository.dart';
@@ -15,8 +16,10 @@ import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../metereologia/domain/models/leitura_profundidade.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../domain/models/ponto_marcado.dart';
+import '../widgets/download_regiao_dialog.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
+import '../widgets/street_map_tile_provider.dart';
 
 const _bundledAsset = 'assets/cartas/OUTPUT_FILE.mbtiles';
 const _pontosAsset = 'assets/json/posicoes/Routing3.json';
@@ -59,6 +62,7 @@ class MapaWidgetState extends State<MapaWidget> {
   final MbtilesService _mbtiles = MbtilesService();
   final GeotiffService _geotiffService = GeotiffService();
   final PontosService _pontosService = PontosService();
+  final StreetMapCacheService _streetCache = StreetMapCacheService();
   final MapController _mapController = MapController();
 
   List<PontoMapa> _pontos = [];
@@ -67,6 +71,11 @@ class MapaWidgetState extends State<MapaWidget> {
   bool _loading = false;
   String? _fileName;
   String? _error;
+
+  /// Alterna entre a carta náutica carregada (MBTiles/GeoTIFF) e o mapa de
+  /// ruas (OpenStreetMap, com cache próprio pra uso offline depois de
+  /// baixado — ver [StreetMapCacheService]).
+  bool _camadaRuas = false;
 
   GeotiffResult? _geotiff;
 
@@ -87,6 +96,7 @@ class MapaWidgetState extends State<MapaWidget> {
   bool _modoMarcarPonto = false;
   LatLng _centroMira = const LatLng(-15.0, -50.0);
   List<PontoMarcado> _pontosMarcados = [];
+  final TextEditingController _nomePontoController = TextEditingController();
 
   /// Pontos da recomendação a exibir sobre a carta (vazio se nenhuma).
   List<LatLng> get _pontosRecomendacao {
@@ -130,6 +140,7 @@ class MapaWidgetState extends State<MapaWidget> {
   @override
   void dispose() {
     _mbtiles.close();
+    _nomePontoController.dispose();
     super.dispose();
   }
 
@@ -278,15 +289,19 @@ class MapaWidgetState extends State<MapaWidget> {
       _modoMarcarPonto = !_modoMarcarPonto;
       if (_modoMarcarPonto) {
         _centroMira = _mapController.camera.center;
+      } else {
+        _nomePontoController.clear();
       }
     });
   }
 
   Future<void> _confirmarPontoMarcado() async {
+    final nome = _nomePontoController.text.trim();
     final novoPonto = PontoMarcado(
       latitude: _centroMira.latitude,
       longitude: _centroMira.longitude,
       dataCriacao: DateTime.now(),
+      nome: nome.isEmpty ? null : nome,
     );
     final id = await _dbHelper.insert('ponto_marcado', novoPonto.toMap());
     if (!mounted) return;
@@ -299,15 +314,19 @@ class MapaWidgetState extends State<MapaWidget> {
           latitude: novoPonto.latitude,
           longitude: novoPonto.longitude,
           dataCriacao: novoPonto.dataCriacao,
+          nome: novoPonto.nome,
         ),
       ];
       _modoMarcarPonto = false;
+      _nomePontoController.clear();
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Ponto marcado: '
-          '${formatarCoordenadasDMSCompacta(novoPonto.latitude, novoPonto.longitude)}',
+          novoPonto.nome != null
+              ? 'Ponto marcado: ${novoPonto.nome}'
+              : 'Ponto marcado: '
+                  '${formatarCoordenadasDMSCompacta(novoPonto.latitude, novoPonto.longitude)}',
         ),
       ),
     );
@@ -337,11 +356,16 @@ class MapaWidgetState extends State<MapaWidget> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.push_pin, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Ponto marcado'),
+            const Icon(Icons.push_pin, color: Colors.green),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                ponto.nome?.isNotEmpty == true ? ponto.nome! : 'Ponto marcado',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -563,7 +587,9 @@ class MapaWidgetState extends State<MapaWidget> {
                           : widget.recomendacao!.titulo
                       : widget.rota != null
                           ? 'Rota do histórico'
-                          : _fileName ?? 'Mapa',
+                          : _camadaRuas
+                              ? 'Mapa de Ruas (OpenStreetMap)'
+                              : _fileName ?? 'Mapa',
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
@@ -589,6 +615,24 @@ class MapaWidgetState extends State<MapaWidget> {
                 onPressed: _alternarModoMarcarPonto,
                 visualDensity: VisualDensity.compact,
               ),
+              if (_camadaRuas)
+                IconButton(
+                  icon: const Icon(Icons.download,
+                      color: Colors.white, size: 20),
+                  tooltip: 'Baixar região para uso offline',
+                  onPressed: _abrirDownloadRegiao,
+                  visualDensity: VisualDensity.compact,
+                ),
+              IconButton(
+                icon: Icon(
+                  _camadaRuas ? Icons.map : Icons.explore,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                tooltip: _camadaRuas ? 'Ver carta náutica' : 'Ver mapa de ruas',
+                onPressed: () => setState(() => _camadaRuas = !_camadaRuas),
+                visualDensity: VisualDensity.compact,
+              ),
               IconButton(
                 icon: const Icon(Icons.folder_open,
                     color: Colors.white, size: 20),
@@ -599,6 +643,17 @@ class MapaWidgetState extends State<MapaWidget> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _abrirDownloadRegiao() {
+    final camera = _mapController.camera;
+    showDialog(
+      context: context,
+      builder: (_) => DownloadRegiaoDialog(
+        bounds: camera.visibleBounds,
+        zoomAtual: camera.zoom.round(),
       ),
     );
   }
@@ -673,13 +728,16 @@ class MapaWidgetState extends State<MapaWidget> {
       options: MapOptions(
         initialCenter: _center,
         initialZoom: _zoom,
-        minZoom: _minZoom,
-        maxZoom: _maxZoom,
+        // A carta náutica tem limites próprios (definidos no arquivo
+        // carregado); o mapa de ruas cobre o mundo todo, sem essas
+        // restrições.
+        minZoom: _camadaRuas ? 1 : _minZoom,
+        maxZoom: _camadaRuas ? 19 : _maxZoom,
         backgroundColor: const Color(0xFF1B3A5C),
         // Trava o pan dentro da carta carregada — combinado com o zoom
         // mínimo ajustado em `_preencherComCarta`, evita que sobre borda
         // vazia (fundo escuro) visível em qualquer direção.
-        cameraConstraint: _chartBounds != null
+        cameraConstraint: !_camadaRuas && _chartBounds != null
             ? CameraConstraint.contain(bounds: _chartBounds!)
             : const CameraConstraint.unconstrained(),
         onPositionChanged: (camera, hasGesture) {
@@ -689,22 +747,26 @@ class MapaWidgetState extends State<MapaWidget> {
         },
       ),
       children: [
-        if (_mode == _MapMode.mbtiles)
-          TileLayer(
-            tileProvider: MbtilesTileProvider(_mbtiles),
-          ),
-        if (_mode == _MapMode.geotiff && _geotiff != null)
-          OverlayImageLayer(
-            overlayImages: [
-              OverlayImage(
-                bounds: LatLngBounds(
-                  LatLng(_geotiff!.south, _geotiff!.west),
-                  LatLng(_geotiff!.north, _geotiff!.east),
+        if (_camadaRuas)
+          TileLayer(tileProvider: StreetMapTileProvider(_streetCache))
+        else ...[
+          if (_mode == _MapMode.mbtiles)
+            TileLayer(
+              tileProvider: MbtilesTileProvider(_mbtiles),
+            ),
+          if (_mode == _MapMode.geotiff && _geotiff != null)
+            OverlayImageLayer(
+              overlayImages: [
+                OverlayImage(
+                  bounds: LatLngBounds(
+                    LatLng(_geotiff!.south, _geotiff!.west),
+                    LatLng(_geotiff!.north, _geotiff!.east),
+                  ),
+                  imageProvider: MemoryImage(_geotiff!.imageBytes),
                 ),
-                imageProvider: MemoryImage(_geotiff!.imageBytes),
-              ),
-            ],
-          ),
+              ],
+            ),
+        ],
         // Rota do histórico de GPS — linha ligando os pontos na ordem
         // cronológica, ao estilo Waze/Google Maps, sobre a carta náutica.
         if (_rota.length > 1)
@@ -894,8 +956,10 @@ class MapaWidgetState extends State<MapaWidget> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            formatarCoordenadasDMSCompacta(
-                                p.latitude, p.longitude),
+                            p.nome?.isNotEmpty == true
+                                ? p.nome!
+                                : formatarCoordenadasDMSCompacta(
+                                    p.latitude, p.longitude),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -951,6 +1015,17 @@ class MapaWidgetState extends State<MapaWidget> {
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _nomePontoController,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do local (opcional)',
+                    hintText: 'Ex: Poço do Camurupim',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(

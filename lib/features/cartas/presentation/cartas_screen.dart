@@ -148,6 +148,16 @@ class _CartasScreenState extends State<CartasScreen>
     }
   }
 
+  void _cartaNaoBaixada() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Esta carta ainda não foi baixada. Peça em "Solicitar Carta", no menu.',
+        ),
+      ),
+    );
+  }
+
   void _abrirDetalheRecomendacao(Recomendacao recomendacao) {
     showModalBottomSheet(
       context: context,
@@ -267,7 +277,7 @@ class _CartasScreenState extends State<CartasScreen>
                                     color: Colors.blue),
                             onTap: carta.estaBaixada
                                 ? () => _abrirCarta(carta)
-                                : null,
+                                : _cartaNaoBaixada,
                           ),
                         );
                       },

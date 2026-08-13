@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 7,
+      version: 9,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -109,6 +109,8 @@ class DatabaseHelper {
     ''');
 
     await _criarTabelaPontoMarcado(db);
+    await db.execute('ALTER TABLE ponto_marcado ADD COLUMN nome TEXT');
+    await _criarTabelaSolicitacaoCarta(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -136,6 +138,26 @@ class DatabaseHelper {
     if (oldVersion < 7) {
       await db.execute('ALTER TABLE producao_registro ADD COLUMN viagem_id INTEGER');
     }
+    if (oldVersion < 8) {
+      await db.execute('ALTER TABLE ponto_marcado ADD COLUMN nome TEXT');
+    }
+    if (oldVersion < 9) {
+      await _criarTabelaSolicitacaoCarta(db);
+    }
+  }
+
+  Future<void> _criarTabelaSolicitacaoCarta(Database db) async {
+    // Pedidos de carta náutica feitos pelo mestre — hoje sem integração com
+    // um backend de cartas (não existe), então fica só registrado
+    // localmente pra não ser descartado silenciosamente.
+    await db.execute('''
+      CREATE TABLE solicitacao_carta (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        latitude_texto TEXT NOT NULL,
+        longitude_texto TEXT NOT NULL,
+        data_solicitacao TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _criarTabelaPontoMarcado(Database db) async {
