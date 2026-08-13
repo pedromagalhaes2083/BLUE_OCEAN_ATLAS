@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../../core/database/database_helper.dart';
 import '../domain/models/producao_registro.dart';
+import 'producao_historico_screen.dart';
 
 class ProducaoScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -19,14 +20,42 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
   final _quantidadeController = TextEditingController();
   final _observacaoController = TextEditingController();
 
-  String embarcacaoId = "PE-1234";
+  String _embarcacaoNome = 'Não definida';
+  int? _viagemAtivaId;
   Position? _posicaoAtual;
   bool _isSalvando = false;
 
   @override
   void initState() {
     super.initState();
+    _carregarContexto();
     _obterLocalizacao();
+  }
+
+  // Identifica a embarcação registrada e a viagem em andamento (se houver)
+  // pra preencher o registro corretamente, em vez de valores fixos.
+  Future<void> _carregarContexto() async {
+    final embarcacoes = await widget.dbHelper.query('embarcacao');
+    final viagens = await widget.dbHelper.queryWhere(
+      'viagem',
+      where: 'status = ?',
+      whereArgs: ['em_andamento'],
+      orderBy: 'id DESC',
+    );
+
+    if (!mounted) return;
+    setState(() {
+      if (embarcacoes.isNotEmpty) {
+        final embarcacao = embarcacoes.first;
+        _embarcacaoNome =
+            (embarcacao['registro'] as String?)?.isNotEmpty == true
+                ? embarcacao['registro'] as String
+                : (embarcacao['nome'] as String? ?? 'Não definida');
+      }
+      if (viagens.isNotEmpty) {
+        _viagemAtivaId = viagens.first['id'] as int;
+      }
+    });
   }
 
   Future<void> _obterLocalizacao() async {
@@ -47,7 +76,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
     try {
       final registro = ProducaoRegistro(
         id: 0,
-        embarcacaoId: embarcacaoId,
+        embarcacaoId: _embarcacaoNome,
         dataHora: DateTime.now(),
         especie: _especieController.text.trim(),
         quantidadeKg: double.parse(_quantidadeController.text),
@@ -57,6 +86,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
         observacao: _observacaoController.text.trim().isEmpty
             ? null
             : _observacaoController.text.trim(),
+        viagemId: _viagemAtivaId,
         sincronizado: false,
       );
 
@@ -82,10 +112,28 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
     }
   }
 
+  void _abrirHistorico() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProducaoHistoricoScreen(dbHelper: widget.dbHelper),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registro de Produção')),
+      appBar: AppBar(
+        title: const Text('Registro de Produção'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Ver histórico e totais',
+            onPressed: _abrirHistorico,
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -98,9 +146,18 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Embarcação: $embarcacaoId'),
+                      Text('Embarcação: $_embarcacaoNome'),
                       Text(
                           'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}'),
+                      if (_viagemAtivaId == null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Sem viagem em andamento — registro não será associado a uma viagem.',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.orange[800]),
+                          ),
+                        ),
                     ],
                   ),
                 ),

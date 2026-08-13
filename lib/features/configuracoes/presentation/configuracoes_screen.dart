@@ -6,6 +6,7 @@ import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/device_id_service.dart';
 import '../../../core/services/location_tracking_service.dart';
+import '../../../core/services/night_mode_service.dart';
 import '../../embarcacao/presentation/embarcacao_configuracao_screen.dart';
 
 class ConfiguracoesScreen extends StatefulWidget {
@@ -213,6 +214,37 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             onChanged: _alterarIntervalo,
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Aparência',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: NightModeService.ativo,
+                      builder: (context, ativo, _) => SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        secondary: Icon(
+                          Icons.nightlight_round,
+                          color: ativo ? Colors.red[700] : Colors.blue,
+                        ),
+                        title: const Text(
+                          'Modo Noturno',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: const Text(
+                          'Tela em vermelho para preservar a visão no escuro.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        value: ativo,
+                        onChanged: NightModeService.alternar,
                       ),
                     ),
                   ),

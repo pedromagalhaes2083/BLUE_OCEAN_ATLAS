@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/utils/proximidade.dart';
 import '../../mapa/presentation/mapa_screen.dart';
+import '../domain/models/viagem.dart';
 
 class HistoricoLocalizacoesScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
   final int? viagemId; // opcional: filtrar por viagem específica
 
+  /// Se informada e ainda em andamento, exibe um cartão no topo com a opção
+  /// de finalizar a viagem.
+  final Viagem? viagemAtiva;
+
   const HistoricoLocalizacoesScreen({
     super.key,
     required this.dbHelper,
     this.viagemId,
+    this.viagemAtiva,
   });
 
   @override
@@ -23,10 +30,19 @@ class _HistoricoLocalizacoesScreenState
     extends State<HistoricoLocalizacoesScreen> {
   List<Map<String, dynamic>> _historico = [];
   bool _isLoading = true;
+  bool _finalizando = false;
+  bool _viagemFinalizada = false;
+
+  // Estatísticas calculadas sobre o histórico carregado.
+  double? _distanciaMn;
+  Duration? _duracao;
+  double? _velMediaKmh;
+  double? _velMaxKmh;
 
   @override
   void initState() {
     super.initState();
+    _viagemFinalizada = widget.viagemAtiva?.isFinalizada ?? false;
     _carregarHistorico();
   }
 
@@ -45,6 +61,7 @@ class _HistoricoLocalizacoesScreenState
       if (!mounted) return;
       setState(() {
         _historico = result;
+        _calcularEstatisticas();
       });
     } catch (e) {
       if (!mounted) return;
@@ -54,6 +71,50 @@ class _HistoricoLocalizacoesScreenState
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Soma a distância entre pontos consecutivos (ordem cronológica) e tira
+  /// duração/velocidades a partir dos mesmos campos já carregados — nenhuma
+  /// consulta extra é necessária.
+  void _calcularEstatisticas() {
+    if (_historico.length < 2) {
+      _distanciaMn = null;
+      _duracao = null;
+      _velMediaKmh = null;
+      _velMaxKmh = null;
+      return;
+    }
+
+    final cronologico = _historico.reversed.toList();
+
+    var distancia = 0.0;
+    for (var i = 1; i < cronologico.length; i++) {
+      final anterior = cronologico[i - 1];
+      final atual = cronologico[i];
+      distancia += calcularDistanciaNauticas(
+        (anterior['latitude'] as num).toDouble(),
+        (anterior['longitude'] as num).toDouble(),
+        (atual['latitude'] as num).toDouble(),
+        (atual['longitude'] as num).toDouble(),
+      );
+    }
+
+    final inicio = DateTime.parse(cronologico.first['data_hora']);
+    final fim = DateTime.parse(cronologico.last['data_hora']);
+
+    final velocidades = cronologico
+        .map((p) => (p['velocidade'] as num?)?.toDouble())
+        .whereType<double>()
+        .map((ms) => ms * 3.6)
+        .toList();
+
+    _distanciaMn = distancia;
+    _duracao = fim.difference(inicio);
+    _velMediaKmh = velocidades.isEmpty
+        ? null
+        : velocidades.reduce((a, b) => a + b) / velocidades.length;
+    _velMaxKmh =
+        velocidades.isEmpty ? null : velocidades.reduce((a, b) => a > b ? a : b);
   }
 
   void _verRotaNaCarta() {
@@ -72,9 +133,64 @@ class _HistoricoLocalizacoesScreenState
     );
   }
 
+  Future<void> _finalizarViagem() async {
+    final viagem = widget.viagemAtiva;
+    if (viagem == null) return;
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Finalizar viagem'),
+        content: const Text(
+          'Tem certeza que deseja encerrar esta viagem? '
+          'O rastreamento de posição continua ativo, mas os novos pontos '
+          'não serão mais associados a ela.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Finalizar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+
+    setState(() => _finalizando = true);
+    try {
+      await widget.dbHelper.update(
+        'viagem',
+        {
+          'status': 'finalizada',
+          'data_termino': DateTime.now().toIso8601String(),
+        },
+        id: viagem.id,
+      );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _finalizando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao finalizar viagem: $e')),
+      );
+    }
+  }
+
   String _formatarDataHora(String dataIso) {
     final date = DateTime.parse(dataIso);
     return DateFormat('dd/MM/yyyy HH:mm:ss').format(date);
+  }
+
+  String _formatarDuracao(Duration d) {
+    final horas = d.inHours;
+    final minutos = d.inMinutes.remainder(60);
+    if (horas == 0) return '${minutos}min';
+    return '${horas}h ${minutos}min';
   }
 
   String _formatarCoordenadaDMS(double lat, double lon) {
@@ -93,6 +209,9 @@ class _HistoricoLocalizacoesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final viagemEmAndamento =
+        widget.viagemAtiva != null && !_viagemFinalizada;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Histórico de Localizações'),
@@ -111,66 +230,158 @@ class _HistoricoLocalizacoesScreenState
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _historico.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.location_off, size: 80, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('Nenhum registro encontrado'),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _carregarHistorico,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _historico.length,
-                    itemBuilder: (context, index) {
-                      final item = _historico[index];
-
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Colors.blue,
-                            child: Icon(Icons.location_on, color: Colors.white),
-                          ),
-                          title: Text(
-                            _formatarDataHora(item['data_hora']),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            _formatarCoordenadaDMS(
-                              item['latitude'],
-                              item['longitude'],
-                            ),
-                            style: const TextStyle(fontSize: 15),
-                          ),
-                          trailing: Column(
+          : Column(
+              children: [
+                if (viagemEmAndamento) _buildCardViagemAtiva(),
+                if (_distanciaMn != null) _buildCardEstatisticas(),
+                Expanded(
+                  child: _historico.isEmpty
+                      ? const Center(
+                          child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              if (item['velocidade'] != null)
-                                Text(
-                                  '${(item['velocidade'] * 3.6).toStringAsFixed(1)} km/h',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w500),
-                                ),
-                              Text(
-                                'Prec: ${(item['precisao'] as num?)?.toStringAsFixed(0)}m',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey[600]),
-                              ),
+                              Icon(Icons.location_off,
+                                  size: 80, color: Colors.grey),
+                              SizedBox(height: 16),
+                              Text('Nenhum registro encontrado'),
                             ],
                           ),
-                          isThreeLine: true,
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _carregarHistorico,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(12),
+                            itemCount: _historico.length,
+                            itemBuilder: (context, index) {
+                              final item = _historico[index];
+
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                child: ListTile(
+                                  leading: const CircleAvatar(
+                                    backgroundColor: Colors.blue,
+                                    child: Icon(Icons.location_on,
+                                        color: Colors.white),
+                                  ),
+                                  title: Text(
+                                    _formatarDataHora(item['data_hora']),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  subtitle: Text(
+                                    _formatarCoordenadaDMS(
+                                      item['latitude'],
+                                      item['longitude'],
+                                    ),
+                                    style: const TextStyle(fontSize: 15),
+                                  ),
+                                  trailing: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      if (item['velocidade'] != null)
+                                        Text(
+                                          '${(item['velocidade'] * 3.6).toStringAsFixed(1)} km/h',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                      Text(
+                                        'Prec: ${(item['precisao'] as num?)?.toStringAsFixed(0)}m',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600]),
+                                      ),
+                                    ],
+                                  ),
+                                  isThreeLine: true,
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      );
-                    },
-                  ),
                 ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildCardViagemAtiva() {
+    final viagem = widget.viagemAtiva!;
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      color: Colors.green[50],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.sailing, color: Colors.green, size: 32),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Viagem em andamento',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Iniciada em ${DateFormat('dd/MM/yyyy HH:mm').format(viagem.dataInicio)}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              onPressed: _finalizando ? null : _finalizarViagem,
+              child: _finalizando
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Finalizar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardEstatisticas() {
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _estatistica(Icons.straighten, '${_distanciaMn!.toStringAsFixed(1)} mn',
+                'Distância'),
+            _estatistica(Icons.timer_outlined,
+                _duracao != null ? _formatarDuracao(_duracao!) : '—', 'Duração'),
+            _estatistica(
+                Icons.speed,
+                _velMediaKmh != null
+                    ? '${_velMediaKmh!.toStringAsFixed(1)} km/h'
+                    : '—',
+                'Vel. média'),
+            _estatistica(
+                Icons.speed_outlined,
+                _velMaxKmh != null ? '${_velMaxKmh!.toStringAsFixed(1)} km/h' : '—',
+                'Vel. máxima'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _estatistica(IconData icon, String valor, String label) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: Colors.blueGrey),
+        const SizedBox(height: 4),
+        Text(valor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+      ],
     );
   }
 }

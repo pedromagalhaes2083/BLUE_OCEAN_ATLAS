@@ -1,4 +1,4 @@
-import 'package:atlas/features/api_tester/presentation/api_tester_screen.dart';
+import 'package:atlas/features/cartas/presentation/cartas_screen.dart';
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
 import 'package:atlas/features/mapa/presentation/mapa_screen.dart';
 import 'package:atlas/features/mapa/presentation/mapa_widget.dart';
@@ -19,12 +19,12 @@ import '../../viagem/domain/models/viagem.dart';
 import 'package:atlas/core/auth/auth_service.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
+import '../../../core/services/night_mode_service.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../embarcacao/domain/models/embarcacao.dart';
 import 'package:atlas/features/widgets/posicao_atual_widget.dart';
 import '../../configuracoes/presentation/configuracoes_screen.dart';
-import '../../dispositivo/presentation/dispositivo_teste_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -56,6 +56,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final LocationTrackingService _trackingService = LocationTrackingService();
   bool isTracking = false;
   int _intervaloRastreamentoMinutos = intervaloMinimoMinutos;
+
+  // ==================== SINCRONIZAÇÃO PENDENTE ====================
+  int _posicoesPendentes = 0;
 
   @override
   void initState() {
@@ -128,8 +131,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final embarcacoes = await widget.dbHelper.query('embarcacao');
 
-      // Carrega viagem atual
-      final viagens = await widget.dbHelper.query('viagem');
+      // Viagem em andamento — a mais recente, caso hajam registros antigos
+      // de antes da viagem ter sido finalizada corretamente.
+      final viagens = await widget.dbHelper.queryWhere(
+        'viagem',
+        where: 'status = ?',
+        whereArgs: ['em_andamento'],
+        orderBy: 'id DESC',
+      );
       Viagem? viagem;
       Embarcacao? embarcacao;
 
@@ -140,10 +149,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         embarcacao = Embarcacao.fromMap(embarcacoes.first);
       }
 
+      final pendentes = await widget.dbHelper.queryWhere(
+        'localizacao_historico',
+        where: 'sincronizado = ?',
+        whereArgs: [0],
+      );
+
       if (!mounted) return;
       setState(() {
         viagemAtual = viagem;
         embarcacaoAtual = embarcacao;
+        _posicoesPendentes = pendentes.length;
 
         isLoading = false;
       });
@@ -170,9 +186,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           if (isTracking)
             const Padding(
-              padding: EdgeInsets.only(right: 16),
+              padding: EdgeInsets.only(right: 8),
               child: Icon(Icons.location_on, color: Colors.green),
             ),
+          ValueListenableBuilder<bool>(
+            valueListenable: NightModeService.ativo,
+            builder: (context, ativo, _) => IconButton(
+              icon: Icon(ativo ? Icons.nightlight_round : Icons.nightlight_outlined),
+              tooltip: ativo ? 'Desativar modo noturno' : 'Ativar modo noturno',
+              onPressed: () => NightModeService.alternar(!ativo),
+            ),
+          ),
         ],
       ),
       body: isLoading
@@ -212,6 +236,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               'Registrando posição a cada $_intervaloRastreamentoMinutos minutos'),
                           trailing: const Icon(Icons.check_circle,
                               color: Colors.green),
+                        ),
+                      ),
+                    ],
+
+                    if (_posicoesPendentes > 0) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        color: Colors.orange[50],
+                        child: ListTile(
+                          leading:
+                              Icon(Icons.cloud_off, color: Colors.orange[800]),
+                          title: Text(
+                            '$_posicoesPendentes posiçõe${_posicoesPendentes == 1 ? '' : 's'} aguardando sincronização',
+                          ),
+                          subtitle: const Text(
+                            'Serão enviadas automaticamente assim que houver conexão.',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ),
                     ],
@@ -306,11 +348,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   : _abrirHistoricoPosicoes(context),
             ),
             ListTile(
-              leading: const Icon(Icons.map),
-              title: const Text('Mapa de Navegação'),
-              onTap: () => _abrirHistoricoPosicoes(context),
-            ),
-            ListTile(
               leading: const Icon(Icons.layers),
               title: const Text('Mapa Offline (MBTiles)'),
               onTap: () => _abrirMapaOffline(context),
@@ -323,17 +360,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ListTile(
               leading: const Icon(Icons.layers_outlined),
               title: const Text('Cartas Náuticas'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigator.pushNamed(context, '/charts');
-              },
+              onTap: () => _abrirCartasNauticas(context),
             ),
             ListTile(
               leading: const Icon(Icons.route),
               title: const Text('Minhas Rotas'),
-              onTap: () {
-                Navigator.pop(context);
-              },
+              onTap: () => _abrirHistoricoPosicoes(context),
             ),
             ListTile(
               leading: const Icon(Icons.navigation),
@@ -349,16 +381,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               leading: const Icon(Icons.water_drop_outlined),
               title: const Text('Condições do Mar'),
               onTap: () => _abrirCondicoesMar(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.api),
-              title: const Text('Teste de API'),
-              onTap: () => _abrirApiTester(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.smartphone),
-              title: const Text('Teste — Dispositivo & Recomendações'),
-              onTap: () => _abrirDispositivoTeste(context),
             ),
             const Divider(),
             ListTile(
@@ -518,6 +540,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       MaterialPageRoute(
         builder: (context) => HistoricoLocalizacoesScreen(
           dbHelper: widget.dbHelper,
+          viagemAtiva: viagemAtual,
         ),
       ),
     );
@@ -527,17 +550,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _abrirApiTester(BuildContext context) {
+  void _abrirCartasNauticas(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ApiTesterScreen()),
-    );
-  }
-
-  void _abrirDispositivoTeste(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const DispositivoTesteScreen()),
+      MaterialPageRoute(
+        builder: (_) => CartasScreen(dbHelper: widget.dbHelper),
+      ),
     );
   }
 

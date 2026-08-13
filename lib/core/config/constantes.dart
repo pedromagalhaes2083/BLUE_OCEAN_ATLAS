@@ -7,4 +7,5 @@ class Constantes {
   static const String embarcacaoId = 'embarcacao_id';
   static const String intervaloRastreamentoMinutos =
       'intervalo_rastreamento_minutos';
+  static const String modoNoturno = 'modo_noturno';
 }

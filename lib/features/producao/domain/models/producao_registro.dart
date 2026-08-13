@@ -8,6 +8,7 @@ class ProducaoRegistro {
   final double? longitude;
   final String? cartaCodigo;
   final String? observacao;
+  final int? viagemId;
   final bool sincronizado;
 
   ProducaoRegistro({
@@ -20,6 +21,7 @@ class ProducaoRegistro {
     this.longitude,
     this.cartaCodigo,
     this.observacao,
+    this.viagemId,
     this.sincronizado = false,
   });
 
@@ -34,6 +36,7 @@ class ProducaoRegistro {
       longitude: map['longitude'],
       cartaCodigo: map['carta_codigo'],
       observacao: map['observacao'],
+      viagemId: map['viagem_id'],
       sincronizado: map['sincronizado'] == 1,
     );
   }
@@ -48,6 +51,7 @@ class ProducaoRegistro {
       'longitude': longitude,
       'carta_codigo': cartaCodigo,
       'observacao': observacao,
+      'viagem_id': viagemId,
       'sincronizado': sincronizado ? 1 : 0,
     };
   }

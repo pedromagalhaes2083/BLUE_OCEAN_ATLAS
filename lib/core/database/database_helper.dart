@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -103,6 +103,7 @@ class DatabaseHelper {
         longitude REAL,
         carta_codigo TEXT,
         observacao TEXT,
+        viagem_id INTEGER,
         sincronizado INTEGER NOT NULL DEFAULT 0
       )
     ''');
@@ -131,6 +132,9 @@ class DatabaseHelper {
     }
     if (oldVersion < 6) {
       await db.execute('ALTER TABLE embarcacao ADD COLUMN foto TEXT');
+    }
+    if (oldVersion < 7) {
+      await db.execute('ALTER TABLE producao_registro ADD COLUMN viagem_id INTEGER');
     }
   }
 
