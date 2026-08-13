@@ -1,13 +1,15 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:atlas/main.dart';
 import 'package:atlas/core/database/database_helper.dart';
+import 'package:atlas/features/auth/presentation/login_screen.dart';
 
 void main() {
-  testWidgets('Tela de login exibida quando não há sessão', (WidgetTester tester) async {
+  testWidgets('Tela de login exibida quando não há sessão',
+      (WidgetTester tester) async {
     final dbHelper = DatabaseHelper.instance;
 
     await tester.pumpWidget(
-      AtlasBlueOceanApp(dbHelper: dbHelper),
+      MaterialApp(home: LoginScreen(dbHelper: dbHelper)),
     );
 
     expect(find.text('Atlas Blue Ocean'), findsOneWidget);

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:atlas/core/background/location_worker.dart';
 import 'package:atlas/core/database/database_helper.dart';
@@ -45,13 +46,13 @@ class LocationTrackingService {
     );
 
     _rastreando = true;
-    print('🚀 Rastreamento de localização iniciado (a cada $intervalo min)');
+    debugPrint('🚀 Rastreamento de localização iniciado (a cada $intervalo min)');
   }
 
   Future<void> pararRastreamento() async {
     await Workmanager().cancelByUniqueName(rastreamentoLocalizacaoTaskName);
     _rastreando = false;
-    print('⏹️ Rastreamento de localização parado');
+    debugPrint('⏹️ Rastreamento de localização parado');
   }
 
   // ====================== HISTÓRICO ======================

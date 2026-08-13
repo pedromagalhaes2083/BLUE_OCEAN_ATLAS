@@ -143,7 +143,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
       setState(() {
         viagemAtual = viagem;
-        print(embarcacao);
         embarcacaoAtual = embarcacao;
 
         isLoading = false;
@@ -153,7 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => isLoading = false);
-      print('Erro ao carregar dashboard: $e');
+      debugPrint('Erro ao carregar dashboard: $e');
     }
   }
 
@@ -424,12 +423,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 // ==================== MÉTODOS DE AÇÃO ====================
   Future<void> _iniciarNovaViagem() async {
-    final nome_barco = embarcacaoAtual?.nome.toString() ?? "Não definida";
+    final nomeBarco = embarcacaoAtual?.nome.toString() ?? "Não definida";
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) =>
-            NovaViagemScreen(dbHelper: widget.dbHelper, embarcacao: nome_barco),
+            NovaViagemScreen(dbHelper: widget.dbHelper, embarcacao: nomeBarco),
       ),
     );
 
@@ -481,7 +480,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Se quiser fazer algo após voltar com sucesso
     if (resultado == true) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       // Recarrega a lista de cartas ou atualiza a tela
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
@@ -498,7 +497,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _abrirSolicitarGrib(BuildContext context) async {
-    final resultado = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GribProcessorScreen(),
@@ -543,16 +542,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _abrirCadastroEmbarcacao(BuildContext context) async {
-    print("------------------------------------------------");
-    print(embarcacaoAtual);
-    print("------------------------------------------------");
     if (embarcacaoAtual?.nome.isNotEmpty ?? false) {
       await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => EmbarcacaoScreen(
             dbHelper: widget.dbHelper,
-            embarcacao: this.embarcacaoAtual,
+            embarcacao: embarcacaoAtual,
           ),
         ),
       );

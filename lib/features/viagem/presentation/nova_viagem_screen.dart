@@ -39,6 +39,7 @@ class _NovaViagemScreenState extends State<NovaViagemScreen> {
     );
 
     await widget.dbHelper.insert('viagem', viagem.toMap());
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Viagem iniciada com sucesso!')),

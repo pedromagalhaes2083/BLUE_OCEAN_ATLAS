@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
@@ -10,7 +11,11 @@ class MapaScreen extends StatelessWidget {
   /// marcadores sobre a carta, com o mapa centralizado neles.
   final Recomendacao? recomendacao;
 
-  const MapaScreen({super.key, this.recomendacao});
+  /// Se informada, os pontos são ligados por uma linha sobre a carta —
+  /// usado para exibir uma rota de histórico de GPS.
+  final List<LatLng>? rota;
+
+  const MapaScreen({super.key, this.recomendacao, this.rota});
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +26,14 @@ class MapaScreen extends StatelessWidget {
               ? recomendacao!.titulo.isEmpty
                   ? 'Recomendação'
                   : recomendacao!.titulo
-              : 'Mapa',
+              : rota != null
+                  ? 'Rota do histórico'
+                  : 'Mapa',
         ),
       ),
       body: Stack(
         children: [
-          MapaWidget(recomendacao: recomendacao, margemZoom: 4),
+          MapaWidget(recomendacao: recomendacao, rota: rota, margemZoom: 4),
           const Positioned(
             left: 12,
             bottom: 12,

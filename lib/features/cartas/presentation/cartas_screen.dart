@@ -131,8 +131,10 @@ class _CartasScreenState extends State<CartasScreen>
     }
 
     final file = File(carta.caminhoLocal!);
-    if (await file.exists()) {
-      if (!mounted) return;
+    final existe = await file.exists();
+    if (!mounted) return;
+
+    if (existe) {
       Navigator.push(
         context,
         MaterialPageRoute(

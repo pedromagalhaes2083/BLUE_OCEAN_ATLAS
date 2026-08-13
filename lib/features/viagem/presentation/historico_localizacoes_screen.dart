@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../core/database/database_helper.dart';
-import '../../../core/services/location_service.dart';
+import '../../mapa/presentation/mapa_screen.dart';
 
 class HistoricoLocalizacoesScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -22,7 +23,6 @@ class _HistoricoLocalizacoesScreenState
     extends State<HistoricoLocalizacoesScreen> {
   List<Map<String, dynamic>> _historico = [];
   bool _isLoading = true;
-  final LocationService _locationService = LocationService();
 
   @override
   void initState() {
@@ -56,6 +56,22 @@ class _HistoricoLocalizacoesScreenState
     }
   }
 
+  void _verRotaNaCarta() {
+    // _historico vem ordenado do mais recente para o mais antigo; a rota
+    // precisa da ordem cronológica para a linha seguir o trajeto real.
+    final pontos = _historico.reversed
+        .map((item) => LatLng(
+              (item['latitude'] as num).toDouble(),
+              (item['longitude'] as num).toDouble(),
+            ))
+        .toList();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => MapaScreen(rota: pontos)),
+    );
+  }
+
   String _formatarDataHora(String dataIso) {
     final date = DateTime.parse(dataIso);
     return DateFormat('dd/MM/yyyy HH:mm:ss').format(date);
@@ -81,6 +97,12 @@ class _HistoricoLocalizacoesScreenState
       appBar: AppBar(
         title: const Text('Histórico de Localizações'),
         actions: [
+          if (_historico.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.route),
+              tooltip: 'Ver rota na carta',
+              onPressed: _verRotaNaCarta,
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _carregarHistorico,
@@ -107,7 +129,6 @@ class _HistoricoLocalizacoesScreenState
                     itemCount: _historico.length,
                     itemBuilder: (context, index) {
                       final item = _historico[index];
-                      final DateTime data = DateTime.parse(item['data_hora']);
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),

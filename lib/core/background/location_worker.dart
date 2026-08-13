@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:atlas/core/services/localizacao_reporter_service.dart';
@@ -20,7 +21,7 @@ void callbackDispatcher() {
       await LocalizacaoReporterService.registrarESincronizar();
       return true;
     } catch (e) {
-      print('❌ Erro no rastreamento de localização: $e');
+      debugPrint('❌ Erro no rastreamento de localização: $e');
       return false;
     }
   });

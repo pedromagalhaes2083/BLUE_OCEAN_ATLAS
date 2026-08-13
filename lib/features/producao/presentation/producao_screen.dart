@@ -35,7 +35,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
       if (!mounted) return;
       setState(() => _posicaoAtual = position);
     } catch (e) {
-      print('Erro ao obter localização: $e');
+      debugPrint('Erro ao obter localização: $e');
     }
   }
 

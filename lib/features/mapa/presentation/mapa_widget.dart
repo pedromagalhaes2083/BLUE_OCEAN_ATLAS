@@ -35,11 +35,21 @@ class MapaWidget extends StatefulWidget {
   /// marcadores sobre a carta, com o mapa centralizado neles.
   final Recomendacao? recomendacao;
 
+  /// Se informada, os pontos são ligados por uma linha (estilo
+  /// Waze/Google Maps) sobre a carta — usado para exibir uma rota de
+  /// histórico de GPS, com o mapa centralizado nela.
+  final List<LatLng>? rota;
+
   /// Margem extra de zoom aplicada por cima do encaixe calculado pelas
   /// bordas norte/sul da carta (ver [MapaWidgetState._preencherComCarta]).
   final double margemZoom;
 
-  const MapaWidget({super.key, this.recomendacao, this.margemZoom = 2});
+  const MapaWidget({
+    super.key,
+    this.recomendacao,
+    this.rota,
+    this.margemZoom = 2,
+  });
 
   @override
   State<MapaWidget> createState() => MapaWidgetState();
@@ -91,8 +101,10 @@ class MapaWidgetState extends State<MapaWidget> {
     return [];
   }
 
-  void _focarRecomendacao() {
-    final pontos = _pontosRecomendacao;
+  /// Pontos da rota de histórico a exibir sobre a carta (vazio se nenhuma).
+  List<LatLng> get _rota => widget.rota ?? [];
+
+  void _focarPontos(List<LatLng> pontos) {
     if (pontos.isEmpty) return;
     if (pontos.length == 1) {
       _mapController.move(pontos.first, 10);
@@ -140,7 +152,9 @@ class MapaWidgetState extends State<MapaWidget> {
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_pontosRecomendacao.isNotEmpty) {
-          _focarRecomendacao();
+          _focarPontos(_pontosRecomendacao);
+        } else if (_rota.isNotEmpty) {
+          _focarPontos(_rota);
         } else {
           _preencherComCarta();
         }
@@ -196,7 +210,7 @@ class MapaWidgetState extends State<MapaWidget> {
   /// geográfico como fallback nesse meio-tempo).
   void _recentralizarNoGps(LatLng pos) {
     if (_mode == _MapMode.none) return;
-    if (_pontosRecomendacao.isNotEmpty) return;
+    if (_pontosRecomendacao.isNotEmpty || _rota.isNotEmpty) return;
     _mapController.move(pos, _mapController.camera.zoom);
   }
 
@@ -217,7 +231,9 @@ class MapaWidgetState extends State<MapaWidget> {
     try {
       final permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) return;
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
 
       // Mostra a última posição conhecida imediatamente (cache do sistema)
       final last = await Geolocator.getLastKnownPosition();
@@ -545,7 +561,9 @@ class MapaWidgetState extends State<MapaWidget> {
                       ? widget.recomendacao!.titulo.isEmpty
                           ? 'Recomendação'
                           : widget.recomendacao!.titulo
-                      : _fileName ?? 'Mapa',
+                      : widget.rota != null
+                          ? 'Rota do histórico'
+                          : _fileName ?? 'Mapa',
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
@@ -685,6 +703,43 @@ class MapaWidgetState extends State<MapaWidget> {
                 ),
                 imageProvider: MemoryImage(_geotiff!.imageBytes),
               ),
+            ],
+          ),
+        // Rota do histórico de GPS — linha ligando os pontos na ordem
+        // cronológica, ao estilo Waze/Google Maps, sobre a carta náutica.
+        if (_rota.length > 1)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _rota,
+                strokeWidth: 4,
+                color: Colors.redAccent,
+              ),
+            ],
+          ),
+        if (_rota.isNotEmpty)
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: _rota.first,
+                width: 22,
+                height: 22,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+              if (_rota.length > 1)
+                Marker(
+                  point: _rota.last,
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.topCenter,
+                  child: const Icon(Icons.flag, color: Colors.red, size: 28),
+                ),
             ],
           ),
         // Pontos precisos: widget 14x14 centralizado exatamente na coordenada
