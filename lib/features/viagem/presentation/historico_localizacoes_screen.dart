@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../mapa/presentation/mapa_screen.dart';
@@ -133,6 +134,46 @@ class _HistoricoLocalizacoesScreenState
     );
   }
 
+  Future<void> _compartilharResumo() async {
+    final viagem = widget.viagemAtiva;
+
+    var producaoTexto = '';
+    if (viagem != null) {
+      final db = await widget.dbHelper.database;
+      final registros = await db.query(
+        'producao_registro',
+        where: 'viagem_id = ?',
+        whereArgs: [viagem.id],
+      );
+      if (registros.isNotEmpty) {
+        final porEspecie = <String, double>{};
+        for (final r in registros) {
+          final especie = r['especie'] as String? ?? 'Não informado';
+          final kg = (r['quantidade_kg'] as num).toDouble();
+          porEspecie.update(especie, (v) => v + kg, ifAbsent: () => kg);
+        }
+        final linhas = porEspecie.entries
+            .map((e) => '  ${e.key}: ${e.value.toStringAsFixed(1)} kg')
+            .join('\n');
+        producaoTexto = '\n\n🐟 Produção:\n$linhas';
+      }
+    }
+
+    final duracaoTexto = _duracao == null
+        ? '--'
+        : '${_duracao!.inHours}h ${_duracao!.inMinutes.remainder(60)}min';
+
+    final mensagem = '⛵ ${viagem?.nome?.isNotEmpty == true ? viagem!.nome : "Resumo da viagem"}\n'
+        '${viagem != null ? "Início: ${DateFormat('dd/MM/yyyy HH:mm').format(viagem.dataInicio)}\n" : ""}'
+        'Distância: ${_distanciaMn!.toStringAsFixed(1)} mn\n'
+        'Duração: $duracaoTexto\n'
+        '${_velMediaKmh != null ? "Vel. média: ${_velMediaKmh!.toStringAsFixed(1)} km/h\n" : ""}'
+        '${_velMaxKmh != null ? "Vel. máxima: ${_velMaxKmh!.toStringAsFixed(1)} km/h" : ""}'
+        '$producaoTexto';
+
+    await Share.share(mensagem.trim());
+  }
+
   Future<void> _finalizarViagem() async {
     final viagem = widget.viagemAtiva;
     if (viagem == null) return;
@@ -221,6 +262,12 @@ class _HistoricoLocalizacoesScreenState
               icon: const Icon(Icons.route),
               tooltip: 'Ver rota na carta',
               onPressed: _verRotaNaCarta,
+            ),
+          if (_distanciaMn != null)
+            IconButton(
+              icon: const Icon(Icons.share),
+              tooltip: 'Compartilhar resumo da viagem',
+              onPressed: _compartilharResumo,
             ),
           IconButton(
             icon: const Icon(Icons.refresh),
