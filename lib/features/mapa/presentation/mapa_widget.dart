@@ -47,11 +47,18 @@ class MapaWidget extends StatefulWidget {
   /// bordas norte/sul da carta (ver [MapaWidgetState._preencherComCarta]).
   final double margemZoom;
 
+  /// Se true, inicia o mapa em modo de planejamento de rota: toques no mapa
+  /// vão adicionando pontos em sequência, que podem ser salvos como uma
+  /// rota planejada (ver `MinhasRotasScreen`) — diferente de [rota], que só
+  /// exibe uma linha já pronta (histórico de GPS).
+  final bool modoPlanejarRota;
+
   const MapaWidget({
     super.key,
     this.recomendacao,
     this.rota,
     this.margemZoom = 2,
+    this.modoPlanejarRota = false,
   });
 
   @override
@@ -98,6 +105,16 @@ class MapaWidgetState extends State<MapaWidget> {
   List<PontoMarcado> _pontosMarcados = [];
   final TextEditingController _nomePontoController = TextEditingController();
 
+  // ── Planejar rota manualmente ────────────────────────────────────────────
+  List<LatLng> _pontosRotaPlanejada = [];
+  final TextEditingController _nomeRotaController = TextEditingController();
+  bool _salvandoRota = false;
+
+  // ── Calor de produção ────────────────────────────────────────────────────
+  bool _mostrarProducao = false;
+  bool _carregandoProducao = false;
+  List<_ClusterProducao> _producaoClusters = [];
+
   /// Pontos da recomendação a exibir sobre a carta (vazio se nenhuma).
   List<LatLng> get _pontosRecomendacao {
     final r = widget.recomendacao;
@@ -141,7 +158,50 @@ class MapaWidgetState extends State<MapaWidget> {
   void dispose() {
     _mbtiles.close();
     _nomePontoController.dispose();
+    _nomeRotaController.dispose();
     super.dispose();
+  }
+
+  // ── Planejar rota manualmente ────────────────────────────────────────────
+
+  void _desfazerUltimoPontoRota() {
+    if (_pontosRotaPlanejada.isEmpty) return;
+    setState(() {
+      _pontosRotaPlanejada = _pontosRotaPlanejada.sublist(
+        0,
+        _pontosRotaPlanejada.length - 1,
+      );
+    });
+  }
+
+  Future<void> _salvarRotaPlanejada() async {
+    final nome = _nomeRotaController.text.trim();
+    if (nome.isEmpty || _pontosRotaPlanejada.length < 2) return;
+
+    setState(() => _salvandoRota = true);
+    try {
+      final rotaId = await _dbHelper.insert('rota_planejada', {
+        'nome': nome,
+        'data_criacao': DateTime.now().toIso8601String(),
+      });
+      for (var i = 0; i < _pontosRotaPlanejada.length; i++) {
+        final p = _pontosRotaPlanejada[i];
+        await _dbHelper.insert('rota_planejada_ponto', {
+          'rota_planejada_id': rotaId,
+          'latitude': p.latitude,
+          'longitude': p.longitude,
+          'ordem': i,
+        });
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _salvandoRota = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao salvar rota: $e')),
+      );
+    }
   }
 
   // ── Carta bundled ──────────────────────────────────────────────────────────
@@ -282,6 +342,143 @@ class MapaWidgetState extends State<MapaWidget> {
     setState(() {
       _pontosMarcados = maps.map(PontoMarcado.fromMap).toList();
     });
+  }
+
+  // ── Calor de produção ────────────────────────────────────────────────────
+
+  Future<void> _alternarProducao() async {
+    if (_mostrarProducao) {
+      setState(() => _mostrarProducao = false);
+      return;
+    }
+    setState(() {
+      _mostrarProducao = true;
+      _carregandoProducao = _producaoClusters.isEmpty;
+    });
+    if (_producaoClusters.isNotEmpty) return;
+
+    final registros = await _dbHelper.queryWhere(
+      'producao_registro',
+      where: 'latitude IS NOT NULL AND longitude IS NOT NULL',
+    );
+
+    // Agrupa registros próximos (~100m) somando o total em kg, pra não
+    // sobrepor um marcador em cima do outro quando há vários registros na
+    // mesma pescaria.
+    final grupos = <String, _ClusterProducao>{};
+    for (final r in registros) {
+      final lat = (r['latitude'] as num).toDouble();
+      final lon = (r['longitude'] as num).toDouble();
+      final kg = (r['quantidade_kg'] as num).toDouble();
+      final especie = r['especie'] as String? ?? 'Não informado';
+      final chave =
+          '${lat.toStringAsFixed(3)},${lon.toStringAsFixed(3)}';
+
+      final existente = grupos[chave];
+      if (existente == null) {
+        grupos[chave] = _ClusterProducao(
+          lat: lat,
+          lon: lon,
+          totalKg: kg,
+          porEspecie: {especie: kg},
+        );
+      } else {
+        existente.totalKg += kg;
+        existente.porEspecie.update(
+          especie,
+          (v) => v + kg,
+          ifAbsent: () => kg,
+        );
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _producaoClusters = grupos.values.toList();
+      _carregandoProducao = false;
+    });
+  }
+
+  List<Marker> _buildMarcadoresProducao() {
+    final maxKg = _producaoClusters
+        .map((c) => c.totalKg)
+        .reduce((a, b) => a > b ? a : b);
+    return _producaoClusters.map((c) {
+      final tamanho = maxKg <= 0
+          ? 24.0
+          : (24 + 36 * (c.totalKg / maxKg)).clamp(24.0, 60.0);
+      return Marker(
+        point: LatLng(c.lat, c.lon),
+        width: tamanho,
+        height: tamanho,
+        child: GestureDetector(
+          onTap: () => _mostrarInfoProducao(c),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.deepOrange.withValues(alpha: 0.55),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  void _mostrarInfoProducao(_ClusterProducao cluster) {
+    final especies = cluster.porEspecie.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.local_fire_department, color: Colors.deepOrange),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${cluster.totalKg.toStringAsFixed(1)} kg no total',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                formatarCoordenadasDMSCompacta(cluster.lat, cluster.lon),
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
+              const Divider(height: 20),
+              ...especies.map(
+                (e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(e.key),
+                      Text('${e.value.toStringAsFixed(1)} kg',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _alternarModoMarcarPonto() {
@@ -560,7 +757,11 @@ class MapaWidgetState extends State<MapaWidget> {
           Positioned.fill(child: _buildBody()),
           if (_mode != _MapMode.none) _buildTopBar(),
           if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
-          if (!_modoMarcarPonto && _mode != _MapMode.none && _gpsPosition != null)
+          if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
+          if (!_modoMarcarPonto &&
+              !widget.modoPlanejarRota &&
+              _mode != _MapMode.none &&
+              _gpsPosition != null)
             _buildGpsButton(),
         ],
       ),
@@ -581,20 +782,22 @@ class MapaWidgetState extends State<MapaWidget> {
             children: [
               Expanded(
                 child: Text(
-                  widget.recomendacao != null
-                      ? widget.recomendacao!.titulo.isEmpty
-                          ? 'Recomendação'
-                          : widget.recomendacao!.titulo
-                      : widget.rota != null
-                          ? 'Rota do histórico'
-                          : _camadaRuas
-                              ? 'Mapa de Ruas (OpenStreetMap)'
-                              : _fileName ?? 'Mapa',
+                  widget.modoPlanejarRota
+                      ? 'Nova Rota Planejada'
+                      : widget.recomendacao != null
+                          ? widget.recomendacao!.titulo.isEmpty
+                              ? 'Recomendação'
+                              : widget.recomendacao!.titulo
+                          : widget.rota != null
+                              ? 'Rota do histórico'
+                              : _camadaRuas
+                                  ? 'Mapa de Ruas (OpenStreetMap)'
+                                  : _fileName ?? 'Mapa',
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
-              if (_loading)
+              if (_loading || _carregandoProducao)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: SizedBox(
@@ -604,42 +807,67 @@ class MapaWidgetState extends State<MapaWidget> {
                         strokeWidth: 2, color: Colors.white),
                   ),
                 ),
-              IconButton(
-                icon: Icon(
-                  _modoMarcarPonto ? Icons.close : Icons.add_location_alt,
-                  color: Colors.white,
-                  size: 20,
+              if (!widget.modoPlanejarRota)
+                IconButton(
+                  icon: Icon(
+                    _modoMarcarPonto ? Icons.close : Icons.add_location_alt,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  tooltip: _modoMarcarPonto
+                      ? 'Cancelar marcação'
+                      : 'Marcar um ponto',
+                  onPressed: _alternarModoMarcarPonto,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 44),
                 ),
-                tooltip:
-                    _modoMarcarPonto ? 'Cancelar marcação' : 'Marcar um ponto',
-                onPressed: _alternarModoMarcarPonto,
-                visualDensity: VisualDensity.compact,
-              ),
               if (_camadaRuas)
                 IconButton(
                   icon: const Icon(Icons.download,
-                      color: Colors.white, size: 20),
+                      color: Colors.white, size: 22),
                   tooltip: 'Baixar região para uso offline',
                   onPressed: _abrirDownloadRegiao,
-                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 44),
                 ),
               IconButton(
                 icon: Icon(
                   _camadaRuas ? Icons.map : Icons.explore,
                   color: Colors.white,
-                  size: 20,
+                  size: 22,
                 ),
                 tooltip: _camadaRuas ? 'Ver carta náutica' : 'Ver mapa de ruas',
                 onPressed: () => setState(() => _camadaRuas = !_camadaRuas),
-                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
               ),
-              IconButton(
-                icon: const Icon(Icons.folder_open,
-                    color: Colors.white, size: 20),
-                tooltip: 'Carregar outro arquivo',
-                onPressed: _loading ? null : _pickFile,
-                visualDensity: VisualDensity.compact,
-              ),
+              if (!widget.modoPlanejarRota)
+                IconButton(
+                  icon: Icon(
+                    Icons.local_fire_department,
+                    color: _mostrarProducao ? Colors.orangeAccent : Colors.white,
+                    size: 22,
+                  ),
+                  tooltip: _mostrarProducao
+                      ? 'Esconder calor de produção'
+                      : 'Ver calor de produção',
+                  onPressed: _alternarProducao,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 44),
+                ),
+              if (!widget.modoPlanejarRota)
+                IconButton(
+                  icon: const Icon(Icons.folder_open,
+                      color: Colors.white, size: 22),
+                  tooltip: 'Carregar outro arquivo',
+                  onPressed: _loading ? null : _pickFile,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 44),
+                ),
             ],
           ),
         ),
@@ -662,7 +890,7 @@ class MapaWidgetState extends State<MapaWidget> {
     return Positioned(
       right: 12,
       bottom: 12,
-      child: FloatingActionButton.small(
+      child: FloatingActionButton(
         onPressed: _centerOnGps,
         child: const Icon(Icons.directions_boat),
       ),
@@ -745,6 +973,10 @@ class MapaWidgetState extends State<MapaWidget> {
             setState(() => _centroMira = camera.center);
           }
         },
+        onTap: widget.modoPlanejarRota
+            ? (_, ponto) => setState(
+                () => _pontosRotaPlanejada = [..._pontosRotaPlanejada, ponto])
+            : null,
       ),
       children: [
         if (_camadaRuas)
@@ -767,6 +999,50 @@ class MapaWidgetState extends State<MapaWidget> {
               ],
             ),
         ],
+        // Calor de produção — círculos proporcionais ao total em kg
+        // registrado perto daquele ponto, em qualquer viagem.
+        if (_mostrarProducao && _producaoClusters.isNotEmpty)
+          MarkerLayer(markers: _buildMarcadoresProducao()),
+        // Rota sendo planejada manualmente — cada toque no mapa adiciona um
+        // ponto numerado em sequência.
+        if (widget.modoPlanejarRota && _pontosRotaPlanejada.length > 1)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _pontosRotaPlanejada,
+                strokeWidth: 4,
+                color: Colors.purple,
+              ),
+            ],
+          ),
+        if (widget.modoPlanejarRota && _pontosRotaPlanejada.isNotEmpty)
+          MarkerLayer(
+            markers: _pontosRotaPlanejada.asMap().entries.map((entry) {
+              final indice = entry.key;
+              final ponto = entry.value;
+              return Marker(
+                point: ponto,
+                width: 28,
+                height: 28,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.purple,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${indice + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         // Rota do histórico de GPS — linha ligando os pontos na ordem
         // cronológica, ao estilo Waze/Google Maps, sobre a carta náutica.
         if (_rota.length > 1)
@@ -1053,6 +1329,93 @@ class MapaWidgetState extends State<MapaWidget> {
       ),
     ];
   }
+
+  // ── Overlay do modo "planejar rota" ──────────────────────────────────────
+
+  Widget _buildOverlayPlanejarRota() {
+    final pontos = _pontosRotaPlanejada.length;
+    final podeSalvar =
+        pontos >= 2 && _nomeRotaController.text.trim().isNotEmpty;
+    return Positioned(
+      left: 12,
+      right: 12,
+      bottom: 12,
+      child: Card(
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                pontos == 0
+                    ? 'Toque no mapa para adicionar o primeiro ponto'
+                    : '$pontos ponto${pontos == 1 ? '' : 's'} adicionado${pontos == 1 ? '' : 's'} — toque para continuar',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _nomeRotaController,
+                textCapitalization: TextCapitalization.sentences,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  labelText: 'Nome da rota',
+                  hintText: 'Ex: Pesqueiro do Camurupim',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: pontos == 0 ? null : _desfazerUltimoPontoRota,
+                      child: const Text('Desfazer último'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: (!podeSalvar || _salvandoRota)
+                          ? null
+                          : _salvarRotaPlanejada,
+                      icon: _salvandoRota
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check),
+                      label: const Text('Salvar rota'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Um agrupamento de registros de produção próximos entre si (~100m),
+/// somados por espécie — usado pela camada de calor de produção no mapa.
+class _ClusterProducao {
+  final double lat;
+  final double lon;
+  double totalKg;
+  final Map<String, double> porEspecie;
+
+  _ClusterProducao({
+    required this.lat,
+    required this.lon,
+    required this.totalKg,
+    required this.porEspecie,
+  });
 }
 
 /// Busca e exibe batimetria (profundidade) e temperatura da superfície do

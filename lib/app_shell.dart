@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'core/database/database_helper.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/cartas/presentation/cartas_screen.dart';
-import 'features/producao/presentation/producao_screen.dart';
+import 'features/mapa/presentation/mapa_screen.dart';
 
 class AppShell extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -28,8 +28,8 @@ class _AppShellState extends State<AppShell> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Cartas'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle),
-            label: 'Produção',
+            icon: Icon(Icons.explore),
+            label: 'Mapa',
           ),
         ],
       ),
@@ -43,7 +43,7 @@ class _AppShellState extends State<AppShell> {
       case 1:
         return CartasScreen(dbHelper: widget.dbHelper);
       case 2:
-        return ProducaoScreen(dbHelper: widget.dbHelper);
+        return const MapaScreen();
       default:
         return DashboardScreen(dbHelper: widget.dbHelper);
     }

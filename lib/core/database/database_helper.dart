@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -111,6 +111,7 @@ class DatabaseHelper {
     await _criarTabelaPontoMarcado(db);
     await db.execute('ALTER TABLE ponto_marcado ADD COLUMN nome TEXT');
     await _criarTabelaSolicitacaoCarta(db);
+    await _criarTabelasRotaPlanejada(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -144,6 +145,9 @@ class DatabaseHelper {
     if (oldVersion < 9) {
       await _criarTabelaSolicitacaoCarta(db);
     }
+    if (oldVersion < 10) {
+      await _criarTabelasRotaPlanejada(db);
+    }
   }
 
   Future<void> _criarTabelaSolicitacaoCarta(Database db) async {
@@ -156,6 +160,28 @@ class DatabaseHelper {
         latitude_texto TEXT NOT NULL,
         longitude_texto TEXT NOT NULL,
         data_solicitacao TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _criarTabelasRotaPlanejada(Database db) async {
+    // Rotas planejadas pelo mestre antes de sair — sequência de pontos
+    // definida à mão no mapa, diferente do trajeto que o rastreamento
+    // automático registra durante a viagem.
+    await db.execute('''
+      CREATE TABLE rota_planejada (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        data_criacao TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE rota_planejada_ponto (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rota_planejada_id INTEGER NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        ordem INTEGER NOT NULL
       )
     ''');
   }
@@ -186,6 +212,15 @@ class DatabaseHelper {
   Future<int> delete(String table, {required int id}) async {
     final db = await database;
     return await db.delete(table, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteWhere(
+    String table, {
+    required String where,
+    List<Object?>? whereArgs,
+  }) async {
+    final db = await database;
+    return await db.delete(table, where: where, whereArgs: whereArgs);
   }
 
   Future<List<Map<String, dynamic>>> queryWhere(

@@ -1,16 +1,20 @@
 import 'package:atlas/features/cartas/presentation/cartas_screen.dart';
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
-import 'package:atlas/features/mapa/presentation/mapa_screen.dart';
 import 'package:atlas/features/mapa/presentation/mapa_widget.dart';
 import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcaao_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
 import 'package:atlas/features/metereologia/presentation/gribs_screen.dart';
 import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.dart';
+import 'package:atlas/features/producao/presentation/producao_screen.dart';
+import 'package:atlas/features/rotas/presentation/minhas_rotas_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/database/database_helper.dart';
+import '../../../core/utils/coordenadas_format.dart';
 import '../../metereologia/data/profundidade_repository.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../metereologia/domain/models/leitura_profundidade.dart';
@@ -59,6 +63,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ==================== SINCRONIZAÇÃO PENDENTE ====================
   int _posicoesPendentes = 0;
+
+  // ==================== ALERTAS (bateria / GPS desatualizado) ====================
+  int? _ultimaBateria;
+  DateTime? _ultimaPosicaoHora;
+
+  bool get _bateriaBaixa => _ultimaBateria != null && _ultimaBateria! <= 20;
+
+  /// Só alerta se o rastreamento estiver ativo e a última posição registrada
+  /// tiver mais do que o dobro do intervalo configurado — evita falso alarme
+  /// logo após ligar o rastreamento ou enquanto o próximo ciclo não rodou.
+  bool get _gpsDesatualizado {
+    if (!isTracking || _ultimaPosicaoHora == null) return false;
+    final limite = Duration(minutes: _intervaloRastreamentoMinutos * 2);
+    return DateTime.now().difference(_ultimaPosicaoHora!) > limite;
+  }
+
+  String _formatarTempoDecorrido(DateTime data) {
+    final decorrido = DateTime.now().difference(data);
+    if (decorrido.inMinutes < 60) return '${decorrido.inMinutes} min';
+    if (decorrido.inHours < 24) return '${decorrido.inHours} h';
+    return '${decorrido.inDays} dia${decorrido.inDays == 1 ? '' : 's'}';
+  }
 
   @override
   void initState() {
@@ -155,11 +181,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
         whereArgs: [0],
       );
 
+      final db = await widget.dbHelper.database;
+      final ultimaPosicao = await db.query(
+        'localizacao_historico',
+        orderBy: 'id DESC',
+        limit: 1,
+      );
+
       if (!mounted) return;
       setState(() {
         viagemAtual = viagem;
         embarcacaoAtual = embarcacao;
         _posicoesPendentes = pendentes.length;
+        _ultimaBateria =
+            ultimaPosicao.isEmpty ? null : ultimaPosicao.first['bateria_nivel'] as int?;
+        _ultimaPosicaoHora = ultimaPosicao.isEmpty
+            ? null
+            : DateTime.tryParse(ultimaPosicao.first['data_hora'] as String);
 
         isLoading = false;
       });
@@ -177,6 +215,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: _carregarDados,
           ),
         ),
+      );
+    }
+  }
+
+  // ==================== SOS ====================
+
+  Future<void> _acionarSOS() async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Enviar sinal de emergência?'),
+        content: const Text(
+          'Isso vai abrir um app de mensagem com sua posição atual e um '
+          'pedido de ajuda, pra você enviar a quem puder socorrer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('EMERGÊNCIA',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+
+    try {
+      final posicao = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).timeout(const Duration(seconds: 15));
+
+      final agora = DateTime.now();
+      final horario =
+          '${agora.day.toString().padLeft(2, '0')}/${agora.month.toString().padLeft(2, '0')}/${agora.year} '
+          '${agora.hour.toString().padLeft(2, '0')}:${agora.minute.toString().padLeft(2, '0')}';
+
+      final mensagem = '🆘 EMERGÊNCIA — preciso de ajuda!\n'
+          'Embarcação: ${embarcacaoAtual?.nome ?? "não informada"}\n'
+          'Posição: ${formatarCoordenadasDMSCompacta(posicao.latitude, posicao.longitude)}\n'
+          'Horário: $horario\n'
+          'https://maps.google.com/?q=${posicao.latitude},${posicao.longitude}';
+
+      await Share.share(mensagem);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Não foi possível obter a posição: $e')),
       );
     }
   }
@@ -228,7 +319,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       'Embarcação: ${embarcacaoAtual?.nome ?? "Não definida"}',
                       style: const TextStyle(fontSize: 18, color: Colors.grey),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _acionarSOS,
+                        icon: const Icon(Icons.sos),
+                        label: const Text('EMERGÊNCIA — Enviar Posição'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
 
                     // Posição Atual
                     PosicaoAtualWidget(key: _posicaoKey),
@@ -262,6 +369,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           subtitle: const Text(
                             'Serão enviadas automaticamente assim que houver conexão.',
                             style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    if (_bateriaBaixa) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        color: Colors.red[50],
+                        child: ListTile(
+                          leading:
+                              Icon(Icons.battery_alert, color: Colors.red[800]),
+                          title: Text('Bateria do celular em $_ultimaBateria%'),
+                          subtitle: const Text(
+                            'O rastreamento pode parar se a bateria acabar.',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    if (_gpsDesatualizado) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        color: Colors.red[50],
+                        child: ListTile(
+                          leading: Icon(Icons.gps_off, color: Colors.red[800]),
+                          title: const Text('Sem posição recente registrada'),
+                          subtitle: Text(
+                            'Última posição há ${_formatarTempoDecorrido(_ultimaPosicaoHora!)}. Verifique o sinal de GPS.',
+                            style: const TextStyle(fontSize: 12),
                           ),
                         ),
                       ),
@@ -357,9 +495,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   : _abrirHistoricoPosicoes(context),
             ),
             ListTile(
-              leading: const Icon(Icons.layers),
-              title: const Text('Mapa Offline (MBTiles)'),
-              onTap: () => _abrirMapaOffline(context),
+              leading: const Icon(Icons.add_circle_outline),
+              title: const Text('Produção'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProducaoScreen(dbHelper: widget.dbHelper),
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.add_link_rounded),
@@ -374,7 +520,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ListTile(
               leading: const Icon(Icons.route),
               title: const Text('Minhas Rotas'),
-              onTap: () => _abrirHistoricoPosicoes(context),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        MinhasRotasScreen(dbHelper: widget.dbHelper),
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.navigation),
@@ -390,6 +545,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               leading: const Icon(Icons.water_drop_outlined),
               title: const Text('Condições do Mar'),
               onTap: () => _abrirCondicoesMar(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.campaign_outlined),
+              title: const Text('Avisos aos Navegantes'),
+              onTap: () {
+                Navigator.pop(context);
+                _abrirAvisosAosNavegantes(context);
+              },
             ),
             const Divider(),
             ListTile(
@@ -520,11 +683,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _abrirMapaOffline(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const MapaScreen()),
-    );
+  Future<void> _abrirAvisosAosNavegantes(BuildContext context) async {
+    final uri = Uri.parse(
+        'https://www.marinha.mil.br/chm/dados-do-segnav-aviso-aos-navegantes-tela');
+    final abriu = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!abriu && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível abrir o site da Marinha do Brasil.'),
+        ),
+      );
+    }
   }
 
   Future<void> _abrirSolicitarGrib(BuildContext context) async {

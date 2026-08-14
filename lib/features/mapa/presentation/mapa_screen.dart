@@ -15,30 +15,47 @@ class MapaScreen extends StatelessWidget {
   /// usado para exibir uma rota de histórico de GPS.
   final List<LatLng>? rota;
 
-  const MapaScreen({super.key, this.recomendacao, this.rota});
+  /// Se true, abre o mapa em modo de planejamento de rota — ver
+  /// [MapaWidget.modoPlanejarRota].
+  final bool modoPlanejarRota;
+
+  const MapaScreen({
+    super.key,
+    this.recomendacao,
+    this.rota,
+    this.modoPlanejarRota = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          recomendacao != null
-              ? recomendacao!.titulo.isEmpty
-                  ? 'Recomendação'
-                  : recomendacao!.titulo
-              : rota != null
-                  ? 'Rota do histórico'
-                  : 'Mapa',
+          modoPlanejarRota
+              ? 'Nova Rota Planejada'
+              : recomendacao != null
+                  ? recomendacao!.titulo.isEmpty
+                      ? 'Recomendação'
+                      : recomendacao!.titulo
+                  : rota != null
+                      ? 'Rota do histórico'
+                      : 'Mapa',
         ),
       ),
       body: Stack(
         children: [
-          MapaWidget(recomendacao: recomendacao, rota: rota, margemZoom: 4),
-          const Positioned(
-            left: 12,
-            bottom: 12,
-            child: _SstFlutuante(),
+          MapaWidget(
+            recomendacao: recomendacao,
+            rota: rota,
+            margemZoom: 4,
+            modoPlanejarRota: modoPlanejarRota,
           ),
+          if (!modoPlanejarRota)
+            const Positioned(
+              left: 12,
+              bottom: 12,
+              child: _SstFlutuante(),
+            ),
         ],
       ),
     );
