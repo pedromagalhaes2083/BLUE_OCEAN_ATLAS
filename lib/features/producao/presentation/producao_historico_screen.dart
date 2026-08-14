@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/database/database_helper.dart';
 import '../domain/models/producao_registro.dart';
 
@@ -65,12 +69,58 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
   String _formatarDataHora(DateTime dt) =>
       DateFormat('dd/MM/yyyy HH:mm').format(dt);
 
+  String _csvCampo(Object? valor) {
+    final texto = valor?.toString() ?? '';
+    if (texto.contains(',') || texto.contains('"') || texto.contains('\n')) {
+      return '"${texto.replaceAll('"', '""')}"';
+    }
+    return texto;
+  }
+
+  Future<void> _exportarCsv() async {
+    final linhas = <String>[
+      'Data/Hora,Espécie,Quantidade (kg),Latitude,Longitude,Observação',
+      ..._registros.map((r) => [
+            _csvCampo(_formatarDataHora(r.dataHora)),
+            _csvCampo(r.especie),
+            _csvCampo(r.quantidadeKg.toStringAsFixed(2)),
+            _csvCampo(r.latitude),
+            _csvCampo(r.longitude),
+            _csvCampo(r.observacao),
+          ].join(',')),
+    ];
+
+    try {
+      final dir = await getTemporaryDirectory();
+      final arquivo = File(
+          '${dir.path}/producao_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.csv');
+      await arquivo.writeAsString(linhas.join('\n'));
+
+      if (!mounted) return;
+      await Share.shareXFiles(
+        [XFile(arquivo.path)],
+        text: 'Histórico de produção — ${_totalKg.toStringAsFixed(1)} kg',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao exportar: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Histórico de Produção'),
         actions: [
+          if (_registros.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.ios_share),
+              tooltip: 'Exportar como CSV',
+              onPressed: _exportarCsv,
+            ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _carregar),
         ],
       ),

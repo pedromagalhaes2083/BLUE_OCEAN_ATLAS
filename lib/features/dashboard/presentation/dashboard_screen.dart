@@ -28,6 +28,7 @@ import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../embarcacao/domain/models/embarcacao.dart';
 import 'package:atlas/features/widgets/posicao_atual_widget.dart';
+import 'package:atlas/features/widgets/web_view_screen.dart';
 import '../../configuracoes/presentation/configuracoes_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -692,17 +693,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _abrirAvisosAosNavegantes(BuildContext context) async {
-    final uri = Uri.parse(
-        'https://www.marinha.mil.br/chm/dados-do-segnav-aviso-aos-navegantes-tela');
-    final abriu = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!abriu && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível abrir o site da Marinha do Brasil.'),
+  void _abrirAvisosAosNavegantes(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const WebViewScreen(
+          titulo: 'Avisos aos Navegantes',
+          url:
+              'https://www.marinha.mil.br/chm/dados-do-segnav-aviso-aos-navegantes-tela',
         ),
-      );
-    }
+      ),
+    );
   }
 
   Future<void> _abrirSolicitarGrib(BuildContext context) async {
