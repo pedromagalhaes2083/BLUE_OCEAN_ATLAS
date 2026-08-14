@@ -22,6 +22,8 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   String? _deviceId;
   DeviceInfoResumo? _deviceInfo;
   int _intervaloMinutos = intervaloMinimoMinutos;
+  final TextEditingController _contatoEmergenciaController =
+      TextEditingController();
 
   static const _opcoesIntervalo = [15, 30, 60, 120];
 
@@ -29,6 +31,12 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   void initState() {
     super.initState();
     _carregar();
+  }
+
+  @override
+  void dispose() {
+    _contatoEmergenciaController.dispose();
+    super.dispose();
   }
 
   Future<void> _carregar() async {
@@ -39,13 +47,27 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
           '$intervaloMinimoMinutos',
         )) ??
         intervaloMinimoMinutos;
+    final contatoEmergencia =
+        await Config.obtem(Constantes.contatoEmergenciaWhatsapp, '');
     if (!mounted) return;
     setState(() {
       _deviceId = id;
       _deviceInfo = info;
       _intervaloMinutos =
           _opcoesIntervalo.contains(intervalo) ? intervalo : intervaloMinimoMinutos;
+      _contatoEmergenciaController.text = contatoEmergencia;
     });
+  }
+
+  Future<void> _salvarContatoEmergencia() async {
+    await Config.grava(
+      Constantes.contatoEmergenciaWhatsapp,
+      _contatoEmergenciaController.text.trim(),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Contato de emergência salvo')),
+    );
   }
 
   Future<void> _abrirConfiguracaoEmbarcacao() async {
@@ -245,6 +267,63 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                         ),
                         value: ativo,
                         onChanged: NightModeService.alternar,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Emergência',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.sos, color: Colors.red),
+                              SizedBox(width: 10),
+                              Text(
+                                'Contato de emergência (WhatsApp)',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Se preenchido, o botão de EMERGÊNCIA no painel '
+                            'abre direto uma conversa com esse número. Vazio, '
+                            'ele deixa você escolher o app na hora.',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _contatoEmergenciaController,
+                            keyboardType: TextInputType.phone,
+                            decoration: const InputDecoration(
+                              labelText: 'Número com DDD e país',
+                              hintText: 'Ex: 5588999998888',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: _salvarContatoEmergencia,
+                              icon: const Icon(Icons.save, size: 18),
+                              label: const Text('Salvar'),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

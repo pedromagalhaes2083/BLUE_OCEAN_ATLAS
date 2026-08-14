@@ -263,7 +263,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'Horário: $horario\n'
           'https://maps.google.com/?q=${posicao.latitude},${posicao.longitude}';
 
-      await Share.share(mensagem);
+      final contato =
+          await Config.obtem(Constantes.contatoEmergenciaWhatsapp, '');
+      if (contato.isNotEmpty) {
+        final uri = Uri.parse(
+            'https://wa.me/$contato?text=${Uri.encodeComponent(mensagem)}');
+        final abriu = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!abriu) await Share.share(mensagem);
+      } else {
+        await Share.share(mensagem);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
