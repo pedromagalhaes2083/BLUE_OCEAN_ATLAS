@@ -7,7 +7,7 @@ import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/localizacao_reporter_service.dart';
 import '../domain/models/embarcacao.dart';
-import 'cadastrar_embarcaao_screen.dart';
+import 'cadastrar_embarcacao_screen.dart';
 import 'widgets/foto_embarcacao_picker.dart';
 
 const _embarcacaoIdPadrao = 'c8f1da10-e015-41c9-920f-ce2c512c3a95';

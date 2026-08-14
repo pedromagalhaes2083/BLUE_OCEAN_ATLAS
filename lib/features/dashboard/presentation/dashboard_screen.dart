@@ -1,7 +1,7 @@
 import 'package:atlas/features/cartas/presentation/cartas_screen.dart';
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
 import 'package:atlas/features/mapa/presentation/mapa_widget.dart';
-import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcaao_screen.dart';
+import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcacao_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
 import 'package:atlas/features/metereologia/presentation/gribs_screen.dart';
 import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.dart';
