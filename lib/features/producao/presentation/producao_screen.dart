@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../../core/database/database_helper.dart';
+import '../domain/especies_comuns.dart';
 import '../domain/models/producao_registro.dart';
 import 'producao_historico_screen.dart';
 
@@ -78,7 +79,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
         id: 0,
         embarcacaoId: _embarcacaoNome,
         dataHora: DateTime.now(),
-        especie: _especieController.text.trim(),
+        especie: normalizarEspecie(_especieController.text),
         quantidadeKg: double.parse(_quantidadeController.text),
         latitude: _posicaoAtual?.latitude,
         longitude: _posicaoAtual?.longitude,
@@ -163,12 +164,28 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              TextFormField(
-                controller: _especieController,
-                decoration: const InputDecoration(
-                    labelText: 'Espécie *', border: OutlineInputBorder()),
-                validator: (v) =>
-                    v?.trim().isEmpty == true ? 'Informe a espécie' : null,
+              Autocomplete<String>(
+                textEditingController: _especieController,
+                optionsBuilder: (textEditingValue) {
+                  final query = textEditingValue.text.trim().toLowerCase();
+                  if (query.isEmpty) return const Iterable<String>.empty();
+                  return especiesComuns
+                      .where((e) => e.toLowerCase().contains(query));
+                },
+                fieldViewBuilder: (context, controller, focusNode, _) {
+                  return TextFormField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(
+                      labelText: 'Espécie *',
+                      hintText: 'Ex: Tainha',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (v) => v?.trim().isEmpty == true
+                        ? 'Informe a espécie'
+                        : null,
+                  );
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(

@@ -13,6 +13,7 @@ import '../../../core/utils/proximidade.dart';
 import '../../metereologia/data/profundidade_repository.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../metereologia/domain/models/leitura_profundidade.dart';
+import '../../producao/domain/especies_comuns.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../domain/models/ponto_marcado.dart';
 import '../widgets/download_regiao_dialog.dart';
@@ -368,7 +369,10 @@ class MapaWidgetState extends State<MapaWidget> {
       final lat = (r['latitude'] as num).toDouble();
       final lon = (r['longitude'] as num).toDouble();
       final kg = (r['quantidade_kg'] as num).toDouble();
-      final especie = r['especie'] as String? ?? 'Não informado';
+      final especieNormalizada =
+          normalizarEspecie(r['especie'] as String? ?? '');
+      final especie =
+          especieNormalizada.isEmpty ? 'Não informado' : especieNormalizada;
       final chave =
           '${lat.toStringAsFixed(3)},${lon.toStringAsFixed(3)}';
 

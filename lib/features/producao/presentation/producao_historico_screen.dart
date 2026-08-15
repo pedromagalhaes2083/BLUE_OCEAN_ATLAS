@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/database/database_helper.dart';
+import '../domain/especies_comuns.dart';
 import '../domain/models/producao_registro.dart';
 
 /// Histórico de registros de produção (capturas) já salvos, com totais
@@ -44,7 +45,7 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
       var total = 0.0;
       for (final r in registros) {
         total += r.quantidadeKg;
-        porEspecie.update(r.especie, (v) => v + r.quantidadeKg,
+        porEspecie.update(normalizarEspecie(r.especie), (v) => v + r.quantidadeKg,
             ifAbsent: () => r.quantidadeKg);
       }
       final ordenado = porEspecie.entries.toList()
