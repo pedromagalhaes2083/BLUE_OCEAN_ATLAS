@@ -374,7 +374,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           leading:
                               Icon(Icons.cloud_off, color: Colors.orange[800]),
                           title: Text(
-                            '$_posicoesPendentes posiçõe${_posicoesPendentes == 1 ? '' : 's'} aguardando sincronização',
+                            '$_posicoesPendentes posiç${_posicoesPendentes == 1 ? 'ão' : 'ões'} aguardando sincronização',
                           ),
                           subtitle: const Text(
                             'Serão enviadas automaticamente assim que houver conexão.',

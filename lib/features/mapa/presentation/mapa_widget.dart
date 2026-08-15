@@ -1,4 +1,3 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -67,7 +66,6 @@ class MapaWidget extends StatefulWidget {
 
 class MapaWidgetState extends State<MapaWidget> {
   final MbtilesService _mbtiles = MbtilesService();
-  final GeotiffService _geotiffService = GeotiffService();
   final PontosService _pontosService = PontosService();
   final StreetMapCacheService _streetCache = StreetMapCacheService();
   final MapController _mapController = MapController();
@@ -632,92 +630,6 @@ class MapaWidgetState extends State<MapaWidget> {
     return '$d/$mo/${dt.year}  $h:$mi';
   }
 
-  // ── Arquivo externo (opcional) ─────────────────────────────────────────────
-
-  Future<void> _pickFile() async {
-    setState(() => _error = null);
-    final result = await FilePicker.platform.pickFiles(type: FileType.any);
-    if (!mounted) return;
-    if (result == null || result.files.single.path == null) return;
-
-    final path = result.files.single.path!;
-    final name = result.files.single.name;
-    final lower = path.toLowerCase();
-
-    if (lower.endsWith('.mbtiles')) {
-      await _openMbtiles(path, name);
-    } else if (lower.endsWith('.tif') || lower.endsWith('.tiff')) {
-      await _openGeotiff(path, name);
-    } else {
-      setState(
-          () => _error = 'Formato não suportado.\nUse .mbtiles, .tif ou .tiff');
-    }
-  }
-
-  Future<void> _openMbtiles(String path, String name) async {
-    setState(() => _loading = true);
-    try {
-      await _mbtiles.open(path);
-      final meta = await _mbtiles.getMetadata();
-      _applyMetadata(meta);
-      if (!mounted) return;
-      setState(() {
-        _mode = _MapMode.mbtiles;
-        _geotiff = null;
-        _fileName = name;
-        _loading = false;
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _preencherComCarta();
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Erro ao abrir MBTiles: $e';
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _openGeotiff(String path, String name) async {
-    setState(() => _loading = true);
-    try {
-      final result = await _geotiffService.load(path);
-      await _mbtiles.close();
-      if (!mounted) return;
-      setState(() {
-        _mode = _MapMode.geotiff;
-        _geotiff = result;
-        _fileName = name;
-        _chartBounds = null;
-        _center = LatLng(
-          (result.north + result.south) / 2,
-          (result.east + result.west) / 2,
-        );
-        _minZoom = 0;
-        _maxZoom = 22;
-        _loading = false;
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _mapController.fitCamera(
-          CameraFit.bounds(
-            bounds: LatLngBounds(
-              LatLng(result.south, result.west),
-              LatLng(result.north, result.east),
-            ),
-            padding: const EdgeInsets.all(24),
-          ),
-        );
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-      });
-    }
-  }
-
   // ── Metadados ──────────────────────────────────────────────────────────────
 
   void _applyMetadata(Map<String, String> meta) {
@@ -854,16 +766,6 @@ class MapaWidgetState extends State<MapaWidget> {
                       ? 'Esconder calor de produção'
                       : 'Ver calor de produção',
                   onPressed: _alternarProducao,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 44, minHeight: 44),
-                ),
-              if (!widget.modoPlanejarRota)
-                IconButton(
-                  icon: const Icon(Icons.folder_open,
-                      color: Colors.white, size: 22),
-                  tooltip: 'Carregar outro arquivo',
-                  onPressed: _loading ? null : _pickFile,
                   padding: EdgeInsets.zero,
                   constraints:
                       const BoxConstraints(minWidth: 44, minHeight: 44),
@@ -1080,51 +982,25 @@ class MapaWidgetState extends State<MapaWidget> {
                 ),
             ],
           ),
-        // Pontos precisos: widget 14x14 centralizado exatamente na coordenada
+        // Pontos precisos: alfinete só — nome/detalhes só aparecem ao tocar
+        // (ver MeteorologiaSheet), pra não poluir o mapa com texto solto.
         if (_pontos.isNotEmpty)
           MarkerLayer(
             markers: _pontos
                 .map((p) => Marker(
                       point: LatLng(p.latitude, p.longitude),
-                      width: 14,
-                      height: 14,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-        // Labels: flutuam à direita do ponto, sem exigir precisão pixel-perfect
-        if (_pontos.isNotEmpty)
-          MarkerLayer(
-            markers: _pontos
-                .map((p) => Marker(
-                      point: LatLng(p.latitude, p.longitude),
-                      width: 150,
-                      height: 22,
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 16),
-                        child: GestureDetector(
-                          onTap: () => MeteorologiaSheet.show(context, p),
+                      width: 28,
+                      height: 28,
+                      child: GestureDetector(
+                        onTap: () => MeteorologiaSheet.show(context, p),
+                        child: Center(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 2),
+                            width: 14,
+                            height: 14,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              p.label,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
+                              color: Colors.orange,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
                           ),
                         ),
@@ -1147,7 +1023,7 @@ class MapaWidgetState extends State<MapaWidget> {
               ),
             ],
           ),
-        if (_pontosRecomendacao.isNotEmpty) ...[
+        if (_pontosRecomendacao.isNotEmpty)
           MarkerLayer(
             markers: _pontosRecomendacao
                 .map((p) => Marker(
@@ -1163,39 +1039,7 @@ class MapaWidgetState extends State<MapaWidget> {
                     ))
                 .toList(),
           ),
-          // Coordenadas: flutuam à direita do ponto.
-          MarkerLayer(
-            markers: _pontosRecomendacao
-                .map((p) => Marker(
-                      point: p,
-                      width: 150,
-                      height: 22,
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            formatarCoordenadasDMSCompacta(
-                                p.latitude, p.longitude),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-        ],
-        if (_pontosMarcados.isNotEmpty) ...[
+        if (_pontosMarcados.isNotEmpty)
           MarkerLayer(
             markers: _pontosMarcados
                 .map((p) => Marker(
@@ -1214,40 +1058,6 @@ class MapaWidgetState extends State<MapaWidget> {
                     ))
                 .toList(),
           ),
-          // Coordenadas: flutuam à direita do ponto.
-          MarkerLayer(
-            markers: _pontosMarcados
-                .map((p) => Marker(
-                      point: LatLng(p.latitude, p.longitude),
-                      width: 150,
-                      height: 22,
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            p.nome?.isNotEmpty == true
-                                ? p.nome!
-                                : formatarCoordenadasDMSCompacta(
-                                    p.latitude, p.longitude),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-        ],
       ],
     );
   }
