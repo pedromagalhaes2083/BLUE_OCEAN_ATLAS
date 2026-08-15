@@ -15,10 +15,16 @@ class DatabaseHelper {
     return _database!;
   }
 
-  Future<Database> _initDatabase() async {
+  /// Caminho do arquivo .db no armazenamento do aparelho — usado pelo
+  /// backup manual em Configurações (ver [ConfiguracoesScreen]).
+  Future<String> caminhoArquivo() async {
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();
-    final String path = join(documentsDirectory.path, 'blue_ocean.db');
+    return join(documentsDirectory.path, 'blue_ocean.db');
+  }
+
+  Future<Database> _initDatabase() async {
+    final String path = await caminhoArquivo();
 
     return await openDatabase(
       path,

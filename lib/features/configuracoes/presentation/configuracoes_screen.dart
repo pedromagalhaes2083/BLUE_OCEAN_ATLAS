@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
@@ -26,6 +31,8 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       TextEditingController();
 
   static const _opcoesIntervalo = [15, 30, 60, 120];
+
+  bool _fazendoBackup = false;
 
   @override
   void initState() {
@@ -57,6 +64,39 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
           _opcoesIntervalo.contains(intervalo) ? intervalo : intervaloMinimoMinutos;
       _contatoEmergenciaController.text = contatoEmergencia;
     });
+  }
+
+  // ── Backup ────────────────────────────────────────────────────────────────
+
+  // Rotas planejadas, pontos marcados, solicitações de carta e registros de
+  // produção só existem localmente — nada disso sincroniza com um servidor
+  // (só o histórico de localização sincroniza). Sem essa cópia manual, tudo
+  // se perde se o aparelho quebrar, for roubado ou resetado.
+  Future<void> _fazerBackup() async {
+    setState(() => _fazendoBackup = true);
+    try {
+      final origem = File(await widget.dbHelper.caminhoArquivo());
+      if (!await origem.exists()) {
+        throw Exception('Banco de dados ainda não foi criado');
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final carimbo = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+      final copia = await origem.copy('${tempDir.path}/atlas_backup_$carimbo.db');
+
+      if (!mounted) return;
+      await Share.shareXFiles(
+        [XFile(copia.path)],
+        text: 'Backup do Atlas Blue Ocean — $carimbo',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao gerar backup: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _fazendoBackup = false);
+    }
   }
 
   Future<void> _salvarContatoEmergencia() async {
@@ -321,6 +361,61 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                               onPressed: _salvarContatoEmergencia,
                               icon: const Icon(Icons.save, size: 18),
                               label: const Text('Salvar'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Dados e Backup',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.backup_outlined, color: Colors.blue),
+                              SizedBox(width: 10),
+                              Text(
+                                'Backup manual',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Rotas planejadas, pontos marcados, pedidos de '
+                            'carta e produção só existem neste aparelho — '
+                            'nada disso é enviado a um servidor. Gere um '
+                            'backup de vez em quando e guarde num lugar '
+                            'seguro (e-mail, nuvem, outro aparelho).',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _fazendoBackup ? null : _fazerBackup,
+                              icon: _fazendoBackup
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.ios_share),
+                              label: const Text('Gerar e compartilhar backup'),
                             ),
                           ),
                         ],
