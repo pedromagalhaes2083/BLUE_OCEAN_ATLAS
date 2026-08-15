@@ -23,6 +23,7 @@ import '../../viagem/domain/models/viagem.dart';
 import 'package:atlas/core/auth/auth_service.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
+import '../../../core/services/localizacao_reporter_service.dart';
 import '../../../core/services/night_mode_service.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
@@ -64,6 +65,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ==================== SINCRONIZAÇÃO PENDENTE ====================
   int _posicoesPendentes = 0;
+  bool _sincronizando = false;
 
   // ==================== ALERTAS (bateria / GPS desatualizado) ====================
   int? _ultimaBateria;
@@ -217,6 +219,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       );
+    }
+  }
+
+  Future<void> _sincronizarAgora() async {
+    setState(() => _sincronizando = true);
+    try {
+      await LocalizacaoReporterService.sincronizarPendentes();
+      final pendentes = await widget.dbHelper.queryWhere(
+        'localizacao_historico',
+        where: 'sincronizado = ?',
+        whereArgs: [0],
+      );
+      if (!mounted) return;
+      final enviadas = _posicoesPendentes - pendentes.length;
+      setState(() => _posicoesPendentes = pendentes.length);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            enviadas > 0
+                ? '$enviadas posiç${enviadas == 1 ? 'ão enviada' : 'ões enviadas'}${pendentes.isNotEmpty ? ' — ${pendentes.length} ainda pendente${pendentes.length == 1 ? '' : 's'}' : ''}.'
+                : 'Não foi possível sincronizar agora. Verifique a conexão.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao sincronizar: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _sincronizando = false);
     }
   }
 
@@ -380,6 +413,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             'Serão enviadas automaticamente assim que houver conexão.',
                             style: TextStyle(fontSize: 12),
                           ),
+                          trailing: _sincronizando
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                )
+                              : IconButton(
+                                  icon: Icon(Icons.sync,
+                                      color: Colors.orange[800]),
+                                  tooltip: 'Sincronizar agora',
+                                  onPressed: _sincronizarAgora,
+                                ),
                         ),
                       ),
                     ],
