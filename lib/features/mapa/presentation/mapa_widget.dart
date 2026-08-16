@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -24,6 +25,15 @@ import '../widgets/street_map_tile_provider.dart';
 
 const _bundledAsset = 'assets/cartas/OUTPUT_FILE.mbtiles';
 const _pontosAsset = 'assets/json/posicoes/Routing3.json';
+
+/// Sobreposição opcional: um PNG georreferenciado (retângulo alinhado aos
+/// eixos, sem rotação) exibido por cima da carta MBTiles/mapa de ruas —
+/// por exemplo uma carta batimétrica ou uma área de interesse recortada.
+/// Ajuste o caminho e os dois cantos do retângulo (sudoeste/nordeste) pra
+/// sua imagem e área; coloque o arquivo em `assets/overlays/`.
+const _overlayPngAsset = 'assets/overlays/overlay.png';
+const _overlaySudoeste = LatLng(-3.0, -40.0);
+const _overlayNordeste = LatLng(-2.8, -39.8);
 
 enum _MapMode { none, mbtiles, geotiff }
 
@@ -114,6 +124,12 @@ class MapaWidgetState extends State<MapaWidget> {
   bool _mostrarProducao = false;
   bool _carregandoProducao = false;
   List<_ClusterProducao> _producaoClusters = [];
+
+  // ── Sobreposição de imagem (PNG georreferenciado) ────────────────────────
+  bool _overlayAtiva = false;
+  bool _overlayValidada = false;
+  bool _overlayCarregando = false;
+  double _overlayOpacidade = 0.8;
 
   /// Pontos da recomendação a exibir sobre a carta (vazio se nenhuma).
   List<LatLng> get _pontosRecomendacao {
@@ -484,6 +500,45 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
+  // ── Sobreposição de imagem ───────────────────────────────────────────────
+
+  /// Liga/desliga a camada de sobreposição. Na primeira vez que é ligada,
+  /// confirma que o PNG existe em [_overlayPngAsset] antes de mostrar
+  /// qualquer coisa — evita quebrar o mapa se o arquivo não tiver sido
+  /// colocado em `assets/overlays/` ainda.
+  Future<void> _alternarOverlay(bool ativa) async {
+    if (!ativa) {
+      setState(() => _overlayAtiva = false);
+      return;
+    }
+    if (_overlayValidada) {
+      setState(() => _overlayAtiva = true);
+      return;
+    }
+
+    setState(() => _overlayCarregando = true);
+    try {
+      await rootBundle.load(_overlayPngAsset);
+      if (!mounted) return;
+      setState(() {
+        _overlayAtiva = true;
+        _overlayValidada = true;
+        _overlayCarregando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _overlayCarregando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Não foi possível carregar "$_overlayPngAsset". Coloque o PNG '
+            'em assets/overlays/ e reinstale o app.',
+          ),
+        ),
+      );
+    }
+  }
+
   void _alternarModoMarcarPonto() {
     setState(() {
       _modoMarcarPonto = !_modoMarcarPonto;
@@ -689,6 +744,8 @@ class MapaWidgetState extends State<MapaWidget> {
         children: [
           Positioned.fill(child: _buildBody()),
           if (_mode != _MapMode.none) _buildTopBar(),
+          if (_overlayAtiva && !_modoMarcarPonto && !widget.modoPlanejarRota)
+            _buildOverlayOpacidadeControl(),
           if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
           if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
           if (!_modoMarcarPonto &&
@@ -791,6 +848,31 @@ class MapaWidgetState extends State<MapaWidget> {
                   constraints:
                       const BoxConstraints(minWidth: 44, minHeight: 44),
                 ),
+              if (!widget.modoPlanejarRota)
+                IconButton(
+                  icon: _overlayCarregando
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : Icon(
+                          Icons.layers,
+                          color:
+                              _overlayAtiva ? Colors.lightBlueAccent : Colors.white,
+                          size: 22,
+                        ),
+                  tooltip: _overlayAtiva
+                      ? 'Esconder sobreposição'
+                      : 'Ver sobreposição',
+                  onPressed: _overlayCarregando
+                      ? null
+                      : () => _alternarOverlay(!_overlayAtiva),
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 44),
+                ),
             ],
           ),
         ),
@@ -816,6 +898,38 @@ class MapaWidgetState extends State<MapaWidget> {
       child: FloatingActionButton(
         onPressed: _centerOnGps,
         child: const Icon(Icons.directions_boat),
+      ),
+    );
+  }
+
+  /// Barra compacta com um slider pra ajustar a opacidade da sobreposição
+  /// em tempo real, enquanto ela está ligada.
+  Widget _buildOverlayOpacidadeControl() {
+    return Positioned(
+      top: 56,
+      left: 8,
+      right: 8,
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.opacity, color: Colors.white, size: 18),
+              Expanded(
+                child: Slider(
+                  value: _overlayOpacidade,
+                  onChanged: (v) => setState(() => _overlayOpacidade = v),
+                ),
+              ),
+              Text(
+                '${(_overlayOpacidade * 100).round()}%',
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -922,6 +1036,19 @@ class MapaWidgetState extends State<MapaWidget> {
               ],
             ),
         ],
+        // Sobreposição de imagem — PNG georreferenciado sobre a área fixa
+        // definida em _overlaySudoeste/_overlayNordeste, por cima da carta
+        // base (MBTiles/ruas) e por baixo dos marcadores.
+        if (_overlayAtiva)
+          OverlayImageLayer(
+            overlayImages: [
+              OverlayImage(
+                bounds: LatLngBounds(_overlaySudoeste, _overlayNordeste),
+                imageProvider: const AssetImage(_overlayPngAsset),
+                opacity: _overlayOpacidade,
+              ),
+            ],
+          ),
         // Calor de produção — círculos proporcionais ao total em kg
         // registrado perto daquele ponto, em qualquer viagem.
         if (_mostrarProducao && _producaoClusters.isNotEmpty)

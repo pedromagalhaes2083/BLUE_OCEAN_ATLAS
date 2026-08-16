@@ -72,4 +72,5 @@ flutter:
     - assets/icons/
     - assets/json/
     - assets/json/posicoes/
+    - assets/overlays/
    

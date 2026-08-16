@@ -1,0 +1,7 @@
+Coloque aqui o PNG georreferenciado que deve aparecer sobreposto à
+carta náutica (ver camada "Sobreposição" no mapa).
+
+Nome esperado: overlay.png
+(ajuste o nome/bounds em `_overlayPngAsset` / `_overlaySudoeste` /
+`_overlayNordeste`, no topo de lib/features/mapa/presentation/mapa_widget.dart,
+se quiser usar outro arquivo ou outra área)
