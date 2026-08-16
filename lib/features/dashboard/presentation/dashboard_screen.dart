@@ -673,12 +673,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 // ==================== MÉTODOS DE AÇÃO ====================
   Future<void> _iniciarNovaViagem() async {
-    final nomeBarco = embarcacaoAtual?.nome.toString() ?? "Não definida";
+    if (embarcacaoAtual == null) {
+      final cadastrar = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Nenhuma embarcação cadastrada'),
+          content: const Text(
+            'Cadastre a embarcação antes de iniciar uma viagem — os '
+            'registros de posição e produção precisam estar vinculados a '
+            'uma embarcação.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Cadastrar Embarcação'),
+            ),
+          ],
+        ),
+      );
+      if (cadastrar == true && mounted) {
+        await _abrirCadastroEmbarcacao(context);
+      }
+      return;
+    }
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            NovaViagemScreen(dbHelper: widget.dbHelper, embarcacao: nomeBarco),
+        builder: (_) => NovaViagemScreen(
+          dbHelper: widget.dbHelper,
+          embarcacao: embarcacaoAtual!.nome,
+        ),
       ),
     );
 
