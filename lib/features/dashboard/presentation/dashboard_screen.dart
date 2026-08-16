@@ -553,8 +553,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ListTile(
               leading: const Icon(Icons.add_circle_outline),
               title: const Text('Produção'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
+                final podeContinuar = await _exigirEmbarcacaoCadastrada(
+                    motivo: 'registrar produção');
+                if (!podeContinuar || !context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -672,34 +675,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
 // ==================== MÉTODOS DE AÇÃO ====================
-  Future<void> _iniciarNovaViagem() async {
-    if (embarcacaoAtual == null) {
-      final cadastrar = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Nenhuma embarcação cadastrada'),
-          content: const Text(
-            'Cadastre a embarcação antes de iniciar uma viagem — os '
-            'registros de posição e produção precisam estar vinculados a '
-            'uma embarcação.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Cadastrar Embarcação'),
-            ),
-          ],
+  /// Mostra um alerta se não houver embarcação cadastrada, com atalho pra
+  /// cadastrar. Retorna true só quando já existe uma embarcação e a tela
+  /// que chamou pode prosseguir.
+  Future<bool> _exigirEmbarcacaoCadastrada({required String motivo}) async {
+    if (embarcacaoAtual != null) return true;
+
+    final cadastrar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nenhuma embarcação cadastrada'),
+        content: Text(
+          'Cadastre a embarcação antes de $motivo — os registros precisam '
+          'estar vinculados a uma embarcação.',
         ),
-      );
-      if (cadastrar == true && mounted) {
-        await _abrirCadastroEmbarcacao(context);
-      }
-      return;
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Cadastrar Embarcação'),
+          ),
+        ],
+      ),
+    );
+    if (cadastrar == true && mounted) {
+      await _abrirCadastroEmbarcacao(context);
     }
+    return false;
+  }
+
+  Future<void> _iniciarNovaViagem() async {
+    final podeContinuar =
+        await _exigirEmbarcacaoCadastrada(motivo: 'iniciar uma viagem');
+    if (!podeContinuar || !mounted) return;
 
     final result = await Navigator.push(
       context,
