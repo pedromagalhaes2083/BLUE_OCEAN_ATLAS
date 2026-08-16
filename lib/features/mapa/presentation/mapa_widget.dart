@@ -1345,22 +1345,29 @@ class _LinhaInfoPonto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: 18, color: Colors.grey[600]),
         const SizedBox(width: 8),
         Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-        const Spacer(),
-        if (carregando)
-          const SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        else
-          Text(
-            valor,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-          ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: carregando
+              ? const Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : Text(
+                  valor,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+        ),
       ],
     );
   }
