@@ -575,8 +575,8 @@ class MapaWidgetState extends State<MapaWidget> {
               _LinhaInfoPonto(
                 icon: Icons.explore_outlined,
                 label: 'Coordenadas',
-                valor: formatarCoordenadasDMSCompacta(
-                    ponto.latitude, ponto.longitude),
+                valor:
+                    formatarCoordenadasDMS(ponto.latitude, ponto.longitude),
               ),
               const Divider(height: 20),
               _LinhaInfoPonto(
