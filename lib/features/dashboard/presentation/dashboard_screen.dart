@@ -555,9 +555,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: const Text('Produção'),
               onTap: () async {
                 Navigator.pop(context);
-                final podeContinuar = await _exigirEmbarcacaoCadastrada(
+                final temEmbarcacao = await _exigirEmbarcacaoCadastrada(
                     motivo: 'registrar produção');
-                if (!podeContinuar || !context.mounted) return;
+                if (!temEmbarcacao || !context.mounted) return;
+                final temViagem =
+                    await _exigirViagemAtiva(motivo: 'registrar produção');
+                if (!temViagem || !context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -703,6 +706,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     if (cadastrar == true && mounted) {
       await _abrirCadastroEmbarcacao(context);
+    }
+    return false;
+  }
+
+  /// Mostra um alerta se não houver viagem em andamento, com atalho pra
+  /// iniciar uma. Retorna true só quando já existe uma viagem ativa.
+  Future<bool> _exigirViagemAtiva({required String motivo}) async {
+    if (viagemAtual != null) return true;
+
+    final iniciar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nenhuma viagem em andamento'),
+        content: Text(
+          'Inicie uma viagem antes de $motivo — os registros precisam '
+          'estar vinculados a uma viagem.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Iniciar Viagem'),
+          ),
+        ],
+      ),
+    );
+    if (iniciar == true && mounted) {
+      await _iniciarNovaViagem();
     }
     return false;
   }
