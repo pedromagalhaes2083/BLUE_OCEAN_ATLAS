@@ -7,7 +7,18 @@ import 'minhas_solicitacoes_screen.dart';
 
 class SolicitarCartaScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
-  const SolicitarCartaScreen({super.key, required this.dbHelper});
+
+  /// Se informadas, as coordenadas já vêm preenchidas (ex: pedido feito a
+  /// partir de um ponto marcado no mapa) em vez de começar em 0°/0'.
+  final double? latitudeInicial;
+  final double? longitudeInicial;
+
+  const SolicitarCartaScreen({
+    super.key,
+    required this.dbHelper,
+    this.latitudeInicial,
+    this.longitudeInicial,
+  });
 
   @override
   State<SolicitarCartaScreen> createState() => _SolicitarCartaScreenState();
@@ -39,6 +50,39 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
 
   String get _latTexto => '$_latDeg° $_latMin\' $_latHemisferio';
   String get _lonTexto => '$_lonDeg° $_lonMin\' $_lonHemisferio';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.latitudeInicial != null) {
+      final (deg, min, hemis) =
+          _decimalParaGrausMinutos(widget.latitudeInicial!, isLatitude: true);
+      _latDeg = deg;
+      _latMin = min;
+      _latHemisferio = hemis;
+    }
+    if (widget.longitudeInicial != null) {
+      final (deg, min, hemis) = _decimalParaGrausMinutos(
+          widget.longitudeInicial!,
+          isLatitude: false);
+      _lonDeg = deg;
+      _lonMin = min;
+      _lonHemisferio = hemis;
+    }
+  }
+
+  (int, int, String) _decimalParaGrausMinutos(double decimal,
+      {required bool isLatitude}) {
+    final hemisferio = isLatitude
+        ? (decimal >= 0 ? 'N' : 'S')
+        : (decimal >= 0 ? 'E' : 'W');
+
+    decimal = decimal.abs();
+    final deg = decimal.floor();
+    final min = ((decimal - deg) * 60).round().clamp(0, 59);
+    final degMax = isLatitude ? 90 : 180;
+    return (deg.clamp(0, degMax), min, hemisferio);
+  }
 
   Future<void> _getCurrentPosition() async {
     setState(() => _isLoadingLocation = true);
@@ -73,21 +117,16 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
   }
 
   void _aplicarDecimal(double decimal, {required bool isLatitude}) {
-    final hemisferio = isLatitude
-        ? (decimal >= 0 ? 'N' : 'S')
-        : (decimal >= 0 ? 'E' : 'W');
-
-    decimal = decimal.abs();
-    final deg = decimal.floor();
-    final min = ((decimal - deg) * 60).round().clamp(0, 59);
+    final (deg, min, hemisferio) =
+        _decimalParaGrausMinutos(decimal, isLatitude: isLatitude);
 
     setState(() {
       if (isLatitude) {
-        _latDeg = deg.clamp(0, 90);
+        _latDeg = deg;
         _latMin = min;
         _latHemisferio = hemisferio;
       } else {
-        _lonDeg = deg.clamp(0, 180);
+        _lonDeg = deg;
         _lonMin = min;
         _lonHemisferio = hemisferio;
       }

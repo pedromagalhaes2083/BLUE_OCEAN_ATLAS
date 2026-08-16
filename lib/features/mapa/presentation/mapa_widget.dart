@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/mbtiles_service.dart';
+import '../../cartas/presentation/solicitar_cartas_screen.dart';
 import '../../../core/services/geotiff_service.dart';
 import '../../../core/services/pontos_service.dart';
 import '../../../core/services/street_map_cache_service.dart';
@@ -609,6 +610,22 @@ class MapaWidgetState extends State<MapaWidget> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Fechar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SolicitarCartaScreen(
+                    dbHelper: _dbHelper,
+                    latitudeInicial: ponto.latitude,
+                    longitudeInicial: ponto.longitude,
+                  ),
+                ),
+              );
+            },
+            child: const Text('Solicitar Carta'),
           ),
           TextButton(
             onPressed: () async {
