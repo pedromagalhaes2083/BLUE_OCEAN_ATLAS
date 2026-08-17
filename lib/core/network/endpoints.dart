@@ -15,4 +15,12 @@ class Endpoints {
   /// Usado por [LocalizacaoReporterService] para o envio periódico
   /// (a cada 30 min) da localização do dispositivo.
   static const localizacaoDispositivo = 'base/navegacao/posicionamento/salva';
+
+  /// PLACEHOLDER — o backend ainda não tem endpoint de produção
+  /// (confirmado em 2026-08). Todo o resto da sincronização
+  /// (`ProducaoReporterService`, `ProducaoRepository`, fila local) já está
+  /// pronto e testado, mas [ProducaoReporterService.sincronizacaoHabilitada]
+  /// mantém o envio desligado até esse path ser substituído pelo real —
+  /// ver `Próximos Passos` em DOCUMENTACAO.md.
+  static const producaoRegistro = 'base/operacao/producao/salva';
 }

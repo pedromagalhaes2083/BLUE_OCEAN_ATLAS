@@ -35,27 +35,41 @@ class RecomendacaoPontoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          // Wrap em vez de Row — coordenada + data juntas podem passar da
+          // largura disponível (card flutuante estreito), e uma Row sem
+          // quebra causava overflow de pixels nesse caso.
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 10,
+            runSpacing: 4,
             children: [
-              const Icon(Icons.place, size: 14, color: Colors.grey),
-              const SizedBox(width: 4),
-              Text(
-                formatarCoordenadasDMSCompacta(
-                  ponto.latitude,
-                  ponto.longitude,
-                ),
-                style:
-                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.place, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    formatarCoordenadasDMSCompacta(
+                      ponto.latitude,
+                      ponto.longitude,
+                    ),
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
-              if (dataRecebimento != null) ...[
-                const SizedBox(width: 10),
-                const Icon(Icons.schedule, size: 12, color: Colors.grey),
-                const SizedBox(width: 3),
-                Text(
-                  _formatarData(dataRecebimento!),
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              if (dataRecebimento != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.schedule, size: 12, color: Colors.grey),
+                    const SizedBox(width: 3),
+                    Text(
+                      _formatarData(dataRecebimento!),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
-              ],
             ],
           ),
           if (ponto.variaveis.isNotEmpty) ...[

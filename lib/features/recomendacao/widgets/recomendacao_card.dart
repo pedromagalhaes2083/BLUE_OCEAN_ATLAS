@@ -26,128 +26,121 @@ class RecomendacaoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = recomendacao;
 
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    // Sem Card/elevação própria — o conteúdo já vive dentro do bottom
+    // sheet em CartasScreen, que fornece o fundo e o cantinho arredondado;
+    // duplicar isso aqui é o que fazia a folha parecer "card dentro de
+    // card".
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RecomendacaoScoreBadge(score: r.score),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        r.titulo.isEmpty ? '(sem título)' : r.titulo,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      RecomendacaoConfiancaDots(confianca: r.confianca),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (r.descricao != null && r.descricao!.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                r.descricao!,
-                style: TextStyle(color: Colors.grey[700], fontSize: 13),
-              ),
-            ],
-            const SizedBox(height: 12),
-
-            // Data de recebimento e coordenada
-            Row(
-              children: [
-                if (r.criadoEm != null) ...[
-                  const Icon(Icons.schedule, size: 13, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    _formatarData(r.criadoEm!),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-                if (r.criadoEm != null && r.centroide != null)
-                  const SizedBox(width: 12),
-                if (r.centroide != null) ...[
-                  const Icon(Icons.place, size: 13, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    formatarCoordenadasDMSCompacta(
-                      r.centroide!.latitude,
-                      r.centroide!.longitude,
-                    ),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ],
-            ),
-
-            if (r.temCoordenadas) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MapaScreen(recomendacao: r),
-                    ),
-                  ),
-                  icon: const Icon(Icons.map_outlined, size: 18),
-                  label: const Text('Ver na Carta'),
-                ),
-              ),
-            ],
-
-            if (r.estimativaCapturaKg != null) ...[
-              const SizedBox(height: 8),
-              Row(
+            RecomendacaoScoreBadge(score: r.score),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.set_meal, size: 14, color: Colors.blueGrey),
-                  const SizedBox(width: 5),
                   Text(
-                    '${r.estimativaCapturaKg} kg estimados',
+                    r.titulo.isEmpty ? '(sem título)' : r.titulo,
                     style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w500),
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
+                  const SizedBox(height: 4),
+                  RecomendacaoConfiancaDots(confianca: r.confianca),
                 ],
               ),
-            ],
+            ),
+          ],
+        ),
+        if (r.descricao != null && r.descricao!.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text(
+            r.descricao!,
+            style: TextStyle(color: Colors.grey[700], fontSize: 14),
+          ),
+        ],
+        const SizedBox(height: 14),
 
-            if (r.validoAte != null) ...[
-              const SizedBox(height: 10),
-              RecomendacaoValidadeChip(validoAte: r.validoAte),
+        // Data de recebimento e coordenada
+        Row(
+          children: [
+            if (r.criadoEm != null) ...[
+              const Icon(Icons.schedule, size: 13, color: Colors.grey),
+              const SizedBox(width: 4),
+              Text(
+                _formatarData(r.criadoEm!),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
             ],
-
-            if (r.pontos != null && r.pontos!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: Text(
-                  '${r.pontos!.length} pontos amostrados',
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w500),
+            if (r.criadoEm != null && r.centroide != null)
+              const SizedBox(width: 12),
+            if (r.centroide != null) ...[
+              const Icon(Icons.place, size: 13, color: Colors.grey),
+              const SizedBox(width: 4),
+              Text(
+                formatarCoordenadasDMSCompacta(
+                  r.centroide!.latitude,
+                  r.centroide!.longitude,
                 ),
-                children: [
-                  RecomendacaoPontosList(
-                    pontos: r.pontos!,
-                    dataRecebimento: r.criadoEm,
-                  ),
-                ],
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             ],
           ],
         ),
-      ),
+
+        if (r.temCoordenadas) ...[
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MapaScreen(recomendacao: r),
+                ),
+              ),
+              icon: const Icon(Icons.map_outlined, size: 18),
+              label: const Text('Ver na Carta'),
+            ),
+          ),
+        ],
+
+        if (r.estimativaCapturaKg != null) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.set_meal, size: 14, color: Colors.blueGrey),
+              const SizedBox(width: 5),
+              Text(
+                '${r.estimativaCapturaKg} kg estimados',
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ],
+
+        if (r.validoAte != null) ...[
+          const SizedBox(height: 10),
+          RecomendacaoValidadeChip(validoAte: r.validoAte),
+        ],
+
+        if (r.pontos != null && r.pontos!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          const Divider(height: 24),
+          Text(
+            '${r.pontos!.length} pontos amostrados',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 10),
+          RecomendacaoPontosList(
+            pontos: r.pontos!,
+            dataRecebimento: r.criadoEm,
+          ),
+        ],
+      ],
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,6 +14,16 @@ class DatabaseHelper {
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
+  }
+
+  /// Descarta a instância cacheada — só pra teste, entre um caso e outro,
+  /// já que `instance` é um singleton de processo (sem isso, o 2º teste
+  /// reaproveitaria a conexão do banco do 1º, mesmo apontando pra um
+  /// arquivo/diretório temporário diferente).
+  @visibleForTesting
+  static Future<void> resetForTesting() async {
+    await _database?.close();
+    _database = null;
   }
 
   /// Caminho do arquivo .db no armazenamento do aparelho — usado pelo
@@ -82,20 +93,6 @@ class DatabaseHelper {
       status TEXT NOT NULL
     )
   ''');
-
-    // Tabela de Cartas Náuticas
-    await db.execute('''
-      CREATE TABLE carta_nautica (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo TEXT UNIQUE NOT NULL,
-        nome TEXT NOT NULL,
-        url_s3 TEXT NOT NULL,
-        caminho_local TEXT,
-        data_publicacao TEXT NOT NULL,
-        data_atualizacao TEXT NOT NULL,
-        esta_baixada INTEGER NOT NULL DEFAULT 0
-      )
-    ''');
 
     // Tabela de Registro de Produção
     await db.execute('''

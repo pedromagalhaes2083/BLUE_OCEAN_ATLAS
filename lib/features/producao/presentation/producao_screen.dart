@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/location_service.dart';
+import '../../../core/services/producao_reporter_service.dart';
 import '../domain/classificacao_peso.dart';
 import '../domain/models/producao_registro.dart';
 import 'producao_historico_screen.dart';
@@ -167,6 +170,10 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
       );
 
       await widget.dbHelper.insert('producao_registro', registro.toMap());
+
+      // Fire-and-forget — não bloqueia a UI nem falha o salvamento local se
+      // a rede estiver indisponível ou a sincronização estiver desligada.
+      unawaited(ProducaoReporterService.sincronizarPendentes());
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

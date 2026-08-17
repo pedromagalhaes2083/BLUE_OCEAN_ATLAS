@@ -89,10 +89,16 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height -
-              MediaQuery.of(context).padding.top -
-              48,
+        child: ConstrainedBox(
+          // minHeight (não height fixo) — mantém o formulário centralizado
+          // verticalmente quando cabe na tela, mas deixa crescer e rolar
+          // em vez de estourar quando o conteúdo não cabe (ex: com o
+          // checkbox de "lembrar credenciais" em telas mais baixas).
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height -
+                MediaQuery.of(context).padding.top -
+                48,
+          ),
           child: Form(
             key: _formKey,
             child: Column(

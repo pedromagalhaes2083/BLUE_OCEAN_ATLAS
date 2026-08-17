@@ -3,7 +3,6 @@ import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart'
 import 'package:atlas/features/mapa/presentation/mapa_widget.dart';
 import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcacao_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
-import 'package:atlas/features/metereologia/presentation/gribs_screen.dart';
 import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.dart';
 import 'package:atlas/features/producao/presentation/producao_screen.dart';
 import 'package:atlas/features/rotas/presentation/minhas_rotas_screen.dart';
@@ -599,11 +598,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onTap: () => _abrirCadastroEmbarcacao(context),
             ),
             ListTile(
-              leading: const Icon(Icons.api_outlined),
-              title: const Text('Gribs'),
-              onTap: () => _abrirSolicitarGrib(context),
-            ),
-            ListTile(
               leading: const Icon(Icons.water_drop_outlined),
               title: const Text('Condições do Mar'),
               onTap: () => _abrirCondicoesMar(context),
@@ -822,15 +816,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           url:
               'https://www.marinha.mil.br/chm/dados-do-segnav-aviso-aos-navegantes-tela',
         ),
-      ),
-    );
-  }
-
-  Future<void> _abrirSolicitarGrib(BuildContext context) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GribProcessorScreen(),
       ),
     );
   }

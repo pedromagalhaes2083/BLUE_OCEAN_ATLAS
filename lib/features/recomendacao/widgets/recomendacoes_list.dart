@@ -40,12 +40,15 @@ class RecomendacoesList extends StatelessWidget {
       });
 
     return Column(
-      children: ordenadas
-          .map((r) => RecomendacaoListTile(
-                recomendacao: r,
-                onTap: onTap != null ? () => onTap!(r) : null,
-              ))
-          .toList(),
+      children: [
+        for (var i = 0; i < ordenadas.length; i++) ...[
+          if (i > 0) const Divider(height: 1),
+          RecomendacaoListTile(
+            recomendacao: ordenadas[i],
+            onTap: onTap != null ? () => onTap!(ordenadas[i]) : null,
+          ),
+        ],
+      ],
     );
   }
 }
