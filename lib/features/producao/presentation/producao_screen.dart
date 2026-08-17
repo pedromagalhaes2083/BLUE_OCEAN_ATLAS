@@ -256,25 +256,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              DropdownButtonFormField<TipoPeixe>(
-                initialValue: _tipoPeixe,
-                isExpanded: true,
-                decoration: _decoracaoCampo(
-                  label: 'Tipo do peixe *',
-                  icone: Icons.set_meal_outlined,
-                ),
-                items: TipoPeixe.values
-                    .map((tipo) => DropdownMenuItem(
-                          value: tipo,
-                          child: Text(tipo.label),
-                        ))
-                    .toList(),
-                validator: (v) => v == null ? 'Selecione o tipo do peixe' : null,
-                onChanged: (v) {
-                  setState(() => _tipoPeixe = v);
-                  _atualizarPesoEstimado();
-                },
-              ),
+              _buildSeletorTipoPeixe(),
               const SizedBox(height: 16),
               DropdownButtonFormField<Classificacao>(
                 initialValue: _classificacao,
@@ -359,6 +341,65 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Seletor de chave (toggle de 2 botões) para o tipo do peixe — só duas
+  /// opções mutuamente exclusivas, então um combo é overhead: o usuário vê
+  /// as duas de uma vez e escolhe com um toque, sem abrir menu.
+  Widget _buildSeletorTipoPeixe() {
+    return FormField<TipoPeixe>(
+      initialValue: _tipoPeixe,
+      validator: (v) => v == null ? 'Selecione o tipo do peixe' : null,
+      builder: (state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Tipo do peixe *',
+              style: TextStyle(
+                fontSize: 12,
+                color: state.hasError
+                    ? Theme.of(context).colorScheme.error
+                    : Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<TipoPeixe>(
+                segments: TipoPeixe.values
+                    .map((tipo) => ButtonSegment(
+                          value: tipo,
+                          label: Text(tipo.label),
+                          icon: const Icon(Icons.set_meal_outlined),
+                        ))
+                    .toList(),
+                selected: _tipoPeixe == null ? const {} : {_tipoPeixe!},
+                emptySelectionAllowed: true,
+                showSelectedIcon: false,
+                onSelectionChanged: (selecao) {
+                  final novoTipo = selecao.isEmpty ? null : selecao.first;
+                  setState(() => _tipoPeixe = novoTipo);
+                  state.didChange(novoTipo);
+                  _atualizarPesoEstimado();
+                },
+              ),
+            ),
+            if (state.hasError)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 12),
+                child: Text(
+                  state.errorText!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 

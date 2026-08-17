@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/database/database_helper.dart';
+import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/especies_comuns.dart';
 import '../domain/models/producao_registro.dart';
 
@@ -32,6 +33,24 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
   void initState() {
     super.initState();
     _carregar();
+  }
+
+  /// Registros com coordenada, em ordem cronológica (do mais antigo pro
+  /// mais recente) — [_registros] já vem do mais recente pro mais antigo,
+  /// então essa é a ordem que faz sentido pra desenhar uma rota no mapa.
+  List<ProducaoRegistro> get _registrosComCoordenada => _registros
+      .where((r) => r.latitude != null && r.longitude != null)
+      .toList()
+      .reversed
+      .toList();
+
+  void _verNoMapa() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapaScreen(producaoPontos: _registrosComCoordenada),
+      ),
+    );
   }
 
   Future<void> _carregar() async {
@@ -118,6 +137,12 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
       appBar: AppBar(
         title: const Text('Histórico de Produção'),
         actions: [
+          if (_registrosComCoordenada.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.map_outlined),
+              tooltip: 'Ver no mapa',
+              onPressed: _verNoMapa,
+            ),
           if (_registros.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.ios_share),

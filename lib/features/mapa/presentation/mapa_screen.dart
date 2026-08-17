@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../metereologia/data/wave_forecast_repository.dart';
+import '../../producao/domain/models/producao_registro.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import 'mapa_widget.dart';
 
@@ -19,11 +20,16 @@ class MapaScreen extends StatelessWidget {
   /// [MapaWidget.modoPlanejarRota].
   final bool modoPlanejarRota;
 
+  /// Se informada, cada registro vira um marcador e, havendo 2+, uma linha
+  /// os liga em ordem cronológica — ver [MapaWidget.producaoPontos].
+  final List<ProducaoRegistro>? producaoPontos;
+
   const MapaScreen({
     super.key,
     this.recomendacao,
     this.rota,
     this.modoPlanejarRota = false,
+    this.producaoPontos,
   });
 
   @override
@@ -37,9 +43,11 @@ class MapaScreen extends StatelessWidget {
                   ? recomendacao!.titulo.isEmpty
                       ? 'Recomendação'
                       : recomendacao!.titulo
-                  : rota != null
-                      ? 'Rota do histórico'
-                      : 'Mapa',
+                  : producaoPontos != null
+                      ? 'Rota de Produção'
+                      : rota != null
+                          ? 'Rota do histórico'
+                          : 'Mapa',
         ),
       ),
       body: Stack(
@@ -49,8 +57,9 @@ class MapaScreen extends StatelessWidget {
             rota: rota,
             margemZoom: 4,
             modoPlanejarRota: modoPlanejarRota,
+            producaoPontos: producaoPontos,
           ),
-          if (!modoPlanejarRota)
+          if (!modoPlanejarRota && producaoPontos == null)
             const Positioned(
               left: 12,
               bottom: 12,
