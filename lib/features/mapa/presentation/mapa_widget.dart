@@ -1,10 +1,13 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/database/database_helper.dart';
+import '../../../core/services/geo_png_helper.dart';
 import '../../../core/services/mbtiles_service.dart';
 import '../../cartas/presentation/solicitar_cartas_screen.dart';
 import '../../../core/services/geotiff_service.dart';
@@ -29,11 +32,13 @@ const _pontosAsset = 'assets/json/posicoes/Routing3.json';
 /// Sobreposição opcional: um PNG georreferenciado (retângulo alinhado aos
 /// eixos, sem rotação) exibido por cima da carta MBTiles/mapa de ruas —
 /// por exemplo uma carta batimétrica ou uma área de interesse recortada.
-/// Ajuste o caminho e os dois cantos do retângulo (sudoeste/nordeste) pra
-/// sua imagem e área; coloque o arquivo em `assets/overlays/`.
-const _overlayPngAsset = 'assets/overlays/overlay.png';
-const _overlaySudoeste = LatLng(-3.0, -40.0);
-const _overlayNordeste = LatLng(-2.8, -39.8);
+///
+/// O usuário escolhe o arquivo pelo seletor de arquivos e os bounds
+/// (sudoeste/nordeste) são lidos automaticamente do metadado `geo_bounds`
+/// embutido no PNG (ver [GeoPngHelper]). Esses valores só entram em jogo
+/// como fallback, caso o PNG selecionado não tenha esse metadado.
+const _overlaySudoesteFallback = LatLng(-3.0, -40.0);
+const _overlayNordesteFallback = LatLng(-2.8, -39.8);
 
 enum _MapMode { none, mbtiles, geotiff }
 
@@ -130,6 +135,8 @@ class MapaWidgetState extends State<MapaWidget> {
   bool _overlayValidada = false;
   bool _overlayCarregando = false;
   double _overlayOpacidade = 0.8;
+  File? _overlayFile;
+  LatLngBounds? _overlayBounds;
 
   /// Pontos da recomendação a exibir sobre a carta (vazio se nenhuma).
   List<LatLng> get _pontosRecomendacao {
@@ -502,10 +509,9 @@ class MapaWidgetState extends State<MapaWidget> {
 
   // ── Sobreposição de imagem ───────────────────────────────────────────────
 
-  /// Liga/desliga a camada de sobreposição. Na primeira vez que é ligada,
-  /// confirma que o PNG existe em [_overlayPngAsset] antes de mostrar
-  /// qualquer coisa — evita quebrar o mapa se o arquivo não tiver sido
-  /// colocado em `assets/overlays/` ainda.
+  /// Liga/desliga a camada de sobreposição. Na primeira vez que é ligada
+  /// (ou depois de [_trocarOverlay]), abre o seletor de arquivos para o
+  /// usuário escolher o PNG georreferenciado.
   Future<void> _alternarOverlay(bool ativa) async {
     if (!ativa) {
       setState(() => _overlayAtiva = false);
@@ -515,12 +521,81 @@ class MapaWidgetState extends State<MapaWidget> {
       setState(() => _overlayAtiva = true);
       return;
     }
+    await _abrirDialogoSelecionarOverlay();
+  }
 
+  /// Explica o que vai acontecer e, se confirmado, abre o seletor de
+  /// arquivos para escolher o PNG georreferenciado.
+  Future<void> _abrirDialogoSelecionarOverlay() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.layers, color: Colors.lightBlue),
+            SizedBox(width: 8),
+            Expanded(child: Text('Sobreposição PNG')),
+          ],
+        ),
+        content: const Text(
+          'Escolha, na galeria de fotos do dispositivo, um PNG '
+          'georreferenciado (com o metadado "geo_bounds" embutido) para '
+          'exibir sobre a carta.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Selecionar imagem'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    await _selecionarArquivoOverlay();
+  }
+
+  /// Abre o seletor de arquivos, lê os bounds embutidos no PNG escolhido
+  /// (metadado `geo_bounds`, ver [GeoPngHelper]) e ativa a sobreposição.
+  ///
+  /// Se o PNG não tiver o metadado, cai no retângulo fixo configurado em
+  /// [_overlaySudoesteFallback]/[_overlayNordesteFallback] em vez de
+  /// impedir o uso — mas avisa o usuário do motivo.
+  Future<void> _selecionarArquivoOverlay() async {
     setState(() => _overlayCarregando = true);
     try {
-      await rootBundle.load(_overlayPngAsset);
+      final resultado = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png'],
+      );
+      final caminho = resultado?.files.single.path;
+      if (caminho == null) {
+        if (mounted) setState(() => _overlayCarregando = false);
+        return;
+      }
+
+      final arquivo = File(caminho);
+      LatLngBounds bounds;
+      try {
+        bounds = await GeoPngHelper.readBounds(arquivo);
+      } catch (e) {
+        bounds = LatLngBounds(
+            _overlaySudoesteFallback, _overlayNordesteFallback);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$e Usando área padrão do app.')),
+          );
+        }
+      }
+
       if (!mounted) return;
       setState(() {
+        _overlayFile = arquivo;
+        _overlayBounds = bounds;
         _overlayAtiva = true;
         _overlayValidada = true;
         _overlayCarregando = false;
@@ -529,12 +604,7 @@ class MapaWidgetState extends State<MapaWidget> {
       if (!mounted) return;
       setState(() => _overlayCarregando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Não foi possível carregar "$_overlayPngAsset". Coloque o PNG '
-            'em assets/overlays/ e reinstale o app.',
-          ),
-        ),
+        SnackBar(content: Text('Erro ao selecionar imagem: $e')),
       );
     }
   }
@@ -849,29 +919,34 @@ class MapaWidgetState extends State<MapaWidget> {
                       const BoxConstraints(minWidth: 44, minHeight: 44),
                 ),
               if (!widget.modoPlanejarRota)
-                IconButton(
-                  icon: _overlayCarregando
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : Icon(
-                          Icons.layers,
-                          color:
-                              _overlayAtiva ? Colors.lightBlueAccent : Colors.white,
-                          size: 22,
-                        ),
-                  tooltip: _overlayAtiva
-                      ? 'Esconder sobreposição'
-                      : 'Ver sobreposição',
-                  onPressed: _overlayCarregando
-                      ? null
-                      : () => _alternarOverlay(!_overlayAtiva),
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 44, minHeight: 44),
+                GestureDetector(
+                  onLongPress:
+                      _overlayCarregando ? null : _abrirDialogoSelecionarOverlay,
+                  child: IconButton(
+                    icon: _overlayCarregando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : Icon(
+                            Icons.layers,
+                            color: _overlayAtiva
+                                ? Colors.lightBlueAccent
+                                : Colors.white,
+                            size: 22,
+                          ),
+                    tooltip: _overlayAtiva
+                        ? 'Esconder sobreposição (segure para trocar a imagem)'
+                        : 'Ver sobreposição (segure para escolher a imagem)',
+                    onPressed: _overlayCarregando
+                        ? null
+                        : () => _alternarOverlay(!_overlayAtiva),
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 44, minHeight: 44),
+                  ),
                 ),
             ],
           ),
@@ -1036,15 +1111,16 @@ class MapaWidgetState extends State<MapaWidget> {
               ],
             ),
         ],
-        // Sobreposição de imagem — PNG georreferenciado sobre a área fixa
-        // definida em _overlaySudoeste/_overlayNordeste, por cima da carta
-        // base (MBTiles/ruas) e por baixo dos marcadores.
-        if (_overlayAtiva)
+        // Sobreposição de imagem — PNG escolhido pelo usuário, com bounds
+        // lidos do metadado `geo_bounds` embutido no arquivo (ver
+        // GeoPngHelper), por cima da carta base (MBTiles/ruas) e por baixo
+        // dos marcadores.
+        if (_overlayAtiva && _overlayFile != null && _overlayBounds != null)
           OverlayImageLayer(
             overlayImages: [
               OverlayImage(
-                bounds: LatLngBounds(_overlaySudoeste, _overlayNordeste),
-                imageProvider: const AssetImage(_overlayPngAsset),
+                bounds: _overlayBounds!,
+                imageProvider: FileImage(_overlayFile!),
                 opacity: _overlayOpacidade,
               ),
             ],
