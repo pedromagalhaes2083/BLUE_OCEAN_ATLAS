@@ -1,3 +1,5 @@
+import '../classificacao_peso.dart';
+
 class ProducaoRegistro {
   final int id;
   final String embarcacaoId;
@@ -11,6 +13,26 @@ class ProducaoRegistro {
   final int? viagemId;
   final bool sincronizado;
 
+  /// Tipo do peixe capturado (Kihada/Bati). Nulo em registros antigos,
+  /// salvos antes da classificação por tipo/faixa existir.
+  final TipoPeixe? tipoPeixe;
+
+  /// Faixa de classificação por peso usada para estimar [quantidadeKg]
+  /// automaticamente (ver [classificacao_peso.dart]).
+  final Classificacao? classificacao;
+
+  /// Quantidade de peixes capturados (unidades), usada junto com
+  /// [pesoMedioUnitario] para calcular [quantidadeKg].
+  final int? quantidadeUnidades;
+
+  /// Peso médio (kg) por unidade no momento do registro — guardado junto
+  /// com o registro para não mudar retroativamente se a tabela de pesos
+  /// médios for ajustada depois.
+  final double? pesoMedioUnitario;
+
+  /// Acurácia do GPS em metros no momento da captura, quando disponível.
+  final double? precisaoMetros;
+
   ProducaoRegistro({
     required this.id,
     required this.embarcacaoId,
@@ -23,6 +45,11 @@ class ProducaoRegistro {
     this.observacao,
     this.viagemId,
     this.sincronizado = false,
+    this.tipoPeixe,
+    this.classificacao,
+    this.quantidadeUnidades,
+    this.pesoMedioUnitario,
+    this.precisaoMetros,
   });
 
   factory ProducaoRegistro.fromMap(Map<String, dynamic> map) {
@@ -38,6 +65,11 @@ class ProducaoRegistro {
       observacao: map['observacao'],
       viagemId: map['viagem_id'],
       sincronizado: map['sincronizado'] == 1,
+      tipoPeixe: _tipoPeixeDoTexto(map['tipo_peixe'] as String?),
+      classificacao: _classificacaoDoTexto(map['classificacao'] as String?),
+      quantidadeUnidades: map['quantidade_unidades'],
+      pesoMedioUnitario: map['peso_medio_unitario'],
+      precisaoMetros: map['precisao_metros'],
     );
   }
 
@@ -53,6 +85,27 @@ class ProducaoRegistro {
       'observacao': observacao,
       'viagem_id': viagemId,
       'sincronizado': sincronizado ? 1 : 0,
+      'tipo_peixe': tipoPeixe?.name,
+      'classificacao': classificacao?.name,
+      'quantidade_unidades': quantidadeUnidades,
+      'peso_medio_unitario': pesoMedioUnitario,
+      'precisao_metros': precisaoMetros,
     };
+  }
+
+  static TipoPeixe? _tipoPeixeDoTexto(String? nome) {
+    if (nome == null) return null;
+    for (final tipo in TipoPeixe.values) {
+      if (tipo.name == nome) return tipo;
+    }
+    return null;
+  }
+
+  static Classificacao? _classificacaoDoTexto(String? nome) {
+    if (nome == null) return null;
+    for (final classificacao in Classificacao.values) {
+      if (classificacao.name == nome) return classificacao;
+    }
+    return null;
   }
 }

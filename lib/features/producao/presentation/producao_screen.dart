@@ -2,9 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../../core/database/database_helper.dart';
-import '../domain/especies_comuns.dart';
+import '../../../core/services/location_service.dart';
+import '../domain/classificacao_peso.dart';
 import '../domain/models/producao_registro.dart';
 import 'producao_historico_screen.dart';
+
+/// Decoração compartilhada pelos dois combos (tipo/classificação) e pelos
+/// campos de texto da tela — cantos e preenchimento iguais, pra não haver
+/// uma caixa mais "quadrada" que a outra na mesma tela.
+InputDecoration _decoracaoCampo({
+  required String label,
+  required IconData icone,
+}) {
+  return InputDecoration(
+    labelText: label,
+    prefixIcon: Icon(icone),
+    filled: true,
+    fillColor: Colors.grey[50],
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
+  );
+}
 
 class ProducaoScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -17,20 +41,27 @@ class ProducaoScreen extends StatefulWidget {
 
 class _ProducaoScreenState extends State<ProducaoScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _especieController = TextEditingController();
   final _quantidadeController = TextEditingController();
   final _observacaoController = TextEditingController();
 
   String _embarcacaoNome = 'Não definida';
   int? _viagemAtivaId;
-  Position? _posicaoAtual;
   bool _isSalvando = false;
+  bool _capturandoLocalizacao = false;
+
+  TipoPeixe? _tipoPeixe;
+  Classificacao? _classificacao;
+
+  /// Intervalo de peso estimado (kg) recalculado a cada mudança de
+  /// classificação ou quantidade — ver [_atualizarPesoEstimado].
+  double? _pesoEstimadoMin;
+  double? _pesoEstimadoMax;
 
   @override
   void initState() {
     super.initState();
     _carregarContexto();
-    _obterLocalizacao();
+    _quantidadeController.addListener(_atualizarPesoEstimado);
   }
 
   // Identifica a embarcação registrada e a viagem em andamento (se houver)
@@ -59,36 +90,91 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
     });
   }
 
-  Future<void> _obterLocalizacao() async {
-    try {
-      final position = await Geolocator.getCurrentPosition();
-      if (!mounted) return;
-      setState(() => _posicaoAtual = position);
-    } catch (e) {
-      debugPrint('Erro ao obter localização: $e');
+  void _atualizarPesoEstimado() {
+    final classificacao = _classificacao;
+    final unidades = int.tryParse(_quantidadeController.text.trim());
+    if (classificacao == null || unidades == null || unidades <= 0) {
+      if (_pesoEstimadoMin != null) {
+        setState(() {
+          _pesoEstimadoMin = null;
+          _pesoEstimadoMax = null;
+        });
+      }
+      return;
+    }
+
+    final faixa =
+        faixaPesoUnitario(_tipoPeixe ?? TipoPeixe.kihada, classificacao);
+    final novoMin = unidades * faixa.min;
+    final novoMax = unidades * faixa.max;
+    if (novoMin != _pesoEstimadoMin || novoMax != _pesoEstimadoMax) {
+      setState(() {
+        _pesoEstimadoMin = novoMin;
+        _pesoEstimadoMax = novoMax;
+      });
     }
   }
 
   Future<void> _salvarProducao() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_tipoPeixe == null || _classificacao == null) {
+      setState(() {}); // força a Form a mostrar os erros dos dropdowns
+      return;
+    }
 
-    setState(() => _isSalvando = true);
+    setState(() {
+      _isSalvando = true;
+      _capturandoLocalizacao = true;
+    });
+
+    Position? posicao;
+    try {
+      posicao = await LocationService().getCurrentPosition();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Não foi possível obter o GPS agora ($e). '
+              'Registro será salvo sem coordenada.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _capturandoLocalizacao = false);
+    }
 
     try {
+      final tipo = _tipoPeixe!;
+      final classificacao = _classificacao!;
+      final unidades = int.parse(_quantidadeController.text.trim());
+      final faixa = faixaPesoUnitario(tipo, classificacao);
+      // O total salvo usa o ponto médio da faixa — o intervalo completo é
+      // só uma estimativa mostrada durante o lançamento, mas o histórico e
+      // o mapa de calor de produção precisam de um único número por
+      // registro.
+      final pesoMedio = faixa.media;
+
       final registro = ProducaoRegistro(
         id: 0,
         embarcacaoId: _embarcacaoNome,
         dataHora: DateTime.now(),
-        especie: normalizarEspecie(_especieController.text),
-        quantidadeKg: double.parse(_quantidadeController.text),
-        latitude: _posicaoAtual?.latitude,
-        longitude: _posicaoAtual?.longitude,
+        especie: tipo.label,
+        quantidadeKg: unidades * pesoMedio,
+        latitude: posicao?.latitude,
+        longitude: posicao?.longitude,
+        precisaoMetros: posicao?.accuracy,
         cartaCodigo: null,
         observacao: _observacaoController.text.trim().isEmpty
             ? null
             : _observacaoController.text.trim(),
         viagemId: _viagemAtivaId,
         sincronizado: false,
+        tipoPeixe: tipo,
+        classificacao: classificacao,
+        quantidadeUnidades: unidades,
+        pesoMedioUnitario: pesoMedio,
       );
 
       await widget.dbHelper.insert('producao_registro', registro.toMap());
@@ -100,7 +186,12 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
             backgroundColor: Colors.green),
       );
 
-      _especieController.clear();
+      setState(() {
+        _tipoPeixe = null;
+        _classificacao = null;
+        _pesoEstimadoMin = null;
+        _pesoEstimadoMax = null;
+      });
       _quantidadeController.clear();
       _observacaoController.clear();
     } catch (e) {
@@ -140,6 +231,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Card(
                 child: Padding(
@@ -164,56 +256,101 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Autocomplete<String>(
-                textEditingController: _especieController,
-                optionsBuilder: (textEditingValue) {
-                  final query = textEditingValue.text.trim().toLowerCase();
-                  if (query.isEmpty) return const Iterable<String>.empty();
-                  return especiesComuns
-                      .where((e) => e.toLowerCase().contains(query));
+              DropdownButtonFormField<TipoPeixe>(
+                initialValue: _tipoPeixe,
+                isExpanded: true,
+                decoration: _decoracaoCampo(
+                  label: 'Tipo do peixe *',
+                  icone: Icons.set_meal_outlined,
+                ),
+                items: TipoPeixe.values
+                    .map((tipo) => DropdownMenuItem(
+                          value: tipo,
+                          child: Text(tipo.label),
+                        ))
+                    .toList(),
+                validator: (v) => v == null ? 'Selecione o tipo do peixe' : null,
+                onChanged: (v) {
+                  setState(() => _tipoPeixe = v);
+                  _atualizarPesoEstimado();
                 },
-                fieldViewBuilder: (context, controller, focusNode, _) {
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(
-                      labelText: 'Espécie *',
-                      hintText: 'Ex: Tainha',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) => v?.trim().isEmpty == true
-                        ? 'Informe a espécie'
-                        : null,
-                  );
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<Classificacao>(
+                initialValue: _classificacao,
+                isExpanded: true,
+                decoration: _decoracaoCampo(
+                  label: 'Classificação *',
+                  icone: Icons.straighten_outlined,
+                ),
+                items: Classificacao.values
+                    .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: _ItemClassificacao(classificacao: c),
+                        ))
+                    .toList(),
+                selectedItemBuilder: (context) => Classificacao.values
+                    .map((c) => Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('${c.label} kg'),
+                        ))
+                    .toList(),
+                validator: (v) => v == null ? 'Selecione a classificação' : null,
+                onChanged: (v) {
+                  setState(() => _classificacao = v);
+                  _atualizarPesoEstimado();
                 },
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _quantidadeController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                    labelText: 'Quantidade (kg) *',
-                    border: OutlineInputBorder()),
-                validator: (v) =>
-                    v?.trim().isEmpty == true ? 'Informe a quantidade' : null,
+                keyboardType: TextInputType.number,
+                decoration: _decoracaoCampo(
+                  label: 'Quantidade (unidades) *',
+                  icone: Icons.tag_outlined,
+                ),
+                validator: (v) {
+                  final texto = v?.trim() ?? '';
+                  if (texto.isEmpty) return 'Informe a quantidade';
+                  final unidades = int.tryParse(texto);
+                  if (unidades == null || unidades <= 0) {
+                    return 'Informe um número inteiro maior que zero';
+                  }
+                  return null;
+                },
               ),
+              const SizedBox(height: 20),
+              _buildPesoEstimadoCard(),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _observacaoController,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                    labelText: 'Observação (opcional)',
-                    border: OutlineInputBorder()),
+                decoration: _decoracaoCampo(
+                  label: 'Observação (opcional)',
+                  icone: Icons.notes_outlined,
+                ),
               ),
               const SizedBox(height: 30),
               SizedBox(
-                width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _isSalvando ? null : _salvarProducao,
                   child: _isSalvando
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(_capturandoLocalizacao
+                                ? 'Capturando localização...'
+                                : 'Salvando...'),
+                          ],
+                        )
                       : const Text('SALVAR PRODUÇÃO',
                           style: TextStyle(fontSize: 16)),
                 ),
@@ -225,11 +362,76 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
     );
   }
 
+  /// Card com o resultado do cálculo automático — quantidade × intervalo de
+  /// peso da classificação escolhida (ver [_atualizarPesoEstimado]).
+  Widget _buildPesoEstimadoCard() {
+    final min = _pesoEstimadoMin;
+    final max = _pesoEstimadoMax;
+    final temEstimativa = min != null && max != null;
+    return Card(
+      color: temEstimativa ? Colors.blue[50] : Colors.grey[100],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.scale_outlined,
+                color: temEstimativa ? Colors.blue[700] : Colors.grey),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Peso estimado',
+                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  Text(
+                    temEstimativa
+                        ? '${min.toStringAsFixed(1)} – ${max.toStringAsFixed(1)} kg'
+                        : '—',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: temEstimativa ? Colors.blue[900] : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    _especieController.dispose();
+    _quantidadeController.removeListener(_atualizarPesoEstimado);
     _quantidadeController.dispose();
     _observacaoController.dispose();
     super.dispose();
+  }
+}
+
+/// Linha de item do combo de Classificação: faixa em destaque à esquerda e
+/// o intervalo de peso por unidade à direita, discreto — mesma altura e
+/// alinhamento do combo de Tipo do peixe ao lado, em vez de um texto único
+/// e longo espremido no espaço do item.
+class _ItemClassificacao extends StatelessWidget {
+  final Classificacao classificacao;
+
+  const _ItemClassificacao({required this.classificacao});
+
+  @override
+  Widget build(BuildContext context) {
+    final faixa = faixaPesoPorClassificacao[classificacao]!;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text('${classificacao.label} kg'),
+        Text(
+          '${faixa.min.toStringAsFixed(0)}–${faixa.max.toStringAsFixed(0)} kg/un.',
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+      ],
+    );
   }
 }

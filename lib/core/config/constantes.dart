@@ -8,6 +8,7 @@ class Constantes {
   static const String intervaloRastreamentoMinutos =
       'intervalo_rastreamento_minutos';
   static const String modoNoturno = 'modo_noturno';
+  static const String lembrarCredenciais = 'lembrar_credenciais';
   static const String contatoEmergenciaWhatsapp =
       'contato_emergencia_whatsapp';
 }

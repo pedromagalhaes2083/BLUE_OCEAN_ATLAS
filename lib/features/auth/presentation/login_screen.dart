@@ -21,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usuarioController = TextEditingController(text: 'admin@blueocean.io');
   final _senhaController = TextEditingController(text: 'SuperSecret123!');
   bool _isLoading = false;
+  bool _lembrarCredenciais = false;
   String? _erro;
 
   Future<void> _fazerLogin() async {
@@ -35,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await AuthService.login(
         _usuarioController.text.trim(),
         _senhaController.text.trim(),
+        lembrar: _lembrarCredenciais,
       );
 
       try {
@@ -129,6 +131,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: Icon(Icons.lock),
                   ),
                   validator: (v) => v?.isEmpty == true ? 'Informe a senha' : null,
+                ),
+                CheckboxListTile(
+                  value: _lembrarCredenciais,
+                  onChanged: (v) =>
+                      setState(() => _lembrarCredenciais = v ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('Lembrar minhas credenciais'),
+                  subtitle: const Text(
+                    'Entra automaticamente da próxima vez, até você sair da conta.',
+                  ),
                 ),
                 if (_erro != null) ...[
                   const SizedBox(height: 12),

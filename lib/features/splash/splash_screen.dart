@@ -6,6 +6,7 @@ import '../../core/config/config.dart';
 import '../../core/config/constantes.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/services/location_tracking_service.dart';
+import '../../core/services/sincronizacao_service.dart';
 import '../auth/presentation/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -46,7 +47,21 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _iniciar() async {
     await Future.delayed(const Duration(milliseconds: 2500));
 
-    final estaLogado = await AuthService.isLoggedIn();
+    var estaLogado = await AuthService.isLoggedIn();
+
+    // Token salvo expirou (ou nunca existiu nesta sessão), mas o usuário
+    // pediu pra "lembrar" a credencial da última vez — tenta logar de novo
+    // silenciosamente antes de cair na tela de login.
+    if (!estaLogado) {
+      estaLogado = await AuthService.tentarLoginAutomatico();
+      if (estaLogado) {
+        try {
+          await SincronizacaoService.sincronizar();
+        } catch (e) {
+          debugPrint('Erro ao sincronizar dados do dispositivo: $e');
+        }
+      }
+    }
 
     // O rastreamento periódico (WorkManager) sobrevive a reaberturas do
     // app, mas o flag em memória de LocationTrackingService não — reseta

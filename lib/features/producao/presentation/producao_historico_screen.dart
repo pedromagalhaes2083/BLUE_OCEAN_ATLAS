@@ -80,10 +80,12 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
 
   Future<void> _exportarCsv() async {
     final linhas = <String>[
-      'Data/Hora,Espécie,Quantidade (kg),Latitude,Longitude,Observação',
+      'Data/Hora,Espécie,Classificação,Quantidade (un.),Quantidade (kg),Latitude,Longitude,Observação',
       ..._registros.map((r) => [
             _csvCampo(_formatarDataHora(r.dataHora)),
             _csvCampo(r.especie),
+            _csvCampo(r.classificacao?.label),
+            _csvCampo(r.quantidadeUnidades),
             _csvCampo(r.quantidadeKg.toStringAsFixed(2)),
             _csvCampo(r.latitude),
             _csvCampo(r.longitude),
@@ -205,6 +207,11 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(_formatarDataHora(r.dataHora)),
+            if (r.classificacao != null && r.quantidadeUnidades != null)
+              Text(
+                'Classificação ${r.classificacao!.label} kg · ${r.quantidadeUnidades} un.',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             if (r.observacao != null)
               Text(
                 r.observacao!,

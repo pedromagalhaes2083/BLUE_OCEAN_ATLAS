@@ -28,7 +28,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 10,
+      version: 11,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -110,7 +110,12 @@ class DatabaseHelper {
         carta_codigo TEXT,
         observacao TEXT,
         viagem_id INTEGER,
-        sincronizado INTEGER NOT NULL DEFAULT 0
+        sincronizado INTEGER NOT NULL DEFAULT 0,
+        tipo_peixe TEXT,
+        classificacao TEXT,
+        quantidade_unidades INTEGER,
+        peso_medio_unitario REAL,
+        precisao_metros REAL
       )
     ''');
 
@@ -153,6 +158,16 @@ class DatabaseHelper {
     }
     if (oldVersion < 10) {
       await _criarTabelasRotaPlanejada(db);
+    }
+    if (oldVersion < 11) {
+      await db.execute('ALTER TABLE producao_registro ADD COLUMN tipo_peixe TEXT');
+      await db.execute('ALTER TABLE producao_registro ADD COLUMN classificacao TEXT');
+      await db.execute(
+          'ALTER TABLE producao_registro ADD COLUMN quantidade_unidades INTEGER');
+      await db.execute(
+          'ALTER TABLE producao_registro ADD COLUMN peso_medio_unitario REAL');
+      await db.execute(
+          'ALTER TABLE producao_registro ADD COLUMN precisao_metros REAL');
     }
   }
 

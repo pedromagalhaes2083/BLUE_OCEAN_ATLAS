@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../config/config.dart';
 import '../config/constantes.dart';
 import '../network/api_service.dart';
@@ -10,8 +12,55 @@ export '../network/excecoes.dart';
 export 'models/usuario.dart';
 
 class AuthService {
-  static Future<void> login(String usuario, String senha) async {
+  static const _secureStorage = FlutterSecureStorage();
+  static const _chaveUsuarioLembrado = 'credencial_usuario';
+  static const _chaveSenhaLembrada = 'credencial_senha';
+
+  /// Se [lembrar] for true, salva usuário/senha de forma segura (Keychain/
+  /// Keystore via `flutter_secure_storage`) para permitir login automático
+  /// depois — ver [tentarLoginAutomatico]. Se false, garante que nenhuma
+  /// credencial antiga tenha ficado salva.
+  static Future<void> login(
+    String usuario,
+    String senha, {
+    bool lembrar = false,
+  }) async {
     await ApiService.login(usuario, senha);
+    if (lembrar) {
+      await _secureStorage.write(key: _chaveUsuarioLembrado, value: usuario);
+      await _secureStorage.write(key: _chaveSenhaLembrada, value: senha);
+      await Config.grava(Constantes.lembrarCredenciais, 'true');
+    } else {
+      await _limparCredenciaisLembradas();
+    }
+  }
+
+  static Future<bool> lembrarCredenciaisAtivo() async {
+    return (await Config.obtem(Constantes.lembrarCredenciais)) == 'true';
+  }
+
+  /// Tenta logar de novo com a credencial salva (quando "lembrar" estava
+  /// marcado), sem exigir que o usuário digite usuário/senha de novo — usado
+  /// no boot do app quando o token salvo já expirou. Retorna se conseguiu.
+  static Future<bool> tentarLoginAutomatico() async {
+    if (!await lembrarCredenciaisAtivo()) return false;
+
+    final usuario = await _secureStorage.read(key: _chaveUsuarioLembrado);
+    final senha = await _secureStorage.read(key: _chaveSenhaLembrada);
+    if (usuario == null || senha == null) return false;
+
+    try {
+      await login(usuario, senha, lembrar: true);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> _limparCredenciaisLembradas() async {
+    await _secureStorage.delete(key: _chaveUsuarioLembrado);
+    await _secureStorage.delete(key: _chaveSenhaLembrada);
+    await Config.limpa(Constantes.lembrarCredenciais);
   }
 
   /// Considera o usuário logado apenas enquanto o token salvo ainda for
@@ -50,5 +99,6 @@ class AuthService {
     await Config.limpa(Constantes.authToken);
     await Config.limpa(Constantes.authCredencial);
     await Config.limpa(Constantes.organizacaoId);
+    await _limparCredenciaisLembradas();
   }
 }
