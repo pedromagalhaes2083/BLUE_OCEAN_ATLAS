@@ -140,10 +140,7 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F5FA),
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.blue.shade900,
-        title: const Text('Cadastrar Embarcação',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Cadastrar Embarcação'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

@@ -304,8 +304,6 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Solicitar Carta Náutica'),
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.list_alt),

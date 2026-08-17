@@ -261,9 +261,6 @@ class _EmbarcacaoConfiguracaoScreenState
     return Scaffold(
       backgroundColor: const Color(0xFFF2F5FA),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.blue.shade900,
-        elevation: 0,
         actions: _embarcacao == null
             ? null
             : [

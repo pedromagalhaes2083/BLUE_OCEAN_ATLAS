@@ -528,10 +528,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F5FA),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.blue.shade900,
-        elevation: 0,
-        title: const Text('Minha Embarcação', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Minha Embarcação'),
         actions: [
           IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh)),
         ],
