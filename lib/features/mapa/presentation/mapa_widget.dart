@@ -7,10 +7,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/database/database_helper.dart';
+import '../../../core/models/sst_ponto.dart';
 import '../../../core/services/geo_png_helper.dart';
 import '../../../core/services/mbtiles_service.dart';
 import '../../cartas/presentation/solicitar_cartas_screen.dart';
 import '../../../core/services/geotiff_service.dart';
+import '../../metereologia/presentation/condicoes_ponto_screen.dart';
 import '../../../core/services/pontos_service.dart';
 import '../../../core/services/street_map_cache_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
@@ -29,6 +31,12 @@ import '../widgets/street_map_tile_provider.dart';
 
 const _bundledAsset = 'assets/cartas/OUTPUT_FILE.mbtiles';
 const _pontosAsset = 'assets/json/posicoes/Routing3.json';
+
+/// Lado da grade de temperatura (5×5 = 25 pontos) e espaçamento entre eles
+/// em graus — ~28km no equador, próximo da resolução de 0.25° dos modelos
+/// meteorológicos que o app já usa em outros lugares (ver vento.json).
+const _gradeTemperaturaLado = 5;
+const _gradeTemperaturaEspacamento = 0.25;
 
 /// Sobreposição opcional: um PNG georreferenciado (retângulo alinhado aos
 /// eixos, sem rotação) exibido por cima da carta MBTiles/mapa de ruas —
@@ -137,6 +145,12 @@ class MapaWidgetState extends State<MapaWidget> {
   bool _mostrarProducao = false;
   bool _carregandoProducao = false;
   List<_ClusterProducao> _producaoClusters = [];
+
+  // ── Grade de temperatura da superfície do mar (SST) ──────────────────────
+  bool _mostrarGradeTemperatura = false;
+  bool _carregandoGradeTemperatura = false;
+  List<SstPonto> _gradeTemperatura = [];
+  bool _gradeRotulosVisiveis = true;
 
   // ── Sobreposição de imagem (PNG georreferenciado) ────────────────────────
   bool _overlayAtiva = false;
@@ -603,6 +617,198 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
+  // ── Grade de temperatura (SST) ───────────────────────────────────────────
+
+  /// Liga/desliga a grade. Como o calor de produção, busca uma vez só e
+  /// cacheia em memória (_gradeTemperatura) — reabrir só reexibe.
+  Future<void> _alternarGradeTemperatura() async {
+    if (_mostrarGradeTemperatura) {
+      setState(() => _mostrarGradeTemperatura = false);
+      return;
+    }
+    setState(() {
+      _mostrarGradeTemperatura = true;
+      _carregandoGradeTemperatura = _gradeTemperatura.isEmpty;
+      _gradeRotulosVisiveis =
+          _mapController.camera.zoom >= _zoomMinimoRotuloGrade;
+    });
+    if (_gradeTemperatura.isNotEmpty) return;
+
+    try {
+      final centro = _mapController.camera.center;
+      final pontos = _gerarPontosGradeTemperatura(centro);
+      final grade = await WaveForecastRepository().buscarGrade(pontos);
+      if (!mounted) return;
+      setState(() {
+        _gradeTemperatura = grade;
+        _carregandoGradeTemperatura = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _mostrarGradeTemperatura = false;
+        _carregandoGradeTemperatura = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao buscar grade de temperatura: $e')),
+      );
+    }
+  }
+
+  /// Grade quadrada de [_gradeTemperaturaLado]×[_gradeTemperaturaLado] pontos
+  /// centrada em [centro], espaçados [_gradeTemperaturaEspacamento]° entre
+  /// si — cobre a área visível do mapa numa única chamada à API (ver
+  /// [WaveForecastRepository.buscarGrade]).
+  List<LatLng> _gerarPontosGradeTemperatura(LatLng centro) {
+    const lado = _gradeTemperaturaLado;
+    const espacamento = _gradeTemperaturaEspacamento;
+    final metade = (lado - 1) / 2;
+    return [
+      for (var linha = 0; linha < lado; linha++)
+        for (var coluna = 0; coluna < lado; coluna++)
+          LatLng(
+            centro.latitude + (metade - linha) * espacamento,
+            centro.longitude + (coluna - metade) * espacamento,
+          ),
+    ];
+  }
+
+  /// Verde (mais fria) → amarelo → laranja (mais quente), normalizado pelo
+  /// mínimo/máximo encontrados na própria grade — não uma escala fixa, pra
+  /// sempre aproveitar a variação real do trecho de mar consultado.
+  Color _corGradeTemperatura(double temperatura, double min, double max) {
+    if (max <= min) return Colors.orange;
+    final t = ((temperatura - min) / (max - min)).clamp(0.0, 1.0);
+    return t < 0.5
+        ? Color.lerp(Colors.green, Colors.yellow, t * 2)!
+        : Color.lerp(Colors.yellow, Colors.deepOrange, (t - 0.5) * 2)!;
+  }
+
+  /// Zoom mínimo pra desenhar o valor em cima de cada célula — abaixo disso
+  /// as células ficam pequenas demais na tela e os números se atropelam uns
+  /// nos outros; a cor de fundo continua aparecendo em qualquer zoom.
+  static const _zoomMinimoRotuloGrade = 8.0;
+
+  /// Menor e maior temperatura da grade carregada, ou nulo se não há
+  /// nenhuma leitura válida — usado tanto pra colorir as células quanto
+  /// pela legenda (ver [_buildLegendaGradeTemperatura]).
+  (double min, double max)? get _gradeTemperaturaMinMax {
+    final temperaturas =
+        _gradeTemperatura.map((p) => p.temperaturaC).whereType<double>();
+    if (temperaturas.isEmpty) return null;
+    return (
+      temperaturas.reduce((a, b) => a < b ? a : b),
+      temperaturas.reduce((a, b) => a > b ? a : b),
+    );
+  }
+
+  /// Um quadrado colorido por célula (`PolygonLayer`) com o valor em cima
+  /// (`MarkerLayer`, só a partir de um certo zoom) — os dois juntos formam
+  /// a grade estilo mapa de calor.
+  List<Widget> _buildCamadaGradeTemperatura() {
+    final comTemperatura =
+        _gradeTemperatura.where((p) => p.temperaturaC != null).toList();
+    final minMax = _gradeTemperaturaMinMax;
+    if (comTemperatura.isEmpty || minMax == null) return const [];
+    final (min, max) = minMax;
+    const meiaCelula = _gradeTemperaturaEspacamento / 2;
+    final mostrarRotulos = _gradeRotulosVisiveis;
+
+    return [
+      PolygonLayer(
+        polygons: comTemperatura.map((p) {
+          final cor = _corGradeTemperatura(p.temperaturaC!, min, max);
+          return Polygon(
+            points: [
+              LatLng(p.latitude - meiaCelula, p.longitude - meiaCelula),
+              LatLng(p.latitude - meiaCelula, p.longitude + meiaCelula),
+              LatLng(p.latitude + meiaCelula, p.longitude + meiaCelula),
+              LatLng(p.latitude + meiaCelula, p.longitude - meiaCelula),
+            ],
+            color: cor.withValues(alpha: 0.55),
+            borderColor: Colors.white.withValues(alpha: 0.4),
+            borderStrokeWidth: 1,
+          );
+        }).toList(),
+      ),
+      if (mostrarRotulos)
+        MarkerLayer(
+          markers: comTemperatura
+              .map((p) => Marker(
+                  point: LatLng(p.latitude, p.longitude),
+                  width: 44,
+                  height: 20,
+                  child: Text(
+                    '${p.temperaturaC!.toStringAsFixed(0)}°',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ))
+            .toList(),
+      ),
+    ];
+  }
+
+  /// Barra compacta com a escala de cores da grade (mín. → máx.) — sem ela,
+  /// os números espremidos nas células (ou escondidos, em zoom baixo — ver
+  /// [_zoomMinimoRotuloGrade]) não dão pra entender a variação de
+  /// temperatura sozinhos.
+  Widget _buildLegendaGradeTemperatura() {
+    final (min, max) = _gradeTemperaturaMinMax!;
+    return Positioned(
+      top: 56,
+      right: 8,
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text('SST',
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Container(
+                width: 90,
+                height: 10,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  gradient: const LinearGradient(colors: [
+                    Colors.green,
+                    Colors.yellow,
+                    Colors.deepOrange,
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${min.toStringAsFixed(0)}°',
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 11)),
+                  const SizedBox(width: 74),
+                  Text('${max.toStringAsFixed(0)}°',
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 11)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Sobreposição de imagem ───────────────────────────────────────────────
 
   /// Liga/desliga a camada de sobreposição. Na primeira vez que é ligada
@@ -849,6 +1055,22 @@ class MapaWidgetState extends State<MapaWidget> {
             child: const Text('Solicitar Carta'),
           ),
           TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CondicoesPontoScreen(
+                    latitude: ponto.latitude,
+                    longitude: ponto.longitude,
+                    nome: ponto.nome,
+                  ),
+                ),
+              );
+            },
+            child: const Text('Consultar aqui'),
+          ),
+          TextButton(
             onPressed: () async {
               Navigator.pop(context);
               if (ponto.id != null) {
@@ -912,6 +1134,8 @@ class MapaWidgetState extends State<MapaWidget> {
           if (_mode != _MapMode.none) _buildTopBar(),
           if (_overlayAtiva && !_modoMarcarPonto && !widget.modoPlanejarRota)
             _buildOverlayOpacidadeControl(),
+          if (_mostrarGradeTemperatura && _gradeTemperaturaMinMax != null)
+            _buildLegendaGradeTemperatura(),
           if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
           if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
           if (!_modoMarcarPonto &&
@@ -953,7 +1177,7 @@ class MapaWidgetState extends State<MapaWidget> {
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
-              if (_loading || _carregandoProducao)
+              if (_loading || _carregandoProducao || _carregandoGradeTemperatura)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: SizedBox(
@@ -1010,6 +1234,23 @@ class MapaWidgetState extends State<MapaWidget> {
                       ? 'Esconder calor de produção'
                       : 'Ver calor de produção',
                   onPressed: _alternarProducao,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 44),
+                ),
+              if (!widget.modoPlanejarRota)
+                IconButton(
+                  icon: Icon(
+                    Icons.thermostat,
+                    color: _mostrarGradeTemperatura
+                        ? Colors.orangeAccent
+                        : Colors.white,
+                    size: 22,
+                  ),
+                  tooltip: _mostrarGradeTemperatura
+                      ? 'Esconder grade de temperatura'
+                      : 'Ver grade de temperatura (SST)',
+                  onPressed: _alternarGradeTemperatura,
                   padding: EdgeInsets.zero,
                   constraints:
                       const BoxConstraints(minWidth: 44, minHeight: 44),
@@ -1180,6 +1421,12 @@ class MapaWidgetState extends State<MapaWidget> {
           if (_modoMarcarPonto) {
             setState(() => _centroMira = camera.center);
           }
+          if (_mostrarGradeTemperatura) {
+            final rotulosVisiveis = camera.zoom >= _zoomMinimoRotuloGrade;
+            if (rotulosVisiveis != _gradeRotulosVisiveis) {
+              setState(() => _gradeRotulosVisiveis = rotulosVisiveis);
+            }
+          }
         },
         onTap: widget.modoPlanejarRota
             ? (_, ponto) => setState(
@@ -1225,6 +1472,11 @@ class MapaWidgetState extends State<MapaWidget> {
         // registrado perto daquele ponto, em qualquer viagem.
         if (_mostrarProducao && _producaoClusters.isNotEmpty)
           MarkerLayer(markers: _buildMarcadoresProducao()),
+        // Grade de temperatura da superfície do mar (SST) — quadrados
+        // coloridos com o valor em cima, cobrindo a área ao redor do centro
+        // do mapa no momento em que foi ativada.
+        if (_mostrarGradeTemperatura && _gradeTemperatura.isNotEmpty)
+          ..._buildCamadaGradeTemperatura(),
         // Rota sendo planejada manualmente — cada toque no mapa adiciona um
         // ponto numerado em sequência.
         if (widget.modoPlanejarRota && _pontosRotaPlanejada.length > 1)
@@ -1607,6 +1859,11 @@ class _DadosOceanicosPontoState extends State<_DadosOceanicosPonto> {
   LeituraProfundidade? _profundidade;
   double? _temperatura;
 
+  /// Nós — convertido do km/h que a Open-Meteo retorna, mesma conversão
+  /// usada em `CondicoesAtuaisCard` (`* 0.539957`).
+  double? _correnteVelocidadeNos;
+  int? _correnteDirecaoGraus;
+
   @override
   void initState() {
     super.initState();
@@ -1640,6 +1897,10 @@ class _DadosOceanicosPontoState extends State<_DadosOceanicosPonto> {
       if (!mounted) return;
       setState(() {
         _temperatura = forecast.current?.seaSurfaceTemperature;
+        final velocidadeKmh = forecast.current?.oceanCurrentVelocity;
+        _correnteVelocidadeNos =
+            velocidadeKmh != null ? velocidadeKmh * 0.539957 : null;
+        _correnteDirecaoGraus = forecast.current?.oceanCurrentDirection;
         _carregandoTemperatura = false;
       });
     } catch (_) {
@@ -1667,8 +1928,26 @@ class _DadosOceanicosPontoState extends State<_DadosOceanicosPonto> {
               : '—',
           carregando: _carregandoTemperatura,
         ),
+        const SizedBox(height: 8),
+        _LinhaInfoPonto(
+          icon: Icons.water_outlined,
+          label: 'Corrente',
+          valor: _valorCorrente(),
+          // Mesma chamada da temperatura (WaveForecastRepository.buscar) —
+          // não tem loading próprio, os dois chegam juntos.
+          carregando: _carregandoTemperatura,
+        ),
       ],
     );
+  }
+
+  String _valorCorrente() {
+    final velocidade = _correnteVelocidadeNos;
+    if (velocidade == null) return '—';
+    final direcao = _correnteDirecaoGraus;
+    return direcao != null
+        ? '${velocidade.toStringAsFixed(1)} nós, $direcao°'
+        : '${velocidade.toStringAsFixed(1)} nós';
   }
 
   String _valorProfundidade() {
