@@ -488,22 +488,14 @@ class _EmbarcacaoConfiguracaoScreenState
         labelText: label,
         prefixIcon: Icon(icon, color: Colors.blue.shade900, size: 20),
         suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: const Color(0xFFF5F7FA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: destacado
-              ? BorderSide(color: Colors.blue.shade400, width: 1.5)
-              : BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade900, width: 2),
-        ),
+        // Só sobrescreve a borda "de repouso" do tema quando destacado —
+        // o resto (preenchimento, cantos, borda em foco) já vem daí.
+        enabledBorder: destacado
+            ? OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.blue.shade400, width: 1.5),
+              )
+            : null,
       ),
     );
   }
@@ -528,16 +520,6 @@ class _EmbarcacaoConfiguracaoScreenState
             decoration: InputDecoration(
               labelText: label,
               prefixIcon: Icon(icon, color: Colors.blue.shade900, size: 20),
-              filled: true,
-              fillColor: const Color(0xFFF5F7FA),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.blue.shade900, width: 2),
-              ),
             ),
           ),
         ),

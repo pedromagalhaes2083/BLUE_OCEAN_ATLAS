@@ -116,7 +116,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _usuarioController,
                   decoration: const InputDecoration(
                     labelText: 'Usuário',
-                    border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.person),
                   ),
                   validator: (v) => v?.isEmpty == true ? 'Informe o usuário' : null,
@@ -127,7 +126,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: true,
                   decoration: const InputDecoration(
                     labelText: 'Senha',
-                    border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.lock),
                   ),
                   validator: (v) => v?.isEmpty == true ? 'Informe a senha' : null,

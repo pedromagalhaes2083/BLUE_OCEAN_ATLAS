@@ -29,6 +29,65 @@ const _filtroModoNoturno = ColorFilter.matrix(<double>[
   0, 0, 0, 1, 0,
 ]);
 
+/// Tema único do app — antes cada tela decidia por conta própria a borda, o
+/// raio e o preenchimento dos seus próprios campos (algumas com cantos
+/// quadrados e sem fundo, outras com cantos arredondados e fundo cinza),
+/// então a mesma tela de formulário parecia vir de dois apps diferentes.
+/// Definir aqui uma vez — em vez de repetir `InputDecoration`/`border` em
+/// cada tela — garante que todo campo, dropdown e botão do app puxe do
+/// mesmo lugar.
+ThemeData _buildTheme() {
+  // Azul profundo — o mesmo tom já usado no fundo do mapa (ver
+  // MbtilesTileProvider) e no ícone/splash do app — em vez do azul genérico
+  // do Material, pra a identidade "oceano" aparecer também na UI comum.
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: const Color(0xFF0D3B66),
+    brightness: Brightness.light,
+  );
+
+  // Preenchido, sem borda visível em repouso e com um contorno grosso no
+  // foco — o padrão que já existia (só em `embarcacao_configuracao_screen`)
+  // e que vira a base pra todo campo do app agora.
+  final raio = BorderRadius.circular(12);
+  const semBorda = OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(12)),
+    borderSide: BorderSide.none,
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: const Color(0xFFF7F5FA),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFFF5F7FA),
+      border: semBorda,
+      enabledBorder: semBorda,
+      focusedBorder: OutlineInputBorder(
+        borderRadius: raio,
+        borderSide: BorderSide(color: colorScheme.primary, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: raio,
+        borderSide: BorderSide(color: colorScheme.error),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
+    cardTheme: CardThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+  );
+}
+
 class AtlasBlueOceanApp extends StatelessWidget {
   final DatabaseHelper dbHelper;
 
@@ -38,7 +97,7 @@ class AtlasBlueOceanApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Atlas Blue Ocean',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      theme: _buildTheme(),
       debugShowCheckedModeBanner: false,
       builder: (context, child) => ValueListenableBuilder<bool>(
         valueListenable: NightModeService.ativo,

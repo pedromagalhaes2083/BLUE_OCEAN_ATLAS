@@ -6,7 +6,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
-import 'package:atlas/features/widgets/meteorology_widgets/chlorophyll_widgets.dart';
 import 'package:atlas/features/widgets/meteorology_widgets/current_card.dart';
 import 'package:atlas/features/widgets/meteorology_widgets/wind_card.dart';
 import 'package:atlas/features/widgets/position_card.dart';
@@ -24,14 +23,10 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
   bool loading = false;
   Map<String, dynamic>? resultadoVento;
   Map<String, dynamic>? resultadoCorrente;
-  Map<String, dynamic>? resultadoClorofila;
 
   List<dynamic> dadosExibidosVento = [];
   List<dynamic> dadosExibidosCorrentes = [];
-  List<dynamic> dadosExibidosClorofila = [];
 
-  bool loadingClorofila = false;
-  String? erroClorofila;
   // Posição
   Position? currentPosition;
   bool isLoadingPosition = false;
@@ -46,14 +41,11 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
       final ventoString = await rootBundle.loadString('assets/json/vento.json');
       final correnteString =
           await rootBundle.loadString('assets/json/correntes.json');
-      final clorofilaString =
-          await rootBundle.loadString('assets/json/clorofila.json');
 
       if (!mounted) return;
       setState(() {
         resultadoVento = jsonDecode(ventoString);
         resultadoCorrente = jsonDecode(correnteString);
-        resultadoClorofila = jsonDecode(clorofilaString);
       });
 
       _aplicarFiltro(); // Atualiza as listas filtradas
@@ -137,28 +129,6 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
       });
 
       dadosExibidosCorrentes = correntes.take(50).toList();
-    }
-
-    // CLOROFILA
-    if (resultadoClorofila != null) {
-      List<dynamic> clorofila = List.from(resultadoClorofila!['dados'] ?? []);
-
-      clorofila = clorofila.where((item) {
-        double dist = _calcularDistanciaMilhasNauticas(
-            userLat, userLon, item['latitude'], item['longitude']);
-        return dist <= raioMaximoNm;
-      }).toList();
-
-      clorofila.sort((a, b) {
-        double distA = _calcularDistanciaMilhasNauticas(
-            userLat, userLon, a['latitude'], a['longitude']);
-        double distB = _calcularDistanciaMilhasNauticas(
-            userLat, userLon, b['latitude'], b['longitude']);
-        return distA.compareTo(distB);
-      });
-
-      dadosExibidosClorofila =
-          clorofila.take(50).map((e) => Map<String, dynamic>.from(e)).toList();
     }
 
     setState(() {});
@@ -309,11 +279,6 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
   Widget _buildConteudo(BuildContext context) {
     final double distVento = _distanciaDoPrimeiro(dadosExibidosVento);
     final double distCorrente = _distanciaDoPrimeiro(dadosExibidosCorrentes);
-    final clorofilaDataset = ChlorophyllDataset.fromRawList(
-      dadosExibidosClorofila,
-      originLat: currentPosition?.latitude,
-      originLon: currentPosition?.longitude,
-    );
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
@@ -357,23 +322,6 @@ class _GribProcessorScreenState extends State<GribProcessorScreen> {
             ? const _EmptyDatasetCard(
                 mensagem: 'Nenhum dado de correntes por perto')
             : CurrentCard(dados: dadosExibidosCorrentes, distancia: distCorrente),
-        const SizedBox(height: 24),
-        _SectionHeader(
-          icon: Icons.eco,
-          label: 'Clorofila',
-          color: Colors.green,
-          count: dadosExibidosClorofila.length,
-        ),
-        const SizedBox(height: 12),
-        clorofilaDataset.isEmpty
-            ? const _EmptyDatasetCard(mensagem: 'Nenhum dado de clorofila por perto')
-            : Column(
-                children: [
-                  ChlorophyllCard(dataset: clorofilaDataset),
-                  const SizedBox(height: 16),
-                  ChlorophyllNearbyList(dataset: clorofilaDataset),
-                ],
-              ),
       ],
     );
   }

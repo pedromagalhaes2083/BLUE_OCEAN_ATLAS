@@ -151,12 +151,17 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
                     itemCount: _rotas.length,
                     itemBuilder: (context, index) {
                       final rota = _rotas[index];
+                      final deProducao = rota.embarcacaoId != null;
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
                         child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Colors.purple,
-                            child: Icon(Icons.route, color: Colors.white),
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                deProducao ? Colors.deepOrange : Colors.purple,
+                            child: Icon(
+                              deProducao ? Icons.set_meal : Icons.route,
+                              color: Colors.white,
+                            ),
                           ),
                           title: Text(rota.nome),
                           subtitle: Text(

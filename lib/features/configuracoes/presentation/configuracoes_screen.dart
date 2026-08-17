@@ -264,9 +264,6 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                           const SizedBox(height: 12),
                           DropdownButtonFormField<int>(
                             initialValue: _intervaloMinutos,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                            ),
                             items: _opcoesIntervalo
                                 .map((min) => DropdownMenuItem(
                                       value: min,
@@ -350,7 +347,6 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             decoration: const InputDecoration(
                               labelText: 'Número com DDD e país',
                               hintText: 'Ex: 5588999998888',
-                              border: OutlineInputBorder(),
                               isDense: true,
                             ),
                           ),

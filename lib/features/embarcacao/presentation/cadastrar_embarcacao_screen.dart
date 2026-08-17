@@ -165,7 +165,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
                     controller: _nomeController,
                     decoration: const InputDecoration(
                       labelText: 'Nome da Embarcação *',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.directions_boat),
                     ),
                     validator: (value) => value?.trim().isEmpty ?? true
@@ -177,7 +176,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
                     controller: _donoController,
                     decoration: const InputDecoration(
                       labelText: 'Dono / Proprietário',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.person),
                     ),
                   ),
@@ -187,7 +185,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
                     textCapitalization: TextCapitalization.characters,
                     decoration: const InputDecoration(
                       labelText: 'Registro',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.badge),
                     ),
                   ),
@@ -203,7 +200,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Quantidade de Urnas *',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.inventory_2),
                     ),
                     validator: (value) {
@@ -224,7 +220,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Capacidade de Gelo',
                       suffixText: 'kg',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.ac_unit),
                     ),
                     validator: (value) =>
@@ -238,7 +233,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Capacidade de Diesel',
                       suffixText: 'L',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.local_gas_station),
                     ),
                     validator: (value) =>
@@ -249,7 +243,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
                     controller: _motorUsadoController,
                     decoration: const InputDecoration(
                       labelText: 'Motor Usado',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.settings),
                     ),
                   ),
@@ -265,7 +258,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Número de Tripulantes',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.groups),
                     ),
                     validator: (value) =>
@@ -276,7 +268,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
                     controller: _mestreIdController,
                     decoration: const InputDecoration(
                       labelText: 'ID do Mestre da Embarcação',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.badge),
                     ),
                   ),

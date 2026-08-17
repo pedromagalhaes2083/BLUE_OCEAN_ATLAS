@@ -62,7 +62,6 @@ class _NovaViagemScreenState extends State<NovaViagemScreen> {
                 controller: _nomeController,
                 decoration: const InputDecoration(
                   labelText: 'Nome da Viagem (opcional)',
-                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 20),

@@ -211,6 +211,7 @@ class _HistoricoLocalizacoesScreenState
         },
         id: viagem.id,
       );
+      await _salvarRotaDeProducao(viagem);
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -219,6 +220,43 @@ class _HistoricoLocalizacoesScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao finalizar viagem: $e')),
       );
+    }
+  }
+
+  /// Ao finalizar a viagem, transforma os registros de produção com
+  /// coordenada dessa viagem numa rota planejada — o mesmo trajeto que
+  /// apareceria em "Rota de Produção" no mapa (ver `MapaWidget`), mas salvo
+  /// automaticamente em "Minhas Rotas" em vez de exigir uma ação manual.
+  /// Não pede nome: a rota já fica identificada pela embarcação/viagem.
+  /// Best-effort — se falhar, não impede a viagem de ser finalizada.
+  Future<void> _salvarRotaDeProducao(Viagem viagem) async {
+    try {
+      final registros = await widget.dbHelper.queryWhere(
+        'producao_registro',
+        where:
+            'viagem_id = ? AND latitude IS NOT NULL AND longitude IS NOT NULL',
+        whereArgs: [viagem.id],
+        orderBy: 'data_hora ASC',
+      );
+      if (registros.length < 2) return;
+
+      final rotaId = await widget.dbHelper.insert('rota_planejada', {
+        'nome':
+            'Produção · ${viagem.embarcacaoId} · ${DateFormat('dd/MM/yyyy').format(DateTime.now())}',
+        'data_criacao': DateTime.now().toIso8601String(),
+        'embarcacao_id': viagem.embarcacaoId,
+        'viagem_id': viagem.id,
+      });
+      for (var i = 0; i < registros.length; i++) {
+        await widget.dbHelper.insert('rota_planejada_ponto', {
+          'rota_planejada_id': rotaId,
+          'latitude': registros[i]['latitude'],
+          'longitude': registros[i]['longitude'],
+          'ordem': i,
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao salvar rota de produção da viagem: $e');
     }
   }
 

@@ -28,7 +28,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 11,
+      version: 12,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -169,6 +169,16 @@ class DatabaseHelper {
       await db.execute(
           'ALTER TABLE producao_registro ADD COLUMN precisao_metros REAL');
     }
+    if (oldVersion >= 10 && oldVersion < 12) {
+      // Rotas criadas a partir de registros de produção (ver MapaWidget)
+      // ficam atreladas à embarcação/viagem de origem, em vez de exigir um
+      // nome digitado pelo usuário. Só roda aqui se `rota_planejada` já
+      // existia (criada pelo upgrade da v10) sem essas colunas — quem
+      // instala direto na v12 já ganha a tabela completa em
+      // `_criarTabelasRotaPlanejada`.
+      await db.execute('ALTER TABLE rota_planejada ADD COLUMN embarcacao_id TEXT');
+      await db.execute('ALTER TABLE rota_planejada ADD COLUMN viagem_id INTEGER');
+    }
   }
 
   Future<void> _criarTabelaSolicitacaoCarta(Database db) async {
@@ -193,7 +203,9 @@ class DatabaseHelper {
       CREATE TABLE rota_planejada (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT NOT NULL,
-        data_criacao TEXT NOT NULL
+        data_criacao TEXT NOT NULL,
+        embarcacao_id TEXT,
+        viagem_id INTEGER
       )
     ''');
     await db.execute('''

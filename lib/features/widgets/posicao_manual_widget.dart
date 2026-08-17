@@ -79,7 +79,6 @@ class _PosicaoManualWidgetState extends State<PosicaoManualWidget> {
                           decimal: true, signed: true),
                       decoration: const InputDecoration(
                         labelText: 'Latitude',
-                        border: OutlineInputBorder(),
                         isDense: true,
                       ),
                     ),
@@ -92,7 +91,6 @@ class _PosicaoManualWidgetState extends State<PosicaoManualWidget> {
                           decimal: true, signed: true),
                       decoration: const InputDecoration(
                         labelText: 'Longitude',
-                        border: OutlineInputBorder(),
                         isDense: true,
                       ),
                     ),

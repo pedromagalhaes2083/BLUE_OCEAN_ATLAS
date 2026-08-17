@@ -297,7 +297,6 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
                     controller: _urlController,
                     decoration: const InputDecoration(
                       hintText: 'https://api.exemplo.com/rota',
-                      border: OutlineInputBorder(),
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                     ),
@@ -316,7 +315,6 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
                 controller: _bodyController,
                 maxLines: 6,
                 decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.all(10),
                 ),
                 style:

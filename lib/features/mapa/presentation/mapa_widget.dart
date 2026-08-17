@@ -138,11 +138,6 @@ class MapaWidgetState extends State<MapaWidget> {
   bool _carregandoProducao = false;
   List<_ClusterProducao> _producaoClusters = [];
 
-  // ── Rota entre registros de produção (widget.producaoPontos) ────────────
-  final TextEditingController _nomeRotaProducaoController =
-      TextEditingController();
-  bool _salvandoRotaProducao = false;
-
   // ── Sobreposição de imagem (PNG georreferenciado) ────────────────────────
   bool _overlayAtiva = false;
   bool _overlayValidada = false;
@@ -204,7 +199,6 @@ class MapaWidgetState extends State<MapaWidget> {
     _mbtiles.close();
     _nomePontoController.dispose();
     _nomeRotaController.dispose();
-    _nomeRotaProducaoController.dispose();
     super.dispose();
   }
 
@@ -223,10 +217,17 @@ class MapaWidgetState extends State<MapaWidget> {
   /// Grava uma rota planejada (`rota_planejada` + `rota_planejada_ponto`) a
   /// partir de uma lista de pontos já ordenada — usado tanto pela rota
   /// desenhada à mão quanto pela rota entre registros de produção.
-  Future<void> _persistirRotaPlanejada(String nome, List<LatLng> pontos) async {
+  Future<void> _persistirRotaPlanejada(
+    String nome,
+    List<LatLng> pontos, {
+    String? embarcacaoId,
+    int? viagemId,
+  }) async {
     final rotaId = await _dbHelper.insert('rota_planejada', {
       'nome': nome,
       'data_criacao': DateTime.now().toIso8601String(),
+      'embarcacao_id': embarcacaoId,
+      'viagem_id': viagemId,
     });
     for (var i = 0; i < pontos.length; i++) {
       final p = pontos[i];
@@ -251,34 +252,6 @@ class MapaWidgetState extends State<MapaWidget> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _salvandoRota = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao salvar rota: $e')),
-      );
-    }
-  }
-
-  // ── Rota entre registros de produção ─────────────────────────────────────
-
-  Future<void> _salvarRotaDeProducao() async {
-    final nome = _nomeRotaProducaoController.text.trim();
-    final pontos = _rotaProducao;
-    if (nome.isEmpty || pontos.length < 2) return;
-
-    setState(() => _salvandoRotaProducao = true);
-    try {
-      await _persistirRotaPlanejada(nome, pontos);
-      if (!mounted) return;
-      setState(() => _salvandoRotaProducao = false);
-      _nomeRotaProducaoController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Rota "$nome" salva — veja em Minhas Rotas.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _salvandoRotaProducao = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao salvar rota: $e')),
       );
@@ -941,8 +914,6 @@ class MapaWidgetState extends State<MapaWidget> {
             _buildOverlayOpacidadeControl(),
           if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
           if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
-          if (!widget.modoPlanejarRota && _rotaProducao.length > 1)
-            _buildOverlaySalvarRotaProducao(),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
               _mode != _MapMode.none &&
@@ -1348,37 +1319,26 @@ class MapaWidgetState extends State<MapaWidget> {
           MarkerLayer(
             markers: widget.producaoPontos!
                 .where((r) => r.latitude != null && r.longitude != null)
-                .toList()
-                .asMap()
-                .entries
-                .map((entry) {
-              final indice = entry.key;
-              final registro = entry.value;
-              return Marker(
-                point: LatLng(registro.latitude!, registro.longitude!),
-                width: 30,
-                height: 30,
-                child: GestureDetector(
-                  onTap: () => _mostrarInfoRegistroProducao(registro),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.deepOrange,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${indice + 1}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                .map((registro) => Marker(
+                      point: LatLng(registro.latitude!, registro.longitude!),
+                      width: 32,
+                      height: 32,
+                      child: GestureDetector(
+                        onTap: () => _mostrarInfoRegistroProducao(registro),
+                        // Ícone de peixe puro (sem bolinha de fundo sólida)
+                        // — a borda branca funciona como halo de contraste
+                        // em qualquer basemap, carta escura ou mapa de ruas.
+                        child: const Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(Icons.set_meal, color: Colors.white, size: 30),
+                            Icon(Icons.set_meal,
+                                color: Colors.deepOrange, size: 25),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+                    ))
+                .toList(),
           ),
         // Pontos precisos: alfinete só — nome/detalhes só aparecem ao tocar
         // (ver MeteorologiaSheet), pra não poluir o mapa com texto solto.
@@ -1507,7 +1467,6 @@ class MapaWidgetState extends State<MapaWidget> {
                   decoration: const InputDecoration(
                     labelText: 'Nome do local (opcional)',
                     hintText: 'Ex: Poço do Camurupim',
-                    border: OutlineInputBorder(),
                     isDense: true,
                   ),
                 ),
@@ -1536,66 +1495,6 @@ class MapaWidgetState extends State<MapaWidget> {
         ),
       ),
     ];
-  }
-
-  // ── Overlay da rota entre registros de produção ──────────────────────────
-
-  /// Barra inferior compacta oferecendo salvar a linha entre os registros de
-  /// produção (já desenhada, sem precisar tocar no mapa) como uma rota
-  /// planejada de verdade — reaproveitável depois em "Minhas Rotas".
-  Widget _buildOverlaySalvarRotaProducao() {
-    final podeSalvar = _nomeRotaProducaoController.text.trim().isNotEmpty;
-    return Positioned(
-      left: 12,
-      right: 12,
-      bottom: 12,
-      child: Card(
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${_rotaProducao.length} registros ligados — salvar como rota planejada?',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _nomeRotaProducaoController,
-                textCapitalization: TextCapitalization.sentences,
-                onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  labelText: 'Nome da rota',
-                  hintText: 'Ex: Trajeto da pescaria de 17/08',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: (!podeSalvar || _salvandoRotaProducao)
-                      ? null
-                      : _salvarRotaDeProducao,
-                  icon: _salvandoRotaProducao
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.check),
-                  label: const Text('Salvar rota'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   // ── Overlay do modo "planejar rota" ──────────────────────────────────────
@@ -1631,7 +1530,6 @@ class MapaWidgetState extends State<MapaWidget> {
                 decoration: const InputDecoration(
                   labelText: 'Nome da rota',
                   hintText: 'Ex: Pesqueiro do Camurupim',
-                  border: OutlineInputBorder(),
                   isDense: true,
                 ),
               ),

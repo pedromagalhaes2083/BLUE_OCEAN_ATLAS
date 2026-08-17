@@ -7,9 +7,8 @@ import '../domain/classificacao_peso.dart';
 import '../domain/models/producao_registro.dart';
 import 'producao_historico_screen.dart';
 
-/// Decoração compartilhada pelos dois combos (tipo/classificação) e pelos
-/// campos de texto da tela — cantos e preenchimento iguais, pra não haver
-/// uma caixa mais "quadrada" que a outra na mesma tela.
+/// Borda, raio e preenchimento vêm do `inputDecorationTheme` global (ver
+/// `_buildTheme` em `main.dart`) — aqui só label/ícone, que mudam por campo.
 InputDecoration _decoracaoCampo({
   required String label,
   required IconData icone,
@@ -17,16 +16,6 @@ InputDecoration _decoracaoCampo({
   return InputDecoration(
     labelText: label,
     prefixIcon: Icon(icone),
-    filled: true,
-    fillColor: Colors.grey[50],
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.grey[300]!),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.grey[300]!),
-    ),
   );
 }
 

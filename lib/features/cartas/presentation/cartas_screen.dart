@@ -223,12 +223,9 @@ class _CartasScreenState extends State<CartasScreen>
           padding: const EdgeInsets.all(12),
           child: TextField(
             onChanged: (value) => setState(() => searchQuery = value),
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: 'Buscar por nome ou código...',
-              prefixIcon: const Icon(Icons.search),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              filled: true,
+              prefixIcon: Icon(Icons.search),
             ),
           ),
         ),
