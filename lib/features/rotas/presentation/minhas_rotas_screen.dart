@@ -139,7 +139,9 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Toque em "Nova rota" para marcar pontos no mapa',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 13),
                       ),
                     ],
                   ),

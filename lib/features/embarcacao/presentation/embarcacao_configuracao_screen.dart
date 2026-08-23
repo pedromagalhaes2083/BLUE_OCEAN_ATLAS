@@ -259,7 +259,6 @@ class _EmbarcacaoConfiguracaoScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
       appBar: AppBar(
         actions: _embarcacao == null
             ? null
@@ -286,17 +285,20 @@ class _EmbarcacaoConfiguracaoScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.sailing, size: 80, color: Colors.grey.shade400),
+            Icon(Icons.sailing,
+                size: 80,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
             const Text(
               'Nenhuma embarcação cadastrada',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Cadastre a embarcação antes de configurar capacidades e tripulação.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
@@ -339,7 +341,7 @@ class _EmbarcacaoConfiguracaoScreenState
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -420,8 +422,9 @@ class _EmbarcacaoConfiguracaoScreenState
                             onPressed:
                                 _isSaving ? null : () => Navigator.pop(context),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.blue.shade900,
-                              side: BorderSide(color: Colors.blue.shade900),
+                              foregroundColor: Theme.of(context).colorScheme.primary,
+                              side: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
@@ -483,14 +486,16 @@ class _EmbarcacaoConfiguracaoScreenState
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Colors.blue.shade900, size: 20),
+        prefixIcon:
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
         suffixIcon: suffixIcon,
         // Só sobrescreve a borda "de repouso" do tema quando destacado —
         // o resto (preenchimento, cantos, borda em foco) já vem daí.
         enabledBorder: destacado
             ? OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.blue.shade400, width: 1.5),
+                borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.primary, width: 1.5),
               )
             : null,
       ),
@@ -516,7 +521,8 @@ class _EmbarcacaoConfiguracaoScreenState
             validator: (value) => _validarNumeroOpcional(value, isInt: false),
             decoration: InputDecoration(
               labelText: label,
-              prefixIcon: Icon(icon, color: Colors.blue.shade900, size: 20),
+              prefixIcon: Icon(icon,
+                  color: Theme.of(context).colorScheme.primary, size: 20),
             ),
           ),
         ),
@@ -527,14 +533,17 @@ class _EmbarcacaoConfiguracaoScreenState
             padding: const EdgeInsets.symmetric(horizontal: 12),
             height: 56,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F7FA),
+              // Mesmo preenchimento dos campos de formulário ao lado (ver
+              // `_buildTheme` em main.dart) — evita destoar entre claro/escuro.
+              color: Theme.of(context).inputDecorationTheme.fillColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: unidade,
                 isExpanded: true,
-                icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade900),
+                icon: Icon(Icons.arrow_drop_down,
+                    color: Theme.of(context).colorScheme.primary),
                 items: opcoes
                     .map((o) => DropdownMenuItem(value: o, child: Text(o)))
                     .toList(),

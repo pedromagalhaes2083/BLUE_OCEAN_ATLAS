@@ -4,4 +4,5 @@ library;
 
 export '../../../core/models/wave_forecast.dart';
 export 'condicoes_atuais_card.dart';
+export 'mare_card.dart';
 export 'sea_surface_temperature_card.dart';

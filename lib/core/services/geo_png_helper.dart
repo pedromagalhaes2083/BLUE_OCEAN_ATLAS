@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image/image.dart' as img;
@@ -29,8 +30,14 @@ class GeoPngHelper {
   /// válido, não tiver o metadado `geo_bounds` ou se o valor estiver
   /// malformado.
   static Future<LatLngBounds> readBounds(File pngFile) async {
-    final bytes = await pngFile.readAsBytes();
+    return readBoundsFromBytes(await pngFile.readAsBytes());
+  }
 
+  /// Igual a [readBounds], mas a partir dos bytes já em memória — usado
+  /// quando o PNG vem de uma resposta de rede (ex: `cartaNauticaUrl` de uma
+  /// recomendação) em vez de um arquivo local, evitando gravar um arquivo
+  /// temporário só para ler o metadado.
+  static Future<LatLngBounds> readBoundsFromBytes(Uint8List bytes) async {
     final decoder = img.PngDecoder();
     if (decoder.startDecode(bytes) == null) {
       throw Exception('Arquivo não é um PNG válido.');

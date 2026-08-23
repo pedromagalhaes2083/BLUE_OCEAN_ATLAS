@@ -14,6 +14,12 @@ class WaveHourEntry {
   final int? oceanCurrentDirection;
   final double? seaSurfaceTemperature;
 
+  /// Altura do nível do mar (m) acima do nível médio — `sea_level_height_msl`
+  /// da Open-Meteo Marine. É a série que usamos como maré: sobe e desce ao
+  /// longo do dia por causa da maré astronômica, então os picos/vales dessa
+  /// curva são os horários de preamar/baixa-mar (ver [WaveForecast.eventosMare]).
+  final double? seaLevelHeightMsl;
+
   const WaveHourEntry({
     required this.time,
     required this.waveHeight,
@@ -25,6 +31,7 @@ class WaveHourEntry {
     this.oceanCurrentVelocity,
     this.oceanCurrentDirection,
     this.seaSurfaceTemperature,
+    this.seaLevelHeightMsl,
   });
 
   // Converte graus para abreviação de ponto cardeal
@@ -37,6 +44,22 @@ class WaveHourEntry {
 
   // Ângulo em radianos para rodar o ícone de seta
   double get directionRadians => waveDirection * 3.14159265 / 180.0;
+}
+
+enum TipoMare { alta, baixa }
+
+/// Um evento de preamar ou baixa-mar — horário e altura do pico/vale da
+/// curva de maré (ver [WaveForecast.eventosMare]).
+class MareEvento {
+  final DateTime time;
+  final double alturaM;
+  final TipoMare tipo;
+
+  const MareEvento({
+    required this.time,
+    required this.alturaM,
+    required this.tipo,
+  });
 }
 
 class WaveForecast {
@@ -66,6 +89,32 @@ class WaveForecast {
     return hourly.where((e) => e.time.isAfter(now)).toList();
   }
 
+  /// Preamares e baixa-mares (picos/vales de [WaveHourEntry.seaLevelHeightMsl])
+  /// entre as entradas de [upcoming] — cada ponto onde a curva muda de
+  /// direção (sobe deixa de subir, ou desce deixa de descer) é uma maré alta
+  /// ou baixa. A Open-Meteo Marine não expõe esses horários prontos, só a
+  /// série horária, então calculamos aqui comparando cada hora com a vizinha.
+  List<MareEvento> get eventosMare {
+    final serie = upcoming.where((e) => e.seaLevelHeightMsl != null).toList();
+    if (serie.length < 3) return [];
+
+    final eventos = <MareEvento>[];
+    for (var i = 1; i < serie.length - 1; i++) {
+      final anterior = serie[i - 1].seaLevelHeightMsl!;
+      final atual = serie[i].seaLevelHeightMsl!;
+      final proximo = serie[i + 1].seaLevelHeightMsl!;
+
+      if (atual >= anterior && atual > proximo) {
+        eventos.add(MareEvento(
+            time: serie[i].time, alturaM: atual, tipo: TipoMare.alta));
+      } else if (atual <= anterior && atual < proximo) {
+        eventos.add(MareEvento(
+            time: serie[i].time, alturaM: atual, tipo: TipoMare.baixa));
+      }
+    }
+    return eventos;
+  }
+
   factory WaveForecast.fromJson(Map<String, dynamic> json) {
     final hourly = json['hourly'] as Map<String, dynamic>;
 
@@ -86,6 +135,7 @@ class WaveForecast {
     final correnteVelocidade = valores('ocean_current_velocity');
     final correnteDirecao = valores('ocean_current_direction');
     final temperaturaSuperficie = valores('sea_surface_temperature');
+    final nivelMar = valores('sea_level_height_msl');
 
     final entries = <WaveHourEntry>[];
     for (var i = 0; i < times.length; i++) {
@@ -107,6 +157,7 @@ class WaveForecast {
         oceanCurrentVelocity: correnteVelocidade?[i]?.toDouble(),
         oceanCurrentDirection: correnteDirecao?[i]?.toInt(),
         seaSurfaceTemperature: temperaturaSuperficie?[i]?.toDouble(),
+        seaLevelHeightMsl: nivelMar?[i]?.toDouble(),
       ));
     }
 

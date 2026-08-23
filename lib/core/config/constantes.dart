@@ -11,4 +11,10 @@ class Constantes {
   static const String lembrarCredenciais = 'lembrar_credenciais';
   static const String contatoEmergenciaWhatsapp =
       'contato_emergencia_whatsapp';
+  static const String ocultarRecomendacoesExpiradas =
+      'ocultar_recomendacoes_expiradas';
+  static const String temaModo = 'tema_modo';
+  static const String ultimaVerificacaoRecomendacoes =
+      'ultima_verificacao_recomendacoes';
+  static const String alcanceAlertaRotaMn = 'alcance_alerta_rota_mn';
 }

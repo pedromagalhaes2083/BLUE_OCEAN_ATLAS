@@ -66,7 +66,9 @@ class RecomendacaoPontoCard extends StatelessWidget {
                     const SizedBox(width: 3),
                     Text(
                       _formatarData(dataRecebimento!),
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),

@@ -8,6 +8,7 @@ import '../../../core/database/database_helper.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/especies_comuns.dart';
 import '../domain/models/producao_registro.dart';
+import 'producao_por_ponto_screen.dart';
 
 /// Histórico de registros de produção (capturas) já salvos, com totais
 /// gerais e por espécie — complementa a tela de registro (só formulário)
@@ -137,6 +138,16 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
       appBar: AppBar(
         title: const Text('Histórico de Produção'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.query_stats),
+            tooltip: 'Produção por ponto',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ProducaoPorPontoScreen(),
+              ),
+            ),
+          ),
           if (_registrosComCoordenada.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.map_outlined),
@@ -155,13 +166,15 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _registros.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.set_meal_outlined, size: 80, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('Nenhum registro de produção ainda'),
+                      Icon(Icons.set_meal_outlined,
+                          size: 80,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(height: 16),
+                      const Text('Nenhum registro de produção ainda'),
                     ],
                   ),
                 )
@@ -180,8 +193,9 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
   }
 
   Widget _buildCardTotais() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
-      color: Colors.blue[50],
+      color: colorScheme.primaryContainer,
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -190,12 +204,15 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.set_meal, color: Colors.blue),
+                Icon(Icons.set_meal, color: colorScheme.onPrimaryContainer),
                 const SizedBox(width: 8),
                 Text(
                   'Total: ${_totalKg.toStringAsFixed(1)} kg em ${_registros.length} registro(s)',
-                  style:
-                      const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
                 ),
               ],
             ),
@@ -206,7 +223,7 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
                 runSpacing: 8,
                 children: _totalPorEspecie
                     .map((e) => Chip(
-                          backgroundColor: Colors.white,
+                          backgroundColor: colorScheme.surface,
                           label: Text(
                               '${e.key}: ${e.value.toStringAsFixed(1)} kg'),
                         ))

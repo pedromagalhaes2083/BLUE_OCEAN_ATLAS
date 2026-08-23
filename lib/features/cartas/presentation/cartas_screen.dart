@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/config/config.dart';
+import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../recomendacao/data/recomendacao_repository.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
@@ -21,6 +23,11 @@ class _CartasScreenState extends State<CartasScreen> {
   List<Recomendacao> recomendacoes = [];
   bool isLoadingRecomendacoes = true;
   String? erroRecomendacoes;
+  bool _ocultarExpiradas = false;
+
+  List<Recomendacao> get _recomendacoesExibidas => _ocultarExpiradas
+      ? recomendacoes.where((r) => !r.expirada).toList()
+      : recomendacoes;
 
   @override
   void initState() {
@@ -34,10 +41,21 @@ class _CartasScreenState extends State<CartasScreen> {
       erroRecomendacoes = null;
     });
 
+    // Lida junto com a lista — a tela é recriada toda vez que o usuário
+    // volta pra essa aba (ver AppShell), então isso já basta pra refletir
+    // uma mudança feita em Configurações sem precisar de um listener.
+    final ocultarExpiradas = await Config.obtem(
+      Constantes.ocultarRecomendacoesExpiradas,
+      'false',
+    );
+
     try {
       final lista = await RecomendacaoRepository().listar();
       if (!mounted) return;
-      setState(() => recomendacoes = lista);
+      setState(() {
+        recomendacoes = lista;
+        _ocultarExpiradas = ocultarExpiradas == 'true';
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => erroRecomendacoes = e.toString());
@@ -71,7 +89,7 @@ class _CartasScreenState extends State<CartasScreen> {
                 right: 4,
                 child: IconButton(
                   icon: const Icon(Icons.close),
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   onPressed: () => Navigator.pop(dialogContext),
                 ),
               ),
@@ -135,7 +153,7 @@ class _CartasScreenState extends State<CartasScreen> {
         padding: const EdgeInsets.all(12),
         children: [
           RecomendacoesList(
-            recomendacoes: recomendacoes,
+            recomendacoes: _recomendacoesExibidas,
             onTap: _abrirDetalheRecomendacao,
           ),
         ],

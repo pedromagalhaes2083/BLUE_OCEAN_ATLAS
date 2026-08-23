@@ -158,8 +158,11 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
               CondicoesVentoCard(previsao: _previsaoTempo!),
               const SizedBox(height: 16),
             ],
-            if (_waveForecast != null)
+            if (_waveForecast != null) ...[
               CondicoesAtuaisCard(forecast: _waveForecast!),
+              const SizedBox(height: 16),
+              MareCard(forecast: _waveForecast!),
+            ],
           ],
         ],
       ),

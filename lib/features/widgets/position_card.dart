@@ -22,10 +22,19 @@ class PositionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final escuro = Theme.of(context).brightness == Brightness.dark;
+    // No claro, mantém a cor neutra original — o tom azul (mesmo dos
+    // outros cards de status) só entra no escuro, onde o pastel neutro
+    // antigo ficava um bloco claro cego em cima do fundo escuro.
+    final corFundo =
+        escuro ? colorScheme.primaryContainer : const Color(0xFFEDF1F3);
+    final onContainer =
+        escuro ? colorScheme.onPrimaryContainer : Colors.black87;
     return SizedBox(
       width: double.infinity,
       child: Card(
-        color: const Color(0xFFEDF1F3),
+        color: corFundo,
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -37,15 +46,17 @@ class PositionCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     '📍 Posição Atual',
-                    style:
-                        TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: onContainer),
                   ),
                   if (onRefresh != null) ...[
                     const SizedBox(width: 4),
                     IconButton(
-                      icon: const Icon(Icons.refresh),
+                      icon: Icon(Icons.refresh, color: onContainer),
                       tooltip: 'Atualizar posição',
                       onPressed: isLoadingPosition ? null : onRefresh,
                       visualDensity: VisualDensity.compact,
@@ -66,8 +77,10 @@ class PositionCard extends StatelessWidget {
                 Text(
                   formatCoordinates(
                       currentPosition!.latitude, currentPosition!.longitude),
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: onContainer),
                   textAlign: TextAlign.center,
                 ),
               const SizedBox(height: 8),
@@ -75,7 +88,7 @@ class PositionCard extends StatelessWidget {
                 onRefresh != null
                     ? 'Toque no ícone para atualizar'
                     : 'Toque no botão para atualizar',
-                style: const TextStyle(color: Colors.grey),
+                style: TextStyle(color: onContainer.withValues(alpha: 0.75)),
               ),
             ],
           ),

@@ -30,14 +30,14 @@ class MeteorologiaSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = ponto.meteorologia;
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFF0F4F8),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
           _buildHandle(),
-          _buildHeader(),
+          _buildHeader(context),
           const Divider(height: 1),
           Expanded(
             child: ListView(
@@ -117,45 +117,48 @@ class MeteorologiaSheet extends StatelessWidget {
         ),
       );
 
-  Widget _buildHeader() => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(
-                color: Colors.orange,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.directions_boat,
-                  color: Colors.white, size: 20),
+  Widget _buildHeader(BuildContext context) {
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Colors.orange,
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            child: const Icon(Icons.directions_boat,
+                color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ponto.embarcacao ?? 'Posição',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text(
+                  ponto.label,
+                  style: TextStyle(color: onSurfaceVariant, fontSize: 13),
+                ),
+                if (ponto.instante != null)
                   Text(
-                    ponto.embarcacao ?? 'Posição',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                    _formatInstante(ponto.instante!),
+                    style: TextStyle(color: onSurfaceVariant, fontSize: 12),
                   ),
-                  Text(
-                    ponto.label,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  ),
-                  if (ponto.instante != null)
-                    Text(
-                      _formatInstante(ponto.instante!),
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                    ),
-                ],
-              ),
+              ],
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 
   static String _formatInstante(String iso) {
     try {
@@ -196,9 +199,10 @@ class _MetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -215,21 +219,21 @@ class _MetSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
-                Icon(icon, size: 16, color: const Color(0xFF1B3A5C)),
+                Icon(icon, size: 16, color: primary),
                 const SizedBox(width: 6),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: Color(0xFF1B3A5C),
+                    color: primary,
                   ),
                 ),
               ],
             ),
           ),
           const Divider(height: 1, indent: 14, endIndent: 14),
-          ...rows.map((r) => r.build()),
+          ...rows.map((r) => r.build(context)),
         ],
       ),
     );
@@ -242,13 +246,15 @@ class _MetRow {
 
   const _MetRow(this.label, this.value);
 
-  Widget build() => Padding(
+  Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label,
-                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 13)),
             Text(value,
                 style:
                     const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),

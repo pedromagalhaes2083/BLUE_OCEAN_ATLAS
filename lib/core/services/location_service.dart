@@ -1,4 +1,5 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 
 class LocationService {
   static final LocationService _instance = LocationService._internal();
@@ -40,6 +41,49 @@ class LocationService {
     } catch (e) {
       rethrow; // Deixa a tela tratar o erro
     }
+  }
+
+  /// Pede a permissão de localização "sempre" (`ACCESS_BACKGROUND_LOCATION`),
+  /// necessária pra a tarefa periódica em segundo plano
+  /// ([LocationTrackingService]) conseguir capturar a posição com o app
+  /// fechado — sem ela, o Android bloqueia silenciosamente o GPS fora do
+  /// app em primeiro plano, mesmo com a tarefa do WorkManager rodando.
+  ///
+  /// No Android, só dá pra pedir "sempre" depois de já ter "enquanto uso o
+  /// app" concedido — por isso primeiro garante isso, e só então tenta a
+  /// segunda etapa. Chamar de novo com "enquanto uso" já concedido é o
+  /// gatilho que faz o Android mostrar (ou abrir, a partir do Android 11)
+  /// a opção "Permitir o tempo todo".
+  Future<LocationPermission> solicitarPermissaoSempre() async {
+    var permissao = await Geolocator.checkPermission();
+
+    if (permissao == LocationPermission.denied) {
+      permissao = await Geolocator.requestPermission();
+    }
+
+    if (permissao == LocationPermission.whileInUse) {
+      permissao = await Geolocator.requestPermission();
+    }
+
+    return permissao;
+  }
+
+  /// Pede pro Android ignorar a otimização de bateria pra este app —
+  /// distinto da permissão de localização "sempre". Muitos fabricantes
+  /// (Xiaomi, Samsung, Huawei etc.) matam tarefas em segundo plano
+  /// agressivamente mesmo com a permissão de GPS correta, a menos que o
+  /// app esteja na lista de exceções de bateria. Mostra o diálogo nativo
+  /// do Android ("Permitir" / "Não permitir"); retorna se ficou concedida.
+  ///
+  /// Sem efeito em iOS (a plataforma não tem esse conceito) — retorna true
+  /// direto.
+  Future<bool> solicitarIgnorarOtimizacaoBateria() async {
+    final status = await ph.Permission.ignoreBatteryOptimizations.status;
+    if (status.isGranted) return true;
+
+    final resultado =
+        await ph.Permission.ignoreBatteryOptimizations.request();
+    return resultado.isGranted;
   }
 
   /// Converte Decimal para DMS (formato amigável)

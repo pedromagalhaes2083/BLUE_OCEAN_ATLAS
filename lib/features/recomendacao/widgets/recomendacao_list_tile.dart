@@ -35,6 +35,7 @@ class RecomendacaoListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = recomendacao;
     final cor = _corScore;
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return InkWell(
       onTap: onTap,
@@ -73,12 +74,12 @@ class RecomendacaoListTile extends StatelessWidget {
                       RecomendacaoConfiancaDots(confianca: r.confianca),
                       if (r.criadoEm != null) ...[
                         const SizedBox(width: 8),
-                        Icon(Icons.schedule, size: 12, color: Colors.grey[500]),
+                        Icon(Icons.schedule, size: 12, color: onSurfaceVariant),
                         const SizedBox(width: 3),
                         Text(
                           _formatarData(r.criadoEm!),
                           style: TextStyle(
-                              fontSize: 12, color: Colors.grey[600]),
+                              fontSize: 12, color: onSurfaceVariant),
                         ),
                       ],
                     ],
@@ -92,7 +93,7 @@ class RecomendacaoListTile extends StatelessWidget {
                           Text(
                             '${r.estimativaCapturaKg} kg',
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey[600]),
+                                fontSize: 12, color: onSurfaceVariant),
                           ),
                         if (r.estimativaCapturaKg != null &&
                             r.pontos != null &&
@@ -102,7 +103,7 @@ class RecomendacaoListTile extends StatelessWidget {
                           Text(
                             '${r.pontos!.length} pts',
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey[600]),
+                                fontSize: 12, color: onSurfaceVariant),
                           ),
                       ],
                     ),
@@ -120,7 +121,7 @@ class RecomendacaoListTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
+            Icon(Icons.chevron_right, color: onSurfaceVariant, size: 20),
           ],
         ),
       ),

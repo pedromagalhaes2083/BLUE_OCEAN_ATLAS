@@ -24,11 +24,26 @@ abstract class BaseMeteorologyCard extends StatelessWidget {
   Widget buildLoading(BuildContext context) =>
       Text(loadingMessage, style: const TextStyle(fontSize: 18));
 
+  /// Cada card tem sua própria cor pastel de identidade (temperatura =
+  /// azul, profundidade = índigo, vento = cinza) — fixa demais pra virar
+  /// um bloco claro cego em cima de um tema escuro. Em vez de usar o
+  /// literal puro, funde a cor como uma tinta translúcida sobre o
+  /// `cardColor` do tema: no claro isso reproduz a cor original
+  /// (alpha 1.0 = o próprio literal), no escuro vira um card escuro com
+  /// um leve matiz da cor da marca, mantendo a identidade sem cegar.
+  Color _corResolvida(BuildContext context, Color base) {
+    final escuro = Theme.of(context).brightness == Brightness.dark;
+    return Color.alphaBlend(
+      base.withValues(alpha: escuro ? 0.18 : 1.0),
+      Theme.of(context).cardColor,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
       return Card(
-        color: const Color(0xFFEDF1F3),
+        color: _corResolvida(context, const Color(0xFFEDF1F3)),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(borderRadius),
         ),
@@ -41,7 +56,7 @@ abstract class BaseMeteorologyCard extends StatelessWidget {
 
     return Card(
       elevation: 6,
-      color: cardColor,
+      color: _corResolvida(context, cardColor),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(borderRadius),
       ),

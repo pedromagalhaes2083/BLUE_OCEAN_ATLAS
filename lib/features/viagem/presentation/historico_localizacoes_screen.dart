@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/services/location_tracking_service.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/models/viagem.dart';
@@ -184,8 +185,8 @@ class _HistoricoLocalizacoesScreenState
         title: const Text('Finalizar viagem'),
         content: const Text(
           'Tem certeza que deseja encerrar esta viagem? '
-          'O rastreamento de posição continua ativo, mas os novos pontos '
-          'não serão mais associados a ela.',
+          'O rastreamento de posição em segundo plano para junto — o app '
+          'só volta a enviar a posição quando outra viagem for iniciada.',
         ),
         actions: [
           TextButton(
@@ -212,6 +213,15 @@ class _HistoricoLocalizacoesScreenState
         id: viagem.id,
       );
       await _salvarRotaDeProducao(viagem);
+
+      // O rastreamento em segundo plano só existe enquanto há viagem em
+      // andamento — para aqui, simetricamente ao início em NovaViagemScreen.
+      try {
+        await LocationTrackingService().pararRastreamento();
+      } catch (e) {
+        debugPrint('Erro ao parar rastreamento de localização: $e');
+      }
+
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -374,7 +384,9 @@ class _HistoricoLocalizacoesScreenState
                                         'Prec: ${(item['precisao'] as num?)?.toStringAsFixed(0)}m',
                                         style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.grey[600]),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
                                       ),
                                     ],
                                   ),
@@ -392,14 +404,21 @@ class _HistoricoLocalizacoesScreenState
 
   Widget _buildCardViagemAtiva() {
     final viagem = widget.viagemAtiva!;
+    // No claro, mantém o verde original — o tom azul do tema só entra no
+    // escuro, onde o verde pastel fixo ficava um bloco claro cego em cima
+    // do fundo escuro.
+    final escuro = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final corFundo = escuro ? colorScheme.primaryContainer : Colors.green[50];
+    final corDestaque = escuro ? colorScheme.onPrimaryContainer : Colors.green;
     return Card(
       margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      color: Colors.green[50],
+      color: corFundo,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            const Icon(Icons.sailing, color: Colors.green, size: 32),
+            Icon(Icons.sailing, color: corDestaque, size: 32),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -409,11 +428,17 @@ class _HistoricoLocalizacoesScreenState
                     viagem.nome?.isNotEmpty == true
                         ? viagem.nome!
                         : 'Viagem em andamento',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: escuro ? corDestaque : null),
                   ),
                   Text(
                     'Iniciada em ${DateFormat('dd/MM/yyyy HH:mm').format(viagem.dataInicio)}',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                    style: TextStyle(
+                        color: escuro
+                            ? corDestaque.withValues(alpha: 0.75)
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 13),
                   ),
                 ],
               ),
@@ -469,7 +494,10 @@ class _HistoricoLocalizacoesScreenState
         Icon(icon, size: 20, color: Colors.blueGrey),
         const SizedBox(height: 4),
         Text(valor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+        Text(label,
+            style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
       ],
     );
   }

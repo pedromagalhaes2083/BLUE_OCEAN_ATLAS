@@ -148,4 +148,9 @@ class Recomendacao {
   /// falta deles, o centroide).
   bool get temCoordenadas =>
       (pontos != null && pontos!.isNotEmpty) || centroide != null;
+
+  /// A API não expõe um status "expirada" próprio — isso é derivado no
+  /// app a partir de [validoAte]. Sem validade definida, nunca conta como
+  /// expirada (mesmo critério usado em [RecomendacaoValidadeChip]).
+  bool get expirada => validoAte != null && validoAte!.isBefore(DateTime.now());
 }

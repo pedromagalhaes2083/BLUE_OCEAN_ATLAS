@@ -3,7 +3,15 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/database/database_helper.dart';
 import 'core/services/night_mode_service.dart';
+import 'core/services/recomendacao_notification_service.dart';
+import 'core/services/theme_mode_service.dart';
+import 'features/mapa/presentation/meus_pontos_screen.dart';
 import 'features/splash/splash_screen.dart';
+
+/// Permite navegar a partir de fora da árvore de widgets — usado só pelo
+/// toque numa notificação de recomendação nova, que pode chegar com o app
+/// em qualquer tela (ou recém-aberto pela notificação).
+final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +22,14 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('api_responses');
   await NightModeService.carregar();
+  await ThemeModeService.carregar();
+  await RecomendacaoNotificationService.inicializar(
+    aoTocarNotificacao: (_) {
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const MeusPontosScreen()),
+      );
+    },
+  );
 
   FlutterNativeSplash.remove();
 
@@ -35,14 +51,17 @@ const _filtroModoNoturno = ColorFilter.matrix(<double>[
 /// então a mesma tela de formulário parecia vir de dois apps diferentes.
 /// Definir aqui uma vez — em vez de repetir `InputDecoration`/`border` em
 /// cada tela — garante que todo campo, dropdown e botão do app puxe do
-/// mesmo lugar.
-ThemeData _buildTheme() {
+/// mesmo lugar. [brightness] gera a variante clara ou escura a partir da
+/// mesma base (ver [ThemeModeService], selecionável em Configurações).
+ThemeData _buildTheme(Brightness brightness) {
+  final claro = brightness == Brightness.light;
+
   // Azul profundo — o mesmo tom já usado no fundo do mapa (ver
   // MbtilesTileProvider) e no ícone/splash do app — em vez do azul genérico
   // do Material, pra a identidade "oceano" aparecer também na UI comum.
   final colorScheme = ColorScheme.fromSeed(
     seedColor: const Color(0xFF0D3B66),
-    brightness: Brightness.light,
+    brightness: brightness,
   );
 
   // Preenchido, sem borda visível em repouso e com um contorno grosso no
@@ -56,11 +75,14 @@ ThemeData _buildTheme() {
 
   return ThemeData(
     useMaterial3: true,
+    brightness: brightness,
     colorScheme: colorScheme,
-    scaffoldBackgroundColor: const Color(0xFFF7F5FA),
+    scaffoldBackgroundColor: claro
+        ? const Color(0xFFF7F5FA)
+        : const Color(0xFF10161D),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFFF5F7FA),
+      fillColor: claro ? const Color(0xFFF5F7FA) : const Color(0xFF1C2530),
       border: semBorda,
       enabledBorder: semBorda,
       focusedBorder: OutlineInputBorder(
@@ -95,17 +117,23 @@ class AtlasBlueOceanApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Atlas Blue Ocean',
-      theme: _buildTheme(),
-      debugShowCheckedModeBanner: false,
-      builder: (context, child) => ValueListenableBuilder<bool>(
-        valueListenable: NightModeService.ativo,
-        builder: (context, modoNoturno, _) => modoNoturno
-            ? ColorFiltered(colorFilter: _filtroModoNoturno, child: child)
-            : child!,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeModeService.modo,
+      builder: (context, temaModo, _) => MaterialApp(
+        navigatorKey: navigatorKey,
+        title: 'Atlas Blue Ocean',
+        theme: _buildTheme(Brightness.light),
+        darkTheme: _buildTheme(Brightness.dark),
+        themeMode: temaModo,
+        debugShowCheckedModeBanner: false,
+        builder: (context, child) => ValueListenableBuilder<bool>(
+          valueListenable: NightModeService.ativo,
+          builder: (context, modoNoturno, _) => modoNoturno
+              ? ColorFiltered(colorFilter: _filtroModoNoturno, child: child)
+              : child!,
+        ),
+        home: SplashScreen(dbHelper: dbHelper),
       ),
-      home: SplashScreen(dbHelper: dbHelper),
     );
   }
 }

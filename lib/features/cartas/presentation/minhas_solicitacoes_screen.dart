@@ -92,9 +92,14 @@ class _MinhasSolicitacoesScreenState extends State<MinhasSolicitacoesScreen> {
                           isThreeLine: true,
                           trailing: Chip(
                             label: const Text('Pendente'),
-                            backgroundColor: Colors.orange[50],
+                            backgroundColor: Colors.orange.withValues(alpha: 0.15),
                             labelStyle: TextStyle(
-                                color: Colors.orange[800], fontSize: 12),
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.orange.shade200
+                                  : Colors.orange.shade800,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       );

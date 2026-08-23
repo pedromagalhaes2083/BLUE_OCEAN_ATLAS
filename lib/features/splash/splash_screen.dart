@@ -63,22 +63,30 @@ class _SplashScreenState extends State<SplashScreen>
       }
     }
 
-    // O rastreamento periódico (WorkManager) sobrevive a reaberturas do
-    // app, mas o flag em memória de LocationTrackingService não — reseta
-    // a cada cold start. Sem isso, um usuário que reabre o app já logado
-    // (pula a LoginScreen, que é o único outro lugar que chama isso) via
-    // uma sessão iniciada antes ficaria com o indicador de rastreamento
-    // da Dashboard sempre "desligado", mesmo com a tarefa ainda ativa.
-    // `existingWorkPolicy: replace` faz disso uma chamada idempotente.
+    // O rastreamento em segundo plano só roda com uma viagem em andamento
+    // (ver NovaViagemScreen/HistoricoLocalizacoesScreen), não do login até o
+    // logout. O WorkManager sobrevive a reaberturas do app, mas o flag em
+    // memória de LocationTrackingService não — reseta a cada cold start.
+    // Sem isso, reabrir o app em meio a uma viagem ativa deixaria o
+    // indicador da Dashboard sempre "desligado", mesmo com a tarefa ainda
+    // rodando de verdade. `existingWorkPolicy: replace` faz disso uma
+    // chamada idempotente.
     if (estaLogado) {
       try {
-        final intervalo = int.tryParse(await Config.obtem(
-              Constantes.intervaloRastreamentoMinutos,
-              '$intervaloMinimoMinutos',
-            )) ??
-            intervaloMinimoMinutos;
-        await LocationTrackingService()
-            .iniciarRastreamento(intervaloMinutos: intervalo);
+        final viagensAtivas = await widget.dbHelper.queryWhere(
+          'viagem',
+          where: 'status = ?',
+          whereArgs: ['em_andamento'],
+        );
+        if (viagensAtivas.isNotEmpty) {
+          final intervalo = int.tryParse(await Config.obtem(
+                Constantes.intervaloRastreamentoMinutos,
+                '$intervaloMinimoMinutos',
+              )) ??
+              intervaloMinimoMinutos;
+          await LocationTrackingService()
+              .iniciarRastreamento(intervaloMinutos: intervalo);
+        }
       } catch (e) {
         debugPrint('Erro ao reconfirmar rastreamento de localização: $e');
       }

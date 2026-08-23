@@ -357,7 +357,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                 fontSize: 12,
                 color: state.hasError
                     ? Theme.of(context).colorScheme.error
-                    : Colors.grey[700],
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
@@ -405,21 +405,29 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
     final min = _pesoEstimadoMin;
     final max = _pesoEstimadoMax;
     final temEstimativa = min != null && max != null;
+    final colorScheme = Theme.of(context).colorScheme;
+    // `primaryContainer`/`onPrimaryContainer` em vez de um azul pastel fixo
+    // — o par já é calculado pelo tema pra dar contraste tanto no claro
+    // quanto no escuro (ver ColorScheme.fromSeed em main.dart).
+    final corFundo =
+        temEstimativa ? colorScheme.primaryContainer : colorScheme.surfaceContainerHighest;
+    final corDestaque =
+        temEstimativa ? colorScheme.onPrimaryContainer : colorScheme.onSurfaceVariant;
     return Card(
-      color: temEstimativa ? Colors.blue[50] : Colors.grey[100],
+      color: corFundo,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(Icons.scale_outlined,
-                color: temEstimativa ? Colors.blue[700] : Colors.grey),
+            Icon(Icons.scale_outlined, color: corDestaque),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Peso estimado',
-                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  Text('Peso estimado',
+                      style: TextStyle(
+                          fontSize: 13, color: colorScheme.onSurfaceVariant)),
                   Text(
                     temEstimativa
                         ? '${min.toStringAsFixed(1)} – ${max.toStringAsFixed(1)} kg'
@@ -427,7 +435,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: temEstimativa ? Colors.blue[900] : Colors.grey,
+                      color: corDestaque,
                     ),
                   ),
                 ],
@@ -466,7 +474,9 @@ class _ItemClassificacao extends StatelessWidget {
         Text('${classificacao.label} kg'),
         Text(
           '${faixa.min.toStringAsFixed(0)}–${faixa.max.toStringAsFixed(0)} kg/un.',
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );

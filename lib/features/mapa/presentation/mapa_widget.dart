@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/database/database_helper.dart';
@@ -17,13 +19,14 @@ import '../../../core/services/pontos_service.dart';
 import '../../../core/services/street_map_cache_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/proximidade.dart';
-import '../../metereologia/data/profundidade_repository.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
-import '../../metereologia/domain/models/leitura_profundidade.dart';
 import '../../producao/domain/especies_comuns.dart';
 import '../../producao/domain/models/producao_registro.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
+import '../../recomendacao/widgets/recomendacao_variavel_chip.dart';
 import '../domain/models/ponto_marcado.dart';
+import 'meus_pontos_screen.dart';
+import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/download_regiao_dialog.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
@@ -160,18 +163,38 @@ class MapaWidgetState extends State<MapaWidget> {
   File? _overlayFile;
   LatLngBounds? _overlayBounds;
 
-  /// Pontos da recomendação a exibir sobre a carta (vazio se nenhuma).
-  List<LatLng> get _pontosRecomendacao {
+  /// PNG georreferenciado que pode vir junto de uma recomendação
+  /// (`Recomendacao.cartaNauticaUrl`) — baixado e sobreposto automaticamente
+  /// quando presente, com os bounds lidos do metadado `geo_bounds` embutido
+  /// no próprio arquivo (mesmo mecanismo de [GeoPngHelper] usado na
+  /// sobreposição manual). Diferente da sobreposição manual, essa não tem
+  /// toggle — some sozinha quando a tela não é mais sobre uma recomendação.
+  Uint8List? _recomendacaoOverlayBytes;
+  LatLngBounds? _recomendacaoOverlayBounds;
+
+  /// Pontos amostrados da recomendação, na mesma ordem retornada pela API —
+  /// sem pontos individuais mas com centroide, vira um único ponto
+  /// sintético (sem variáveis) só pra manter o marcador tocável no mapa.
+  List<PontoRecomendacao> get _pontosRecomendacaoDetalhados {
     final r = widget.recomendacao;
     if (r == null) return [];
-    if (r.pontos != null && r.pontos!.isNotEmpty) {
-      return r.pontos!.map((p) => LatLng(p.latitude, p.longitude)).toList();
-    }
+    if (r.pontos != null && r.pontos!.isNotEmpty) return r.pontos!;
     if (r.centroide != null) {
-      return [LatLng(r.centroide!.latitude, r.centroide!.longitude)];
+      return [
+        PontoRecomendacao(
+          latitude: r.centroide!.latitude,
+          longitude: r.centroide!.longitude,
+          variaveis: const [],
+        ),
+      ];
     }
     return [];
   }
+
+  /// Pontos da recomendação a exibir sobre a carta (vazio se nenhuma).
+  List<LatLng> get _pontosRecomendacao => _pontosRecomendacaoDetalhados
+      .map((p) => LatLng(p.latitude, p.longitude))
+      .toList();
 
   /// Pontos da rota de histórico a exibir sobre a carta (vazio se nenhuma).
   List<LatLng> get _rota => widget.rota ?? [];
@@ -206,6 +229,38 @@ class MapaWidgetState extends State<MapaWidget> {
     _loadBundledChart();
     _loadPontos();
     _carregarPontosMarcados();
+    _carregarOverlayRecomendacao();
+  }
+
+  /// Baixa e aplica o PNG georreferenciado da recomendação atual, se houver
+  /// (`Recomendacao.cartaNauticaUrl`) — mesma leitura de bounds embutidos no
+  /// arquivo usada na sobreposição manual (ver [GeoPngHelper]). Falha
+  /// silenciosamente (só um aviso) em vez de travar o mapa: a recomendação
+  /// continua utilizável sem a sobreposição se o download ou o PNG falhar.
+  Future<void> _carregarOverlayRecomendacao() async {
+    final url = widget.recomendacao?.cartaNauticaUrl;
+    if (url == null || url.isEmpty) return;
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Download falhou: HTTP ${response.statusCode}');
+      }
+      final bytes = response.bodyBytes;
+      final bounds = await GeoPngHelper.readBoundsFromBytes(bytes);
+
+      if (!mounted) return;
+      setState(() {
+        _recomendacaoOverlayBytes = bytes;
+        _recomendacaoOverlayBounds = bounds;
+      });
+    } catch (e) {
+      debugPrint('⚠️ Não foi possível aplicar o PNG da recomendação: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Não foi possível carregar a carta da recomendação: $e')),
+      );
+    }
   }
 
   @override
@@ -298,7 +353,7 @@ class MapaWidgetState extends State<MapaWidget> {
               style: TextStyle(color: Colors.grey[600], fontSize: 12),
             ),
             const Divider(height: 20),
-            _LinhaInfoPonto(
+            LinhaInfoPonto(
               icon: Icons.event_outlined,
               label: 'Data',
               valor: _formatarDataHora(registro.dataHora),
@@ -306,7 +361,7 @@ class MapaWidgetState extends State<MapaWidget> {
             if (registro.classificacao != null &&
                 registro.quantidadeUnidades != null) ...[
               const SizedBox(height: 8),
-              _LinhaInfoPonto(
+              LinhaInfoPonto(
                 icon: Icons.straighten_outlined,
                 label: 'Classificação',
                 valor:
@@ -314,7 +369,7 @@ class MapaWidgetState extends State<MapaWidget> {
               ),
             ],
             const SizedBox(height: 8),
-            _LinhaInfoPonto(
+            LinhaInfoPonto(
               icon: Icons.scale_outlined,
               label: 'Peso',
               valor: '${registro.quantidadeKg.toStringAsFixed(1)} kg',
@@ -999,34 +1054,34 @@ class MapaWidgetState extends State<MapaWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _LinhaInfoPonto(
+              LinhaInfoPonto(
                 icon: Icons.explore_outlined,
                 label: 'Coordenadas',
                 valor:
                     formatarCoordenadasDMS(ponto.latitude, ponto.longitude),
               ),
               const Divider(height: 20),
-              _LinhaInfoPonto(
+              LinhaInfoPonto(
                 icon: Icons.event_outlined,
                 label: 'Marcado em',
                 valor: _formatarDataHora(ponto.dataCriacao),
               ),
               if (distanciaNm != null && rumoGraus != null) ...[
                 const Divider(height: 20),
-                _LinhaInfoPonto(
+                LinhaInfoPonto(
                   icon: Icons.social_distance_outlined,
                   label: 'Distância',
                   valor: '${distanciaNm.toStringAsFixed(1)} mn',
                 ),
                 const SizedBox(height: 8),
-                _LinhaInfoPonto(
+                LinhaInfoPonto(
                   icon: Icons.navigation_outlined,
                   label: 'Rumo',
                   valor: '${rumoGraus.toStringAsFixed(0)}°',
                 ),
               ],
               const Divider(height: 20),
-              _DadosOceanicosPonto(
+              DadosOceanicosPonto(
                 latitude: ponto.latitude,
                 longitude: ponto.longitude,
               ),
@@ -1086,6 +1141,138 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
+  /// Mesmo padrão do detalhe de um ponto marcado ([_mostrarInfoPontoMarcado])
+  /// — coordenadas, quando o dado foi recebido, distância/rumo a partir do
+  /// GPS atual — trocando o "nome"/"remover" (não fazem sentido pra um
+  /// ponto que veio pronto da API) pelas variáveis ambientais amostradas
+  /// ali (vento, corrente, temperatura etc.).
+  void _mostrarInfoPontoRecomendacao(PontoRecomendacao ponto) {
+    double? distanciaNm;
+    double? rumoGraus;
+    final gps = _gpsPosition;
+    if (gps != null) {
+      distanciaNm = calcularDistanciaNauticas(
+        gps.latitude,
+        gps.longitude,
+        ponto.latitude,
+        ponto.longitude,
+      );
+      rumoGraus = Geolocator.bearingBetween(
+        gps.latitude,
+        gps.longitude,
+        ponto.latitude,
+        ponto.longitude,
+      );
+      if (rumoGraus < 0) rumoGraus += 360;
+    }
+
+    final criadoEm = widget.recomendacao?.criadoEm;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.location_on, color: Colors.deepOrange),
+            SizedBox(width: 8),
+            Expanded(child: Text('Ponto da recomendação')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LinhaInfoPonto(
+                icon: Icons.explore_outlined,
+                label: 'Coordenadas',
+                valor:
+                    formatarCoordenadasDMS(ponto.latitude, ponto.longitude),
+              ),
+              if (criadoEm != null) ...[
+                const Divider(height: 20),
+                LinhaInfoPonto(
+                  icon: Icons.event_outlined,
+                  label: 'Recebido em',
+                  valor: _formatarDataHora(criadoEm),
+                ),
+              ],
+              if (distanciaNm != null && rumoGraus != null) ...[
+                const Divider(height: 20),
+                LinhaInfoPonto(
+                  icon: Icons.social_distance_outlined,
+                  label: 'Distância',
+                  valor: '${distanciaNm.toStringAsFixed(1)} mn',
+                ),
+                const SizedBox(height: 8),
+                LinhaInfoPonto(
+                  icon: Icons.navigation_outlined,
+                  label: 'Rumo',
+                  valor: '${rumoGraus.toStringAsFixed(0)}°',
+                ),
+              ],
+              const Divider(height: 20),
+              DadosOceanicosPonto(
+                latitude: ponto.latitude,
+                longitude: ponto.longitude,
+              ),
+              if (ponto.variaveis.isNotEmpty) ...[
+                const Divider(height: 20),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: ponto.variaveis
+                        .map((v) => RecomendacaoVariavelChip(variavel: v))
+                        .toList(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SolicitarCartaScreen(
+                    dbHelper: _dbHelper,
+                    latitudeInicial: ponto.latitude,
+                    longitudeInicial: ponto.longitude,
+                  ),
+                ),
+              );
+            },
+            child: const Text('Solicitar Carta'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CondicoesPontoScreen(
+                    latitude: ponto.latitude,
+                    longitude: ponto.longitude,
+                  ),
+                ),
+              );
+            },
+            child: const Text('Consultar aqui'),
+          ),
+        ],
+      ),
+    );
+  }
+
   static String _formatarDataHora(DateTime dt) {
     final d = dt.day.toString().padLeft(2, '0');
     final mo = dt.month.toString().padLeft(2, '0');
@@ -1138,6 +1325,10 @@ class MapaWidgetState extends State<MapaWidget> {
             _buildLegendaGradeTemperatura(),
           if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
           if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
+          if (!_modoMarcarPonto &&
+              !widget.modoPlanejarRota &&
+              _mode != _MapMode.none)
+            _buildMeusPontosButton(),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
               _mode != _MapMode.none &&
@@ -1314,6 +1505,25 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
+  /// Abre "Meus Pontos" — lista com todos os pontos marcados manualmente e
+  /// os de todas as recomendações juntos, empilhado logo acima do botão de
+  /// GPS pra não competir com ele.
+  Widget _buildMeusPontosButton() {
+    return Positioned(
+      right: 12,
+      bottom: 76,
+      child: FloatingActionButton(
+        heroTag: 'meusPontosFab',
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const MeusPontosScreen()),
+        ),
+        tooltip: 'Meus Pontos',
+        child: const Icon(Icons.pin_drop),
+      ),
+    );
+  }
+
   /// Barra compacta com um slider pra ajustar a opacidade da sobreposição
   /// em tempo real, enquanto ela está ligada.
   Widget _buildOverlayOpacidadeControl() {
@@ -1465,6 +1675,19 @@ class MapaWidgetState extends State<MapaWidget> {
                 bounds: _overlayBounds!,
                 imageProvider: FileImage(_overlayFile!),
                 opacity: _overlayOpacidade,
+              ),
+            ],
+          ),
+        // PNG georreferenciado que veio junto da recomendação
+        // (`cartaNauticaUrl`), aplicado nas coordenadas do próprio arquivo —
+        // ver `_carregarOverlayRecomendacao`.
+        if (_recomendacaoOverlayBytes != null &&
+            _recomendacaoOverlayBounds != null)
+          OverlayImageLayer(
+            overlayImages: [
+              OverlayImage(
+                bounds: _recomendacaoOverlayBounds!,
+                imageProvider: MemoryImage(_recomendacaoOverlayBytes!),
               ),
             ],
           ),
@@ -1633,18 +1856,21 @@ class MapaWidgetState extends State<MapaWidget> {
               ),
             ],
           ),
-        if (_pontosRecomendacao.isNotEmpty)
+        if (_pontosRecomendacaoDetalhados.isNotEmpty)
           MarkerLayer(
-            markers: _pontosRecomendacao
+            markers: _pontosRecomendacaoDetalhados
                 .map((p) => Marker(
-                      point: p,
+                      point: LatLng(p.latitude, p.longitude),
                       width: 36,
                       height: 36,
                       alignment: Alignment.topCenter,
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.deepOrange,
-                        size: 32,
+                      child: GestureDetector(
+                        onTap: () => _mostrarInfoPontoRecomendacao(p),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.deepOrange,
+                          size: 32,
+                        ),
                       ),
                     ))
                 .toList(),
@@ -1836,170 +2062,3 @@ class _ClusterProducao {
   });
 }
 
-/// Busca e exibe batimetria (profundidade) e temperatura da superfície do
-/// mar (SST) para um ponto marcado — chamadas assíncronas a APIs externas
-/// (OpenTopoData e Open-Meteo Marine), então carrega em segundo plano
-/// depois do diálogo já estar aberto com os dados síncronos.
-class _DadosOceanicosPonto extends StatefulWidget {
-  final double latitude;
-  final double longitude;
-
-  const _DadosOceanicosPonto({
-    required this.latitude,
-    required this.longitude,
-  });
-
-  @override
-  State<_DadosOceanicosPonto> createState() => _DadosOceanicosPontoState();
-}
-
-class _DadosOceanicosPontoState extends State<_DadosOceanicosPonto> {
-  bool _carregandoProfundidade = true;
-  bool _carregandoTemperatura = true;
-  LeituraProfundidade? _profundidade;
-  double? _temperatura;
-
-  /// Nós — convertido do km/h que a Open-Meteo retorna, mesma conversão
-  /// usada em `CondicoesAtuaisCard` (`* 0.539957`).
-  double? _correnteVelocidadeNos;
-  int? _correnteDirecaoGraus;
-
-  @override
-  void initState() {
-    super.initState();
-    _carregarProfundidade();
-    _carregarTemperatura();
-  }
-
-  Future<void> _carregarProfundidade() async {
-    try {
-      final resultado = await ProfundidadeRepository().buscarPonto(
-        latitude: widget.latitude,
-        longitude: widget.longitude,
-      );
-      if (!mounted) return;
-      setState(() {
-        _profundidade = resultado;
-        _carregandoProfundidade = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _carregandoProfundidade = false);
-    }
-  }
-
-  Future<void> _carregarTemperatura() async {
-    try {
-      final forecast = await WaveForecastRepository().buscar(
-        latitude: widget.latitude,
-        longitude: widget.longitude,
-      );
-      if (!mounted) return;
-      setState(() {
-        _temperatura = forecast.current?.seaSurfaceTemperature;
-        final velocidadeKmh = forecast.current?.oceanCurrentVelocity;
-        _correnteVelocidadeNos =
-            velocidadeKmh != null ? velocidadeKmh * 0.539957 : null;
-        _correnteDirecaoGraus = forecast.current?.oceanCurrentDirection;
-        _carregandoTemperatura = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _carregandoTemperatura = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _LinhaInfoPonto(
-          icon: Icons.waves_outlined,
-          label: 'Profundidade',
-          valor: _valorProfundidade(),
-          carregando: _carregandoProfundidade,
-        ),
-        const SizedBox(height: 8),
-        _LinhaInfoPonto(
-          icon: Icons.thermostat_outlined,
-          label: 'Temperatura (SST)',
-          valor: _temperatura != null
-              ? '${_temperatura!.toStringAsFixed(1)}°C'
-              : '—',
-          carregando: _carregandoTemperatura,
-        ),
-        const SizedBox(height: 8),
-        _LinhaInfoPonto(
-          icon: Icons.water_outlined,
-          label: 'Corrente',
-          valor: _valorCorrente(),
-          // Mesma chamada da temperatura (WaveForecastRepository.buscar) —
-          // não tem loading próprio, os dois chegam juntos.
-          carregando: _carregandoTemperatura,
-        ),
-      ],
-    );
-  }
-
-  String _valorCorrente() {
-    final velocidade = _correnteVelocidadeNos;
-    if (velocidade == null) return '—';
-    final direcao = _correnteDirecaoGraus;
-    return direcao != null
-        ? '${velocidade.toStringAsFixed(1)} nós, $direcao°'
-        : '${velocidade.toStringAsFixed(1)} nós';
-  }
-
-  String _valorProfundidade() {
-    final p = _profundidade;
-    if (p == null) return '—';
-    if (!p.emAgua) return 'Em terra';
-    return '${p.profundidadeMetros.toStringAsFixed(0)} m';
-  }
-}
-
-/// Linha "ícone + rótulo + valor" usada no diálogo de detalhes de um ponto
-/// marcado (coordenadas, data, distância, rumo, profundidade, temperatura).
-class _LinhaInfoPonto extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String valor;
-  final bool carregando;
-
-  const _LinhaInfoPonto({
-    required this.icon,
-    required this.label,
-    required this.valor,
-    this.carregando = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: Colors.grey[600]),
-        const SizedBox(width: 8),
-        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: carregando
-              ? const Align(
-                  alignment: Alignment.centerRight,
-                  child: SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : Text(
-                  valor,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-        ),
-      ],
-    );
-  }
-}

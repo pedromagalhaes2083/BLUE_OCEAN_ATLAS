@@ -223,7 +223,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
-          color: Colors.blueGrey.shade700,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           letterSpacing: 0.3,
         ),
       ),
@@ -240,11 +240,11 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.blueGrey.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -270,7 +270,10 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade400),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -278,6 +281,10 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
   }
 
   Widget _buildCapacidades(Embarcacao embarcacao) {
+    // Fundo do ícone como tinta translúcida (não mais o tom pastel fixo
+    // "shade50", que ficava lavado demais em cima de um card escuro) — a
+    // cor do ícone acompanha, mais clara no escuro pra manter contraste.
+    final escuro = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -292,22 +299,23 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
           children: [
             _buildStatTile(
               icon: Icons.inventory_2,
-              iconBg: Colors.indigo.shade50,
-              iconColor: Colors.indigo.shade700,
+              iconBg: Colors.indigo.withValues(alpha: 0.15),
+              iconColor: escuro ? Colors.indigo.shade200 : Colors.indigo.shade700,
               valor: '${embarcacao.quantidadeUrnas}',
               label: 'Urnas',
             ),
             _buildStatTile(
               icon: Icons.ac_unit,
-              iconBg: Colors.lightBlue.shade50,
-              iconColor: Colors.lightBlue.shade700,
+              iconBg: Colors.lightBlue.withValues(alpha: 0.15),
+              iconColor:
+                  escuro ? Colors.lightBlue.shade200 : Colors.lightBlue.shade700,
               valor: _formatarGelo(embarcacao.capacidadeGeloKg),
               label: 'Gelo',
             ),
             _buildStatTile(
               icon: Icons.local_gas_station,
-              iconBg: Colors.orange.shade50,
-              iconColor: Colors.orange.shade800,
+              iconBg: Colors.orange.withValues(alpha: 0.15),
+              iconColor: escuro ? Colors.orange.shade200 : Colors.orange.shade800,
               valor: embarcacao.capacidadeDieselLitros == null
                   ? '--'
                   : '${_formatarNumero(embarcacao.capacidadeDieselLitros!)} L',
@@ -315,8 +323,8 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
             ),
             _buildStatTile(
               icon: Icons.groups,
-              iconBg: Colors.green.shade50,
-              iconColor: Colors.green.shade700,
+              iconBg: Colors.green.withValues(alpha: 0.15),
+              iconColor: escuro ? Colors.green.shade200 : Colors.green.shade700,
               valor: embarcacao.numeroTripulantes?.toString() ?? '--',
               label: 'Tripulantes',
             ),
@@ -327,18 +335,19 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
   }
 
   Widget _buildDetalheRow(IconData icon, String label, String valor, {bool ultimo = false}) {
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: Colors.blueGrey.shade400),
+              Icon(icon, size: 20, color: onSurfaceVariant),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade500),
+                  style: TextStyle(fontSize: 13, color: onSurfaceVariant),
                 ),
               ),
               Flexible(
@@ -352,7 +361,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
             ],
           ),
         ),
-        if (!ultimo) Divider(height: 1, color: Colors.blueGrey.shade50),
+        if (!ultimo) Divider(height: 1, color: Theme.of(context).dividerColor),
       ],
     );
   }
@@ -365,11 +374,11 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: Colors.blueGrey.withValues(alpha: 0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -403,25 +412,29 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.blueGrey.shade50,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
-                Icon(Icons.tag, color: Colors.blueGrey.shade400, size: 18),
+                Icon(Icons.tag,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     _embarcacaoId!,
                     style: TextStyle(
-                      color: Colors.blueGrey.shade700,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontFamily: 'monospace',
                       fontSize: 12,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Icon(Icons.copy, color: Colors.blueGrey.shade400, size: 18),
+                Icon(Icons.copy,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 18),
               ],
             ),
           ),
@@ -455,17 +468,20 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.sailing, size: 100, color: Colors.grey.shade400),
+            Icon(Icons.sailing,
+                size: 100,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 20),
             const Text(
               'Nenhuma embarcação encontrada',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'Cadastre uma embarcação para começar',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -477,10 +493,10 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.blueGrey.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 12,
             offset: const Offset(0, -4),
           ),
@@ -526,7 +542,6 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
       appBar: AppBar(
         title: const Text('Minha Embarcação'),
         actions: [

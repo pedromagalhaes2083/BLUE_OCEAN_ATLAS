@@ -47,16 +47,27 @@ class _LoginScreenState extends State<LoginScreen> {
         debugPrint('Erro ao sincronizar dados do dispositivo: $e');
       }
 
+      // O rastreamento em segundo plano só roda com uma viagem em
+      // andamento (ver NovaViagemScreen/HistoricoLocalizacoesScreen) — aqui
+      // só retoma se o usuário tinha saído (logout) no meio de uma viagem
+      // ainda ativa.
       try {
-        final intervalo = int.tryParse(await Config.obtem(
-              Constantes.intervaloRastreamentoMinutos,
-              '$intervaloMinimoMinutos',
-            )) ??
-            intervaloMinimoMinutos;
-        await LocationTrackingService()
-            .iniciarRastreamento(intervaloMinutos: intervalo);
+        final viagensAtivas = await widget.dbHelper.queryWhere(
+          'viagem',
+          where: 'status = ?',
+          whereArgs: ['em_andamento'],
+        );
+        if (viagensAtivas.isNotEmpty) {
+          final intervalo = int.tryParse(await Config.obtem(
+                Constantes.intervaloRastreamentoMinutos,
+                '$intervaloMinimoMinutos',
+              )) ??
+              intervaloMinimoMinutos;
+          await LocationTrackingService()
+              .iniciarRastreamento(intervaloMinutos: intervalo);
+        }
       } catch (e) {
-        debugPrint('Erro ao iniciar rastreamento de localização: $e');
+        debugPrint('Erro ao retomar rastreamento de localização: $e');
       }
 
       if (!mounted) return;

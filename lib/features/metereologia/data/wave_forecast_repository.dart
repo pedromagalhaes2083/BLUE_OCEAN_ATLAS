@@ -22,7 +22,7 @@ class WaveForecastRepository {
       'hourly': 'wave_height,wave_direction,wave_period,'
           'swell_wave_height,swell_wave_direction,swell_wave_period,'
           'ocean_current_velocity,ocean_current_direction,'
-          'sea_surface_temperature',
+          'sea_surface_temperature,sea_level_height_msl',
       'forecast_days': '2',
       'timezone': 'auto',
     });

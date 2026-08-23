@@ -12,6 +12,8 @@ import '../../../core/database/database_helper.dart';
 import '../../../core/services/device_id_service.dart';
 import '../../../core/services/location_tracking_service.dart';
 import '../../../core/services/night_mode_service.dart';
+import '../../../core/services/theme_mode_service.dart';
+import '../../dispositivo/presentation/dispositivo_teste_screen.dart';
 import '../../embarcacao/presentation/embarcacao_configuracao_screen.dart';
 
 class ConfiguracoesScreen extends StatefulWidget {
@@ -33,6 +35,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   static const _opcoesIntervalo = [15, 30, 60, 120];
 
   bool _fazendoBackup = false;
+  bool _ocultarRecomendacoesExpiradas = false;
 
   @override
   void initState() {
@@ -56,6 +59,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
         intervaloMinimoMinutos;
     final contatoEmergencia =
         await Config.obtem(Constantes.contatoEmergenciaWhatsapp, '');
+    final ocultarExpiradas = await Config.obtem(
+      Constantes.ocultarRecomendacoesExpiradas,
+      'false',
+    );
     if (!mounted) return;
     setState(() {
       _deviceId = id;
@@ -63,7 +70,16 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       _intervaloMinutos =
           _opcoesIntervalo.contains(intervalo) ? intervalo : intervaloMinimoMinutos;
       _contatoEmergenciaController.text = contatoEmergencia;
+      _ocultarRecomendacoesExpiradas = ocultarExpiradas == 'true';
     });
+  }
+
+  Future<void> _alternarOcultarRecomendacoesExpiradas(bool valor) async {
+    setState(() => _ocultarRecomendacoesExpiradas = valor);
+    await Config.grava(
+      Constantes.ocultarRecomendacoesExpiradas,
+      valor ? 'true' : 'false',
+    );
   }
 
   // ── Backup ────────────────────────────────────────────────────────────────
@@ -286,25 +302,111 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     elevation: 3,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
-                    child: ValueListenableBuilder<bool>(
-                      valueListenable: NightModeService.ativo,
-                      builder: (context, ativo, _) => SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                        secondary: Icon(
-                          Icons.nightlight_round,
-                          color: ativo ? Colors.red[700] : Colors.blue,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.dark_mode_outlined,
+                                  color: Colors.blue),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Text(
+                                  'Tema Escuro',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        title: const Text(
-                          'Modo Noturno',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: ValueListenableBuilder<ThemeMode>(
+                              valueListenable: ThemeModeService.modo,
+                              builder: (context, modo, _) =>
+                                  SegmentedButton<ThemeMode>(
+                                segments: const [
+                                  ButtonSegment(
+                                    value: ThemeMode.light,
+                                    label: Text('Claro'),
+                                    icon: Icon(Icons.light_mode_outlined),
+                                  ),
+                                  ButtonSegment(
+                                    value: ThemeMode.system,
+                                    label: Text('Sistema'),
+                                    icon: Icon(
+                                        Icons.brightness_auto_outlined),
+                                  ),
+                                  ButtonSegment(
+                                    value: ThemeMode.dark,
+                                    label: Text('Escuro'),
+                                    icon: Icon(Icons.dark_mode_outlined),
+                                  ),
+                                ],
+                                selected: {modo},
+                                onSelectionChanged: (selecionado) =>
+                                    ThemeModeService.alternar(
+                                        selecionado.first),
+                              ),
+                            ),
+                          ),
                         ),
-                        subtitle: const Text(
-                          'Tela em vermelho para preservar a visão no escuro.',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        const Divider(height: 1),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: NightModeService.ativo,
+                          builder: (context, ativo, _) => SwitchListTile(
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16),
+                            secondary: Icon(
+                              Icons.nightlight_round,
+                              color: ativo ? Colors.red[700] : Colors.blue,
+                            ),
+                            title: const Text(
+                              'Modo Noturno',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: const Text(
+                              'Tela em vermelho para preservar a visão no '
+                              'escuro.',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                            value: ativo,
+                            onChanged: NightModeService.alternar,
+                          ),
                         ),
-                        value: ativo,
-                        onChanged: NightModeService.alternar,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Recomendações',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      secondary: const Icon(Icons.event_busy, color: Colors.blue),
+                      title: const Text(
+                        'Ocultar recomendações expiradas',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
+                      subtitle: const Text(
+                        'Some da lista em "Cartas Náuticas" quem já passou '
+                        'da validade — continuam salvas, só não aparecem.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      value: _ocultarRecomendacoesExpiradas,
+                      onChanged: _alternarOcultarRecomendacoesExpiradas,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -444,6 +546,17 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DispositivoTesteScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.bug_report_outlined),
+                    label: const Text('Teste — Dispositivo & Recomendações'),
+                  ),
                 ],
               ),
             ),

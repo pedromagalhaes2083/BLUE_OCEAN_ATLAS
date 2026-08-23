@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../auth/auth_service.dart';
 import '../auth/jwt_utils.dart';
 import '../config/config.dart';
 import '../config/constantes.dart';
-import 'excecoes.dart';
 
 /// Cliente HTTP cru (URL, headers, token). Não deve ser chamado direto de
 /// telas/widgets — cada recurso da API tem um `<recurso>_repository.dart`
@@ -57,9 +57,11 @@ class ApiService {
   static Future<dynamic> get(String recurso) async {
     recurso = _limpaRota(recurso);
     final api = await _api();
-    final response = await http.get(
-      Uri.parse('https://$api/api/v1/$recurso'),
-      headers: await _headers(),
+    final response = await _comRetentativaDeAutenticacao(
+      () async => http.get(
+        Uri.parse('https://$api/api/v1/$recurso'),
+        headers: await _headers(),
+      ),
     );
     return _analisa(response);
   }
@@ -71,10 +73,12 @@ class ApiService {
     final api = await _api();
     debugPrint('POST https://$api/api/v1/$recurso');
     debugPrint(jsonEncode(data));
-    final response = await http.post(
-      Uri.parse('https://$api/api/v1/$recurso'),
-      headers: await _headers(comCorpo: true),
-      body: jsonEncode(data),
+    final response = await _comRetentativaDeAutenticacao(
+      () async => http.post(
+        Uri.parse('https://$api/api/v1/$recurso'),
+        headers: await _headers(comCorpo: true),
+        body: jsonEncode(data),
+      ),
     );
     return _analisa(response);
   }
@@ -84,10 +88,12 @@ class ApiService {
   static Future<dynamic> put(String recurso, dynamic data) async {
     recurso = _limpaRota(recurso);
     final api = await _api();
-    final response = await http.put(
-      Uri.parse('https://$api/api/v1/$recurso'),
-      headers: await _headers(comCorpo: true),
-      body: jsonEncode(data),
+    final response = await _comRetentativaDeAutenticacao(
+      () async => http.put(
+        Uri.parse('https://$api/api/v1/$recurso'),
+        headers: await _headers(comCorpo: true),
+        body: jsonEncode(data),
+      ),
     );
     return _analisa(response);
   }
@@ -101,18 +107,19 @@ class ApiService {
   ) async {
     recurso = _limpaRota(recurso);
     final api = await _api();
-    final headers = await _headers();
     final retorno = <Map<String, dynamic>>[];
     var pagina = 1;
     var paginas = 1;
 
     while (pagina <= paginas) {
-      final response = await http.get(
-        Uri.parse(
-          'https://$api/api/v1/$recurso/carga'
-          '?inicio=${inicio.toIso8601String()}&pagina=$pagina',
+      final response = await _comRetentativaDeAutenticacao(
+        () async => http.get(
+          Uri.parse(
+            'https://$api/api/v1/$recurso/carga'
+            '?inicio=${inicio.toIso8601String()}&pagina=$pagina',
+          ),
+          headers: await _headers(),
         ),
-        headers: headers,
       );
       final resposta = await _analisa(response);
       paginas = (resposta['paginas'] as num?)?.toInt() ?? 0;
@@ -125,6 +132,27 @@ class ApiService {
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /// O token expira em ~30min e a API responde 401 quando isso acontece —
+  /// sem isso, qualquer chamada feita depois desse tempo falhava mesmo com
+  /// "lembrar credenciais" marcado, porque nada tentava renovar o token no
+  /// meio da sessão (só no boot do app, via [AuthService.tentarLoginAutomatico]).
+  /// Aqui: um 401 dispara uma tentativa de login com a credencial salva e,
+  /// se der certo, repete a chamada original uma vez com o token novo —
+  /// [executar] tem que reconstruir os headers a cada chamada (via
+  /// `await _headers()`), não capturá-los prontos, senão a repetição usaria
+  /// o token velho de novo.
+  static Future<http.Response> _comRetentativaDeAutenticacao(
+    Future<http.Response> Function() executar,
+  ) async {
+    final response = await executar();
+    if (response.statusCode != 401) return response;
+
+    final reautenticou = await AuthService.tentarLoginAutomatico();
+    if (!reautenticou) return response;
+
+    return executar();
+  }
 
   static dynamic _analisa(http.Response response) {
     final statusCode = response.statusCode;

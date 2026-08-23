@@ -3,6 +3,7 @@ import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart'
 import 'package:atlas/features/mapa/presentation/mapa_widget.dart';
 import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcacao_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
+import 'package:atlas/features/metereologia/presentation/alerta_rota_screen.dart';
 import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.dart';
 import 'package:atlas/features/producao/presentation/producao_screen.dart';
 import 'package:atlas/features/rotas/presentation/minhas_rotas_screen.dart';
@@ -130,11 +131,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 // ==================== RASTREAMENTO ====================
 
-  // O rastreamento único já roda desde o login (LocationTrackingService),
-  // com ou sem viagem ativa — aqui só refletimos o status real do serviço
-  // (e o intervalo configurado) pra UI. Cada execução periódica já associa
-  // os pontos à viagem em andamento automaticamente, sem precisar iniciar
-  // nada específico por viagem.
+  // O rastreamento (LocationTrackingService) só roda enquanto há viagem em
+  // andamento — começa em NovaViagemScreen e para em
+  // HistoricoLocalizacoesScreen._finalizarViagem. Aqui só refletimos o
+  // status real do serviço (e o intervalo configurado) pra UI.
   Future<void> _atualizarStatusRastreamento() async {
     final ativo = _trackingService.isTracking;
     final intervalo = int.tryParse(await Config.obtem(
@@ -384,58 +384,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     if (isTracking) ...[
                       const SizedBox(height: 16),
-                      Card(
-                        color: Colors.green[50],
-                        child: ListTile(
-                          leading: const Icon(Icons.location_on,
-                              color: Colors.green),
-                          title: const Text('Rastreamento Ativo'),
-                          subtitle: Text(
-                              'Registrando posição a cada $_intervaloRastreamentoMinutos minutos'),
-                          trailing: const Icon(Icons.check_circle,
-                              color: Colors.green),
-                        ),
-                      ),
+                      Builder(builder: (context) {
+                        // No claro, mantém o verde original — o tom azul do
+                        // tema só entra no escuro, onde o verde pastel fixo
+                        // ficava um bloco claro cego em cima do fundo escuro.
+                        final escuro =
+                            Theme.of(context).brightness == Brightness.dark;
+                        final colorScheme = Theme.of(context).colorScheme;
+                        final corFundo = escuro
+                            ? colorScheme.primaryContainer
+                            : Colors.green[50];
+                        final corDestaque =
+                            escuro ? colorScheme.onPrimaryContainer : Colors.green;
+                        return Card(
+                          color: corFundo,
+                          child: ListTile(
+                            leading: Icon(Icons.location_on, color: corDestaque),
+                            title: Text('Rastreamento Ativo',
+                                style: escuro
+                                    ? TextStyle(color: corDestaque)
+                                    : null),
+                            subtitle: Text(
+                              'Registrando posição a cada $_intervaloRastreamentoMinutos minutos',
+                              style: escuro
+                                  ? TextStyle(
+                                      color: corDestaque.withValues(alpha: 0.75))
+                                  : null,
+                            ),
+                            trailing:
+                                Icon(Icons.check_circle, color: corDestaque),
+                          ),
+                        );
+                      }),
                     ],
 
                     if (_posicoesPendentes > 0) ...[
                       const SizedBox(height: 16),
-                      Card(
-                        color: Colors.orange[50],
-                        child: ListTile(
-                          leading:
-                              Icon(Icons.cloud_off, color: Colors.orange[800]),
-                          title: Text(
-                            '$_posicoesPendentes posiç${_posicoesPendentes == 1 ? 'ão' : 'ões'} aguardando sincronização',
+                      Builder(builder: (context) {
+                        final escuro =
+                            Theme.of(context).brightness == Brightness.dark;
+                        final colorScheme = Theme.of(context).colorScheme;
+                        final corFundo = escuro
+                            ? colorScheme.primaryContainer
+                            : Colors.orange[50];
+                        final corDestaque = escuro
+                            ? colorScheme.onPrimaryContainer
+                            : Colors.orange;
+                        return Card(
+                          color: corFundo,
+                          child: ListTile(
+                            leading: Icon(Icons.cloud_off, color: corDestaque),
+                            title: Text(
+                              '$_posicoesPendentes posiç${_posicoesPendentes == 1 ? 'ão' : 'ões'} aguardando sincronização',
+                              style: escuro
+                                  ? TextStyle(color: corDestaque)
+                                  : null,
+                            ),
+                            subtitle: Text(
+                              'Serão enviadas automaticamente assim que houver conexão.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: escuro
+                                    ? corDestaque.withValues(alpha: 0.75)
+                                    : null,
+                              ),
+                            ),
+                            trailing: _sincronizando
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : IconButton(
+                                    icon: Icon(Icons.sync, color: corDestaque),
+                                    tooltip: 'Sincronizar agora',
+                                    onPressed: _sincronizarAgora,
+                                  ),
                           ),
-                          subtitle: const Text(
-                            'Serão enviadas automaticamente assim que houver conexão.',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                          trailing: _sincronizando
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2),
-                                )
-                              : IconButton(
-                                  icon: Icon(Icons.sync,
-                                      color: Colors.orange[800]),
-                                  tooltip: 'Sincronizar agora',
-                                  onPressed: _sincronizarAgora,
-                                ),
-                        ),
-                      ),
+                        );
+                      }),
                     ],
 
                     if (_bateriaBaixa) ...[
                       const SizedBox(height: 16),
                       Card(
-                        color: Colors.red[50],
+                        color: Colors.red.withValues(alpha: 0.15),
                         child: ListTile(
                           leading:
-                              Icon(Icons.battery_alert, color: Colors.red[800]),
+                              const Icon(Icons.battery_alert, color: Colors.red),
                           title: Text('Bateria do celular em $_ultimaBateria%'),
                           subtitle: const Text(
                             'O rastreamento pode parar se a bateria acabar.',
@@ -448,9 +485,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     if (_gpsDesatualizado) ...[
                       const SizedBox(height: 16),
                       Card(
-                        color: Colors.red[50],
+                        color: Colors.red.withValues(alpha: 0.15),
                         child: ListTile(
-                          leading: Icon(Icons.gps_off, color: Colors.red[800]),
+                          leading: const Icon(Icons.gps_off, color: Colors.red),
                           title: const Text('Sem posição recente registrada'),
                           subtitle: Text(
                             'Última posição há ${_formatarTempoDecorrido(_ultimaPosicaoHora!)}. Verifique o sinal de GPS.',
@@ -601,6 +638,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               leading: const Icon(Icons.water_drop_outlined),
               title: const Text('Condições do Mar'),
               onTap: () => _abrirCondicoesMar(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.warning_amber_outlined),
+              title: const Text('Alerta de Rota'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AlertaRotaScreen()),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.campaign_outlined),

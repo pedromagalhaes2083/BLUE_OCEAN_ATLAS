@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/config/config.dart';
+import '../../../core/config/constantes.dart';
 import '../../../core/services/device_id_service.dart';
+import '../../../core/services/recomendacao_notification_service.dart';
 import '../data/dispositivo_repository.dart';
 import '../domain/models/dispositivo.dart';
 import '../../recomendacao/data/recomendacao_repository.dart';
@@ -28,6 +31,9 @@ class _DispositivoTesteScreenState extends State<DispositivoTesteScreen> {
   List<Recomendacao>? _recomendacoes;
   String? _erroRecomendacoes;
   bool _carregandoRecomendacoes = false;
+
+  bool _testandoNotificacao = false;
+  String? _resultadoTesteNotificacao;
 
   @override
   void initState() {
@@ -78,6 +84,34 @@ class _DispositivoTesteScreenState extends State<DispositivoTesteScreen> {
     }
   }
 
+  /// Força a checagem de recomendações novas a tratar tudo que a API
+  /// retornar agora como "novo" — zera a marca d'água salva (ver
+  /// [RecomendacaoNotificationService]) antes de checar, senão a 1ª
+  /// checagem depois do reset só grava a marca d'água de novo, sem
+  /// notificar. Só pra QA manual: em uso normal, essa marca avança sozinha
+  /// a cada checagem em segundo plano.
+  Future<void> _testarNotificacao() async {
+    setState(() {
+      _testandoNotificacao = true;
+      _resultadoTesteNotificacao = null;
+    });
+    try {
+      await Config.grava(
+        Constantes.ultimaVerificacaoRecomendacoes,
+        DateTime(2000).toIso8601String(),
+      );
+      await RecomendacaoNotificationService.verificarNovas();
+      if (!mounted) return;
+      setState(() => _resultadoTesteNotificacao =
+          'Checagem disparada — se houver recomendação com data, a notificação já deve ter aparecido.');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _resultadoTesteNotificacao = 'Erro: $e');
+    } finally {
+      if (mounted) setState(() => _testandoNotificacao = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,9 +124,42 @@ class _DispositivoTesteScreenState extends State<DispositivoTesteScreen> {
           _buildSecaoDispositivo(),
           const SizedBox(height: 28),
           _buildSecaoRecomendacoes(),
+          const SizedBox(height: 28),
+          _buildSecaoNotificacao(),
           const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+
+  Widget _buildSecaoNotificacao() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Notificação de recomendação nova',
+          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+        ),
+        const SizedBox(height: 8),
+        ElevatedButton.icon(
+          onPressed: _testandoNotificacao ? null : _testarNotificacao,
+          icon: _testandoNotificacao
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.notifications_active_outlined, size: 18),
+          label: const Text('Testar notificação'),
+        ),
+        if (_resultadoTesteNotificacao != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _resultadoTesteNotificacao!,
+            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          ),
+        ],
+      ],
     );
   }
 

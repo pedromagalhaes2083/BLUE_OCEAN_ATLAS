@@ -114,7 +114,7 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
       children: [
         Row(
           children: [
-            Icon(icone, color: Colors.blue.shade900),
+            Icon(icone, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 10),
             Text(
               titulo,
@@ -138,7 +138,6 @@ class _CadastrarEmbarcacaoScreenState extends State<CadastrarEmbarcacaoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
       appBar: AppBar(
         title: const Text('Cadastrar Embarcação'),
       ),

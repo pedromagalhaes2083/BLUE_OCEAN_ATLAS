@@ -25,6 +25,7 @@ class RecomendacaoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = recomendacao;
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
 
     // Sem Card/elevação própria — o conteúdo já vive dentro do bottom
     // sheet em CartasScreen, que fornece o fundo e o cantinho arredondado;
@@ -58,7 +59,7 @@ class RecomendacaoCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             r.descricao!,
-            style: TextStyle(color: Colors.grey[700], fontSize: 14),
+            style: TextStyle(color: onSurfaceVariant, fontSize: 14),
           ),
         ],
         const SizedBox(height: 14),
@@ -71,7 +72,7 @@ class RecomendacaoCard extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 _formatarData(r.criadoEm!),
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: onSurfaceVariant),
               ),
             ],
             if (r.criadoEm != null && r.centroide != null)
@@ -84,7 +85,7 @@ class RecomendacaoCard extends StatelessWidget {
                   r.centroide!.latitude,
                   r.centroide!.longitude,
                 ),
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: onSurfaceVariant),
               ),
             ],
           ],
