@@ -10,6 +10,7 @@ import '../../../core/database/database_helper.dart';
 import '../../../core/services/alerta_condicao_notification_service.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../mapa/domain/models/ponto_marcado.dart';
 import '../data/previsao_tempo_repository.dart';
@@ -295,7 +296,8 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erroCondicoes = 'Erro ao buscar condições: $e');
+      setState(() => _erroCondicoes =
+          mensagemErroAmigavel(e, prefixo: 'Erro ao buscar condições'));
     } finally {
       if (mounted) setState(() => _carregandoCondicoes = false);
     }
@@ -781,7 +783,11 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.red),
+            Icon(
+                erro == mensagemSemConexao
+                    ? Icons.wifi_off_outlined
+                    : Icons.error_outline,
+                color: Colors.red),
             const SizedBox(width: 12),
             Expanded(
               child: Text(erro,

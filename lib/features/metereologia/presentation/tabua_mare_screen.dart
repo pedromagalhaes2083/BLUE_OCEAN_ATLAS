@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/database/database_helper.dart';
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/mare_harmonica.dart';
 import '../../widgets/seletor_coordenada_widget.dart';
 import '../data/wave_forecast_repository.dart';
@@ -51,42 +52,54 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
     }
   }
 
+  /// Busca a série, ajusta o modelo e grava no banco — sem nenhuma UI (sem
+  /// SnackBar, sem tocar em [_sincronizando]/[_portos]). Separado de
+  /// [_sincronizarPorto] porque também é chamado a partir da tela de
+  /// detalhe do porto (ver `onSincronizar` no `ListTile` abaixo) — se essa
+  /// função mostrasse o SnackBar direto, ele apareceria grudado nesta tela
+  /// (a lista), que fica escondida atrás da tela de detalhe quando é de lá
+  /// que o usuário chamou a sincronização, deixando erro de conexão sem
+  /// nenhum feedback visível pra quem estava na tela de detalhe.
+  Future<PortoMare> _sincronizarPortoSemUI(PortoMare porto) async {
+    final serie = await WaveForecastRepository().buscarSerieNivelMar(
+      latitude: porto.latitude,
+      longitude: porto.longitude,
+    );
+    if (serie.length < 24) {
+      throw Exception('Poucos dados de maré retornados pra esse ponto');
+    }
+    final modelo = ajustarModeloMareHarmonico(
+      horarios: serie.map((e) => e.horario).toList(),
+      alturas: serie.map((e) => e.alturaM).toList(),
+    );
+    final agora = DateTime.now();
+    await DatabaseHelper.instance.update(
+      'porto_mare',
+      {
+        'constantes_json': modelo.toJsonString(),
+        'sincronizado_em': agora.toIso8601String(),
+      },
+      id: porto.id!,
+    );
+    return porto.copyWith(modelo: modelo, sincronizadoEm: agora);
+  }
+
   Future<void> _sincronizarPorto(PortoMare porto) async {
     if (porto.id == null || _sincronizando.contains(porto.id)) return;
     setState(() => _sincronizando.add(porto.id!));
     try {
-      final serie = await WaveForecastRepository().buscarSerieNivelMar(
-        latitude: porto.latitude,
-        longitude: porto.longitude,
-      );
-      if (serie.length < 24) {
-        throw Exception('Poucos dados de maré retornados pra esse ponto');
-      }
-      final modelo = ajustarModeloMareHarmonico(
-        horarios: serie.map((e) => e.horario).toList(),
-        alturas: serie.map((e) => e.alturaM).toList(),
-      );
-      final agora = DateTime.now();
-      await DatabaseHelper.instance.update(
-        'porto_mare',
-        {
-          'constantes_json': modelo.toJsonString(),
-          'sincronizado_em': agora.toIso8601String(),
-        },
-        id: porto.id!,
-      );
+      final atualizado = await _sincronizarPortoSemUI(porto);
       if (!mounted) return;
       setState(() {
-        _portos = _portos
-            .map((p) => p.id == porto.id
-                ? p.copyWith(modelo: modelo, sincronizadoEm: agora)
-                : p)
-            .toList();
+        _portos =
+            _portos.map((p) => p.id == porto.id ? atualizado : p).toList();
       });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao sincronizar "${porto.nome}": $e')),
+        SnackBar(
+            content: Text(mensagemErroAmigavel(e,
+                prefixo: 'Erro ao sincronizar "${porto.nome}"'))),
       );
     } finally {
       if (mounted) setState(() => _sincronizando.remove(porto.id));
@@ -260,8 +273,15 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
             builder: (_) => TabuaMareDetalheScreen(
               porto: porto,
               onSincronizar: () async {
-                await _sincronizarPorto(porto);
-                return _portos.firstWhere((p) => p.id == porto.id);
+                final atualizado = await _sincronizarPortoSemUI(porto);
+                if (mounted) {
+                  setState(() {
+                    _portos = _portos
+                        .map((p) => p.id == porto.id ? atualizado : p)
+                        .toList();
+                  });
+                }
+                return atualizado;
               },
               onRemover: () async {
                 await _removerPorto(porto);

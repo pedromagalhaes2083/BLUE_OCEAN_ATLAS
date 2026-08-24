@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../core/utils/erro_amigavel.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
 import '../../widgets/wave_forecast/wave_forecast_widgets.dart';
@@ -66,7 +67,8 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erro = 'Erro ao buscar previsão: $e');
+      setState(() =>
+          _erro = mensagemErroAmigavel(e, prefixo: 'Erro ao buscar previsão'));
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -124,7 +126,11 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red),
+                    Icon(
+                        _erro == mensagemSemConexao
+                            ? Icons.wifi_off_outlined
+                            : Icons.error_outline,
+                        color: Colors.red),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(_erro!,

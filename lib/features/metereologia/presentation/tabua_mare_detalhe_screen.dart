@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/mare_harmonica.dart';
 import '../domain/models/porto_mare.dart';
 
@@ -42,6 +43,13 @@ class _TabuaMareDetalheScreenState extends State<TabuaMareDetalheScreen> {
       final atualizado = await widget.onSincronizar();
       if (!mounted) return;
       setState(() => _porto = atualizado);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(mensagemErroAmigavel(e,
+                prefixo: 'Erro ao sincronizar'))),
+      );
     } finally {
       if (mounted) setState(() => _sincronizando = false);
     }

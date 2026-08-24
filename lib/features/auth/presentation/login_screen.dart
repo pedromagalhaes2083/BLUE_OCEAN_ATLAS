@@ -5,6 +5,7 @@ import 'package:atlas/core/config/config.dart';
 import 'package:atlas/core/config/constantes.dart';
 import 'package:atlas/core/services/location_tracking_service.dart';
 import 'package:atlas/core/services/sincronizacao_service.dart';
+import 'package:atlas/core/utils/erro_amigavel.dart';
 import '../../../app_shell.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -82,7 +83,9 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _erro = 'Usuário ou senha incorretos.');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erro = 'Erro ao conectar. Tente novamente.');
+      setState(() => _erro = ehErroDeConexao(e)
+          ? mensagemSemConexao
+          : 'Erro ao conectar. Tente novamente.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

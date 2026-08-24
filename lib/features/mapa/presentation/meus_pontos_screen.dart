@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../core/database/database_helper.dart';
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../cartas/presentation/solicitar_cartas_screen.dart';
 import '../../metereologia/presentation/condicoes_ponto_screen.dart';
@@ -87,7 +88,7 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erro = e.toString());
+      setState(() => _erro = mensagemErroAmigavel(e));
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -207,7 +208,12 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(
+                  _erro == mensagemSemConexao
+                      ? Icons.wifi_off_outlined
+                      : Icons.error_outline,
+                  size: 48,
+                  color: Colors.red),
               const SizedBox(height: 12),
               Text(
                 _erro!,

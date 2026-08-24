@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/erro_amigavel.dart';
 import '../../widgets/posicao_atual_widget.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
@@ -57,7 +58,8 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erroOceano = 'Erro ao buscar previsão: $e');
+      setState(() => _erroOceano =
+          mensagemErroAmigavel(e, prefixo: 'Erro ao buscar previsão'));
     } finally {
       if (mounted) setState(() => _carregandoOceano = false);
     }
@@ -110,7 +112,11 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red),
+                    Icon(
+                        _erroOceano == mensagemSemConexao
+                            ? Icons.wifi_off_outlined
+                            : Icons.error_outline,
+                        color: Colors.red),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(_erroOceano!,

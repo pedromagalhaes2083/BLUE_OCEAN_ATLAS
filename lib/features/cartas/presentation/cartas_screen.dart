@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/utils/erro_amigavel.dart';
 import '../../recomendacao/data/recomendacao_repository.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_card.dart';
@@ -63,7 +64,7 @@ class _CartasScreenState extends State<CartasScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => erroRecomendacoes = e.toString());
+      setState(() => erroRecomendacoes = mensagemErroAmigavel(e));
     } finally {
       if (mounted) setState(() => isLoadingRecomendacoes = false);
     }
@@ -133,7 +134,12 @@ class _CartasScreenState extends State<CartasScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(
+                  erroRecomendacoes == mensagemSemConexao
+                      ? Icons.wifi_off_outlined
+                      : Icons.error_outline,
+                  size: 48,
+                  color: Colors.red),
               const SizedBox(height: 12),
               Text(
                 erroRecomendacoes!,
