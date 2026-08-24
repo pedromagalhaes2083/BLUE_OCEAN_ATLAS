@@ -31,7 +31,8 @@ class ProfundidadeRepository {
       'interpolation': 'bilinear',
     });
 
-    final response = await http.get(uri);
+    final response =
+        await http.get(uri).timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) {
       throw Exception('Erro ao buscar profundidade: ${response.statusCode}');
     }

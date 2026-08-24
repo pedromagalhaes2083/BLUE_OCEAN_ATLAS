@@ -34,6 +34,8 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
   bool _carregando = true;
   String? _erro;
   Position? _gpsPosition;
+  bool _offline = false;
+  DateTime? _cacheEm;
 
   @override
   void initState() {
@@ -65,7 +67,8 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
       final maps = await DatabaseHelper.instance.query('ponto_marcado');
       final pontos = maps.map(PontoMarcado.fromMap).toList()
         ..sort((a, b) => b.dataCriacao.compareTo(a.dataCriacao));
-      final recomendacoes = await RecomendacaoRepository().listar();
+      final repositorioRecomendacoes = RecomendacaoRepository();
+      final recomendacoes = await repositorioRecomendacoes.listar();
 
       final mapsRegistros = await DatabaseHelper.instance.query('producao_registro');
       final registros = mapsRegistros.map(ProducaoRegistro.fromMap).toList();
@@ -75,6 +78,8 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
       setState(() {
         _pontosMarcados = pontos;
         _recomendacoes = recomendacoes;
+        _offline = repositorioRecomendacoes.ultimoResultadoOffline;
+        _cacheEm = repositorioRecomendacoes.ultimaAtualizacaoCache;
         _producaoPorPontoId = {
           for (final item in producaoPorPonto)
             if (item.ponto.id != null) item.ponto.id!: item,
@@ -249,6 +254,10 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
+          if (_offline) ...[
+            _buildBannerOffline(),
+            const SizedBox(height: 12),
+          ],
           if (_pontosMarcados.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -293,6 +302,39 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
             ],
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildBannerOffline() {
+    final horario = _cacheEm != null
+        ? '${_cacheEm!.day.toString().padLeft(2, '0')}/${_cacheEm!.month.toString().padLeft(2, '0')} '
+            '${_cacheEm!.hour.toString().padLeft(2, '0')}:${_cacheEm!.minute.toString().padLeft(2, '0')}'
+        : 'data desconhecida';
+    return Card(
+      color: Colors.amber.withValues(alpha: 0.15),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.amber.shade700.withValues(alpha: 0.5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off_outlined, color: Colors.amber.shade800),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Sem conexão — mostrando as últimas recomendações sincronizadas em $horario',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.amber.shade900),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcacao_scre
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
 import 'package:atlas/features/metereologia/presentation/alerta_rota_screen.dart';
 import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.dart';
+import 'package:atlas/features/metereologia/presentation/tabua_mare_screen.dart';
 import 'package:atlas/features/producao/presentation/producao_screen.dart';
 import 'package:atlas/features/rotas/presentation/minhas_rotas_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
@@ -647,6 +648,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AlertaRotaScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_outlined),
+              title: const Text('Tábua de Maré'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TabuaMareScreen()),
                 );
               },
             ),

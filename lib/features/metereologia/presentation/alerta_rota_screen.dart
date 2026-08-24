@@ -7,12 +7,14 @@ import 'package:geolocator/geolocator.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/services/alerta_condicao_notification_service.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../mapa/domain/models/ponto_marcado.dart';
 import '../data/previsao_tempo_repository.dart';
 import '../data/wave_forecast_repository.dart';
+import 'alerta_config_screen.dart';
 
 const double _alcanceMinimoMn = 5;
 const double _alcanceMaximoMn = 100;
@@ -48,6 +50,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
   double? _swellAlturaM;
   int? _swellDirecaoGraus;
   double? _swellPeriodoS;
+  double? _temperaturaC;
   bool _carregandoCondicoes = false;
   String? _erroCondicoes;
 
@@ -279,7 +282,17 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
         _swellAlturaM = onda.current?.swellWaveHeight;
         _swellDirecaoGraus = onda.current?.swellWaveDirection;
         _swellPeriodoS = onda.current?.swellWavePeriod;
+        _temperaturaC = onda.current?.seaSurfaceTemperature;
       });
+      // Fire-and-forget — não deve atrasar nem falhar a tela por causa de
+      // notificação; o serviço já trata os próprios erros internamente.
+      AlertaCondicaoNotificationService.avaliarECondicionalmenteNotificar(
+        ventoKmh: _ventoKmh,
+        correnteNos: _correnteNos,
+        ondaM: _ondaAlturaM,
+        swellM: _swellAlturaM,
+        temperaturaC: _temperaturaC,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _erroCondicoes = 'Erro ao buscar condições: $e');
@@ -345,6 +358,14 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
       appBar: AppBar(
         title: const Text('Alerta de Rota'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active_outlined),
+            tooltip: 'Configurar alertas',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AlertaConfigScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.science_outlined),
             tooltip: 'Simular com ponto marcado',

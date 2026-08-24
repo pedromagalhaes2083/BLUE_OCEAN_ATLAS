@@ -80,10 +80,19 @@ class LocalizacaoReporterService {
   /// qualquer backlog acumulado enquanto o aparelho estava sem internet.
   static Future<void> sincronizarPendentes() async {
     if (!await AuthService.isLoggedIn()) {
-      debugPrint(
-          '⚠️ Sessão expirada — parando rastreamento em vez de tentar sincronizar sem token.');
-      await LocationTrackingService().pararRastreamento();
-      return;
+      // Token expirado não é necessariamente sessão morta — tenta renovar
+      // com a credencial lembrada (mesmo mecanismo do boot do app, ver
+      // SplashScreen) antes de desistir. Sem isso, o rastreamento parava
+      // de vez a cada ~30min de viagem, mesmo com internet disponível pra
+      // renovar o token sozinho.
+      final renovou = await AuthService.tentarLoginAutomatico();
+      if (!renovou) {
+        debugPrint(
+            '⚠️ Sessão expirada e sem credencial pra renovar — parando rastreamento.');
+        await LocationTrackingService().pararRastreamento();
+        return;
+      }
+      debugPrint('🔑 Token renovado automaticamente — rastreamento continua.');
     }
 
     final embarcacaoId = await Config.obtem(

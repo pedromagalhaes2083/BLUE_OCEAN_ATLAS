@@ -27,7 +27,8 @@ class WaveForecastRepository {
       'timezone': 'auto',
     });
 
-    final response = await http.get(uri);
+    final response =
+        await http.get(uri).timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) {
       throw Exception(
           'Erro ao buscar previsão de ondas: ${response.statusCode}');
@@ -55,7 +56,8 @@ class WaveForecastRepository {
       'timezone': 'auto',
     });
 
-    final response = await http.get(uri);
+    final response =
+        await http.get(uri).timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) {
       throw Exception(
           'Erro ao buscar grade de temperatura: ${response.statusCode}');
@@ -67,5 +69,51 @@ class WaveForecastRepository {
     return itens
         .map((item) => SstPonto.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Série longa (semanas) de nível do mar num ponto — usada só pra
+  /// ajustar o modelo harmônico de maré de um porto salvo (ver
+  /// `ModeloMareHarmonico`/`ajustarModeloMareHarmonico`), não pra exibição
+  /// direta. Pede só `sea_level_height_msl` (mais leve que `buscar()`, que
+  /// traz onda/swell/corrente/SST juntos) e usa `past_days` pra estender a
+  /// série pra trás — quanto mais dias, melhor a separação entre
+  /// constituintes vizinhas (M2 vs. S2 já pede ~15 dias pra um ciclo de
+  /// sizígia/quadratura completo).
+  Future<List<({DateTime horario, double alturaM})>> buscarSerieNivelMar({
+    required double latitude,
+    required double longitude,
+    int pastDays = 60,
+    int forecastDays = 14,
+  }) async {
+    final uri = Uri.parse(_baseUrl).replace(queryParameters: {
+      'latitude': latitude.toString(),
+      'longitude': longitude.toString(),
+      'hourly': 'sea_level_height_msl',
+      'past_days': pastDays.toString(),
+      'forecast_days': forecastDays.toString(),
+      'timezone': 'auto',
+    });
+
+    // Série mais pesada (até ~60 dias horários) — mais tempo antes de
+    // desistir do que as outras chamadas dessa classe.
+    final response =
+        await http.get(uri).timeout(const Duration(seconds: 30));
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Erro ao buscar série de nível do mar: ${response.statusCode}');
+    }
+
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final hourly = json['hourly'] as Map<String, dynamic>;
+    final horarios = (hourly['time'] as List).cast<String>();
+    final alturas = (hourly['sea_level_height_msl'] as List).cast<num?>();
+
+    final serie = <({DateTime horario, double alturaM})>[];
+    for (var i = 0; i < horarios.length; i++) {
+      final altura = alturas[i];
+      if (altura == null) continue;
+      serie.add((horario: DateTime.parse(horarios[i]), alturaM: altura.toDouble()));
+    }
+    return serie;
   }
 }

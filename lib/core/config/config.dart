@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class Config {
@@ -9,6 +10,16 @@ class Config {
     await Hive.openBox<String>('config');
     _box = Hive.box<String>('config');
     _iniciado = true;
+  }
+
+  /// Descarta o estado cacheado — só pra teste, entre um caso e outro, já
+  /// que [_iniciado]/[_box] são estado de processo (sem isso, o 2º teste
+  /// reaproveitaria a box do 1º mesmo depois de `Hive.deleteFromDisk()`
+  /// apontar pra um diretório temporário diferente, e quebraria com a box
+  /// já fechada).
+  @visibleForTesting
+  static void resetForTesting() {
+    _iniciado = false;
   }
 
   static Future<String> obtem(String chave, [String valorPadrao = '']) async {

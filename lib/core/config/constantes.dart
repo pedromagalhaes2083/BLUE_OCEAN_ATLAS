@@ -17,4 +17,16 @@ class Constantes {
   static const String ultimaVerificacaoRecomendacoes =
       'ultima_verificacao_recomendacoes';
   static const String alcanceAlertaRotaMn = 'alcance_alerta_rota_mn';
+  static const String ultimoAlertaCondicaoSeveraEm =
+      'ultimo_alerta_condicao_severa_em';
+  static const String cacheRecomendacoes = 'cache_recomendacoes';
+  static const String cacheRecomendacoesEm = 'cache_recomendacoes_em';
+  static const String alertaVentoAtivo = 'alerta_vento_ativo';
+  static const String alertaVentoLimiarKmh = 'alerta_vento_limiar_kmh';
+  static const String alertaOndaAtivo = 'alerta_onda_ativo';
+  static const String alertaOndaLimiarM = 'alerta_onda_limiar_m';
+  static const String alertaCorrenteAtivo = 'alerta_corrente_ativo';
+  static const String alertaCorrenteLimiarNos = 'alerta_corrente_limiar_nos';
+  static const String alertaTemperaturaAtivo = 'alerta_temperatura_ativo';
+  static const String alertaTemperaturaLimiarC = 'alerta_temperatura_limiar_c';
 }

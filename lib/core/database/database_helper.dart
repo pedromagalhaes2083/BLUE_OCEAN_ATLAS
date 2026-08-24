@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 12,
+      version: 13,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -120,6 +120,7 @@ class DatabaseHelper {
     await db.execute('ALTER TABLE ponto_marcado ADD COLUMN nome TEXT');
     await _criarTabelaSolicitacaoCarta(db);
     await _criarTabelasRotaPlanejada(db);
+    await _criarTabelaPortoMare(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -165,6 +166,9 @@ class DatabaseHelper {
           'ALTER TABLE producao_registro ADD COLUMN peso_medio_unitario REAL');
       await db.execute(
           'ALTER TABLE producao_registro ADD COLUMN precisao_metros REAL');
+    }
+    if (oldVersion < 13) {
+      await _criarTabelaPortoMare(db);
     }
     if (oldVersion >= 10 && oldVersion < 12) {
       // Rotas criadas a partir de registros de produção (ver MapaWidget)
@@ -212,6 +216,24 @@ class DatabaseHelper {
         latitude REAL NOT NULL,
         longitude REAL NOT NULL,
         ordem INTEGER NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _criarTabelaPortoMare(Database db) async {
+    // Portos salvos pelo usuário pra consulta de maré (ex: Itarema, Acaraú,
+    // Camocim) — constantes_json guarda o modelo harmônico ajustado da
+    // última sincronização (ver ModeloMareHarmonico), permitindo prever a
+    // maré offline sem precisar reconsultar a Open-Meteo toda vez.
+    await db.execute('''
+      CREATE TABLE porto_mare (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        data_criacao TEXT NOT NULL,
+        constantes_json TEXT,
+        sincronizado_em TEXT
       )
     ''');
   }

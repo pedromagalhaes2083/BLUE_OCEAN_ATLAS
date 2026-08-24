@@ -24,6 +24,8 @@ class _CartasScreenState extends State<CartasScreen> {
   bool isLoadingRecomendacoes = true;
   String? erroRecomendacoes;
   bool _ocultarExpiradas = false;
+  bool _offline = false;
+  DateTime? _cacheEm;
 
   List<Recomendacao> get _recomendacoesExibidas => _ocultarExpiradas
       ? recomendacoes.where((r) => !r.expirada).toList()
@@ -50,11 +52,14 @@ class _CartasScreenState extends State<CartasScreen> {
     );
 
     try {
-      final lista = await RecomendacaoRepository().listar();
+      final repositorio = RecomendacaoRepository();
+      final lista = await repositorio.listar();
       if (!mounted) return;
       setState(() {
         recomendacoes = lista;
         _ocultarExpiradas = ocultarExpiradas == 'true';
+        _offline = repositorio.ultimoResultadoOffline;
+        _cacheEm = repositorio.ultimaAtualizacaoCache;
       });
     } catch (e) {
       if (!mounted) return;
@@ -152,11 +157,48 @@ class _CartasScreenState extends State<CartasScreen> {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
+          if (_offline) ...[
+            _buildBannerOffline(),
+            const SizedBox(height: 12),
+          ],
           RecomendacoesList(
             recomendacoes: _recomendacoesExibidas,
             onTap: _abrirDetalheRecomendacao,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBannerOffline() {
+    final horario = _cacheEm != null
+        ? '${_cacheEm!.day.toString().padLeft(2, '0')}/${_cacheEm!.month.toString().padLeft(2, '0')} '
+            '${_cacheEm!.hour.toString().padLeft(2, '0')}:${_cacheEm!.minute.toString().padLeft(2, '0')}'
+        : 'data desconhecida';
+    return Card(
+      color: Colors.amber.withValues(alpha: 0.15),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.amber.shade700.withValues(alpha: 0.5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off_outlined, color: Colors.amber.shade800),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Sem conexão — mostrando a última lista sincronizada em $horario',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.amber.shade900),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

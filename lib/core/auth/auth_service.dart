@@ -79,7 +79,16 @@ class AuthService {
       final expiraEm = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
       final valido = DateTime.now().isBefore(expiraEm);
 
-      if (!valido) await logout();
+      // Só derruba a sessão (token/credencial), não a credencial "lembrada"
+      // — se fosse `logout()` aqui, apagaria usuário/senha do
+      // flutter_secure_storage um instante antes de quem chamou
+      // [isLoggedIn] tentar [tentarLoginAutomatico] com ela (ver
+      // SplashScreen), fazendo o login automático falhar sempre, mesmo
+      // com internet. O mesmo valia pra retentativa de 401 em
+      // [ApiService._comRetentativaDeAutenticacao] no meio de qualquer
+      // chamada — qualquer token expirado por perto derrubava a
+      // credencial lembrada antes dela poder ser reusada.
+      if (!valido) await _limparSessao();
       return valido;
     } catch (_) {
       // Token ilegível/corrompido — mais seguro tratar como não logado.
@@ -95,10 +104,18 @@ class AuthService {
     return Usuario.fromLoginResponse(jsonDecode(bruto));
   }
 
-  static Future<void> logout() async {
+  /// Só a sessão atual (token/credencial/organização) — mantém a
+  /// credencial "lembrada" intacta, pra login automático continuar
+  /// funcionando depois. Ver [isLoggedIn].
+  static Future<void> _limparSessao() async {
     await Config.limpa(Constantes.authToken);
     await Config.limpa(Constantes.authCredencial);
     await Config.limpa(Constantes.organizacaoId);
+  }
+
+  /// Logout explícito (botão "Sair") — sessão + credencial lembrada.
+  static Future<void> logout() async {
+    await _limparSessao();
     await _limparCredenciaisLembradas();
   }
 }

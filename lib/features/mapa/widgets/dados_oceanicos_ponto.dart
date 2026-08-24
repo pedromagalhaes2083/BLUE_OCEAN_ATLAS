@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/database/database_helper.dart';
 import '../../../core/models/wave_forecast.dart';
+import '../../../core/utils/proximidade.dart';
 import '../../metereologia/data/profundidade_repository.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../metereologia/domain/models/leitura_profundidade.dart';
+import '../../metereologia/domain/models/porto_mare.dart';
 
 /// Profundidade, temperatura (SST) e corrente de um ponto qualquer — busca
 /// ao vivo (não depende do GPS atual), usada no diálogo de detalhe tanto de
@@ -35,6 +38,19 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
   int? _correnteDirecaoGraus;
   double? _nivelMarM;
   MareEvento? _proximoEventoMare;
+
+  /// Preenchidos quando a Open-Meteo falha (sem rede) e existe um
+  /// [PortoMare] salvo com modelo offline perto o bastante do ponto — a
+  /// maré passa a vir do modelo harmônico local em vez da API ao vivo.
+  bool _mareOffline = false;
+  String? _portoOfflineNome;
+  DateTime? _proximoEventoOfflineHorario;
+  bool? _proximoEventoOfflineAlta;
+
+  /// Raio de busca pra considerar um porto salvo "perto o bastante" do
+  /// ponto — maré varia por local, então um porto muito distante daria uma
+  /// previsão enganosa.
+  static const _raioPortoOfflineNm = 60.0;
 
   @override
   void initState() {
@@ -79,8 +95,61 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
         _carregandoTemperatura = false;
       });
     } catch (_) {
+      final portoOffline = await _buscarPortoOfflineProximo();
       if (!mounted) return;
-      setState(() => _carregandoTemperatura = false);
+      if (portoOffline != null) {
+        final modelo = portoOffline.modelo!;
+        final agora = DateTime.now();
+        final eventos = modelo.proximosEventos(agora);
+        setState(() {
+          _nivelMarM = modelo.altura(agora);
+          _mareOffline = true;
+          _portoOfflineNome = portoOffline.nome;
+          _proximoEventoOfflineHorario =
+              eventos.isNotEmpty ? eventos.first.horario : null;
+          _proximoEventoOfflineAlta =
+              eventos.isNotEmpty ? eventos.first.alta : null;
+          _carregandoTemperatura = false;
+        });
+      } else {
+        setState(() => _carregandoTemperatura = false);
+      }
+    }
+  }
+
+  /// Busca, entre os portos salvos em "Tábua de Maré" com modelo offline já
+  /// sincronizado, o mais próximo do ponto — usado como reserva quando a
+  /// Open-Meteo falha (sem rede, no mar). Retorna `null` se não houver
+  /// nenhum porto com modelo dentro de [_raioPortoOfflineNm].
+  Future<PortoMare?> _buscarPortoOfflineProximo() async {
+    try {
+      final maps = await DatabaseHelper.instance.query('porto_mare');
+      final portos = maps
+          .map(PortoMare.fromMap)
+          .where((p) => p.temModeloOffline)
+          .toList();
+      if (portos.isEmpty) return null;
+
+      PortoMare? maisProximo;
+      var menorDistancia = double.infinity;
+      for (final porto in portos) {
+        final distancia = calcularDistanciaNauticas(
+          widget.latitude,
+          widget.longitude,
+          porto.latitude,
+          porto.longitude,
+        );
+        if (distancia < menorDistancia) {
+          menorDistancia = distancia;
+          maisProximo = porto;
+        }
+      }
+      if (maisProximo == null || menorDistancia > _raioPortoOfflineNm) {
+        return null;
+      }
+      return maisProximo;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -114,8 +183,8 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
         ),
         const SizedBox(height: 8),
         LinhaInfoPonto(
-          icon: Icons.waves_outlined,
-          label: 'Maré',
+          icon: _mareOffline ? Icons.cloud_off_outlined : Icons.waves_outlined,
+          label: _mareOffline ? 'Maré (offline: $_portoOfflineNome)' : 'Maré',
           valor: _valorMare(),
           carregando: _carregandoTemperatura,
         ),
@@ -135,6 +204,17 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
   String _valorMare() {
     final nivel = _nivelMarM;
     if (nivel == null) return '—';
+
+    if (_mareOffline) {
+      final horario = _proximoEventoOfflineHorario;
+      final alta = _proximoEventoOfflineAlta;
+      if (horario == null || alta == null) return '${nivel.toStringAsFixed(2)} m';
+      final tipo = alta ? 'preamar' : 'baixa-mar';
+      final h = horario.hour.toString().padLeft(2, '0');
+      final m = horario.minute.toString().padLeft(2, '0');
+      return '${nivel.toStringAsFixed(2)} m ($tipo às $h:$m)';
+    }
+
     final evento = _proximoEventoMare;
     if (evento == null) return '${nivel.toStringAsFixed(2)} m';
     final tipo = evento.tipo == TipoMare.alta ? 'preamar' : 'baixa-mar';
@@ -175,7 +255,10 @@ class LinhaInfoPonto extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: onSurfaceVariant),
         const SizedBox(width: 8),
-        Text(label, style: TextStyle(color: onSurfaceVariant, fontSize: 13)),
+        Flexible(
+          child: Text(label,
+              style: TextStyle(color: onSurfaceVariant, fontSize: 13)),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: carregando
