@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/database/database_helper.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/models/rota_planejada.dart';
+import 'analise_rota_screen.dart';
 
 /// Lista as rotas planejadas manualmente pelo mestre (sequência de pontos
 /// marcados no mapa antes de sair) — diferente do histórico de GPS, que é
@@ -78,6 +79,18 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => MapaScreen(rota: rota.pontos),
+      ),
+    );
+  }
+
+  void _analisarRota(RotaPlanejada rota) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AnaliseRotaScreen(
+          nomeRota: rota.nome,
+          pontos: rota.pontos,
+        ),
       ),
     );
   }
@@ -171,10 +184,20 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
                             '${DateFormat('dd/MM/yyyy HH:mm').format(rota.dataCriacao)}',
                           ),
                           onTap: () => _abrirRota(rota),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            tooltip: 'Apagar rota',
-                            onPressed: () => _apagarRota(rota),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.health_and_safety_outlined),
+                                tooltip: 'Analisar condições da rota',
+                                onPressed: () => _analisarRota(rota),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                tooltip: 'Apagar rota',
+                                onPressed: () => _apagarRota(rota),
+                              ),
+                            ],
                           ),
                         ),
                       );

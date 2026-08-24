@@ -28,11 +28,13 @@ class ApiService {
       api = api.substring(0, api.length - 1);
     }
 
-    final responseLogin = await http.post(
-      Uri.parse('https://$api/api/v1/autenticacao'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'chave': usuario, 'senha': senha}),
-    );
+    final responseLogin = await http
+        .post(
+          Uri.parse('https://$api/api/v1/autenticacao'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'chave': usuario, 'senha': senha}),
+        )
+        .timeout(const Duration(seconds: 20));
 
     if (responseLogin.statusCode == 401) {
       throw const UnauthorisedException('Credenciais inválidas');
@@ -58,10 +60,12 @@ class ApiService {
     recurso = _limpaRota(recurso);
     final api = await _api();
     final response = await _comRetentativaDeAutenticacao(
-      () async => http.get(
-        Uri.parse('https://$api/api/v1/$recurso'),
-        headers: await _headers(),
-      ),
+      () async => http
+          .get(
+            Uri.parse('https://$api/api/v1/$recurso'),
+            headers: await _headers(),
+          )
+          .timeout(const Duration(seconds: 20)),
     );
     return _analisa(response);
   }
@@ -74,11 +78,13 @@ class ApiService {
     debugPrint('POST https://$api/api/v1/$recurso');
     debugPrint(jsonEncode(data));
     final response = await _comRetentativaDeAutenticacao(
-      () async => http.post(
-        Uri.parse('https://$api/api/v1/$recurso'),
-        headers: await _headers(comCorpo: true),
-        body: jsonEncode(data),
-      ),
+      () async => http
+          .post(
+            Uri.parse('https://$api/api/v1/$recurso'),
+            headers: await _headers(comCorpo: true),
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 20)),
     );
     return _analisa(response);
   }
@@ -89,11 +95,13 @@ class ApiService {
     recurso = _limpaRota(recurso);
     final api = await _api();
     final response = await _comRetentativaDeAutenticacao(
-      () async => http.put(
-        Uri.parse('https://$api/api/v1/$recurso'),
-        headers: await _headers(comCorpo: true),
-        body: jsonEncode(data),
-      ),
+      () async => http
+          .put(
+            Uri.parse('https://$api/api/v1/$recurso'),
+            headers: await _headers(comCorpo: true),
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 20)),
     );
     return _analisa(response);
   }
@@ -113,13 +121,15 @@ class ApiService {
 
     while (pagina <= paginas) {
       final response = await _comRetentativaDeAutenticacao(
-        () async => http.get(
-          Uri.parse(
-            'https://$api/api/v1/$recurso/carga'
-            '?inicio=${inicio.toIso8601String()}&pagina=$pagina',
-          ),
-          headers: await _headers(),
-        ),
+        () async => http
+            .get(
+              Uri.parse(
+                'https://$api/api/v1/$recurso/carga'
+                '?inicio=${inicio.toIso8601String()}&pagina=$pagina',
+              ),
+              headers: await _headers(),
+            )
+            .timeout(const Duration(seconds: 20)),
       );
       final resposta = await _analisa(response);
       paginas = (resposta['paginas'] as num?)?.toInt() ?? 0;

@@ -1884,10 +1884,22 @@ class MapaWidgetState extends State<MapaWidget> {
                       height: 36,
                       alignment: Alignment.topCenter,
                       child: GestureDetector(
-                        onTap: () => _mostrarInfoPontoMarcado(p),
-                        child: const Icon(
+                        // Planejando rota: toca um ponto marcado pra
+                        // adicionar ele (com a coordenada exata, sem
+                        // depender de acertar o toque no mapa) em vez de
+                        // abrir o diálogo de detalhe — que não faz sentido
+                        // nesse modo, já que o objetivo é montar a rota.
+                        onTap: widget.modoPlanejarRota
+                            ? () => setState(() => _pontosRotaPlanejada = [
+                                  ..._pontosRotaPlanejada,
+                                  LatLng(p.latitude, p.longitude),
+                                ])
+                            : () => _mostrarInfoPontoMarcado(p),
+                        child: Icon(
                           Icons.push_pin,
-                          color: Colors.green,
+                          color: widget.modoPlanejarRota
+                              ? Colors.purple
+                              : Colors.green,
                           size: 32,
                         ),
                       ),
@@ -1996,7 +2008,7 @@ class MapaWidgetState extends State<MapaWidget> {
             children: [
               Text(
                 pontos == 0
-                    ? 'Toque no mapa para adicionar o primeiro ponto'
+                    ? 'Toque no mapa ou num ponto marcado para adicionar o primeiro ponto'
                     : '$pontos ponto${pontos == 1 ? '' : 's'} adicionado${pontos == 1 ? '' : 's'} — toque para continuar',
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
