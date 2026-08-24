@@ -1,6 +1,6 @@
 # Atlas Blue Ocean — Documentação Técnica
 
-> Versão: 1.0.0+1 · Flutter ≥ 3.6.0 · Última atualização: Agosto 2026
+> Versão: 1.0.0+1 · Flutter ≥ 3.6.0 · Última atualização: 23 de Agosto de 2026
 
 ---
 
@@ -36,17 +36,20 @@
 | Área | O que faz |
 |------|-----------|
 | **Mapa Offline** | Cartas náuticas em MBTiles, overlay de GeoTIFF e de PNG georreferenciado, mapa de ruas com cache, marcação de pontos, planejamento de rotas, rota entre registros de produção, grade de temperatura da superfície do mar (SST) |
-| **Rastreamento GPS** | Registra a posição a cada 5 min (foreground) e 15 min (background), sincroniza com o backend quando logado |
-| **Meteorologia** | Vento, correntes, previsão do tempo, ondas e profundidade/batimetria — parte de arquivos JSON locais, parte de APIs públicas (Open-Meteo, OpenTopoData) |
-| **Produção** | Registra capturas de pesca (tipo do peixe, classificação por faixa de peso, quantidade, posição GPS, viagem) com peso estimado calculado automaticamente; mostra histórico/totais |
+| **Meus Pontos** | Lista unificada (estilo da aba Recomendações) de pontos marcados manualmente + recomendações, com card de detalhe flutuante mostrando dados oceânicos ao vivo e produção associada a cada ponto |
+| **Alerta de Rota** | Projeta um ponto a X milhas náuticas no rumo atual (GPS) ou simulado (a partir de um ponto marcado) e mostra vento, corrente, altura de onda e swell nesse ponto à frente; inclui bússola (magnetômetro) num card próprio |
+| **Rastreamento GPS** | Registra a posição a cada 5 min (foreground) e 15 min (background, escopado à viagem em andamento), sincroniza com o backend quando logado |
+| **Meteorologia** | Vento, correntes, previsão do tempo, ondas/swell, tábua de marés e profundidade/batimetria — via APIs públicas (Open-Meteo, Open-Meteo Marine, OpenTopoData) |
+| **Notificação de Recomendação** | Avisa (notificação local) quando uma recomendação nova é gerada, checada pela mesma tarefa periódica do rastreamento (só roda com viagem em andamento) |
+| **Produção** | Registra capturas de pesca (tipo do peixe, classificação por faixa de peso, quantidade, posição GPS, viagem) com peso estimado calculado automaticamente; mostra histórico/totais e ranking de produção por ponto marcado |
 | **Recomendação** | Exibe recomendações de pesca vindas do backend (score, confiança, variáveis ambientais, pontos sugeridos) |
 | **Cartas Náuticas** | Gerencia, baixa e visualiza PDFs de cartas náuticas; permite solicitar novas cartas |
 | **Rotas Planejadas** | Cria rotas desenhadas manualmente sobre o mapa, ou geradas automaticamente a partir dos registros de produção de uma viagem (ao finalizá-la) |
 | **Viagem** | Início/fim de viagem, tripulação, histórico de localizações da viagem |
 | **Embarcação** | Cadastro, configuração e foto da embarcação |
 | **Autenticação** | Login real contra a Blue Ocean API, com opção de lembrar credenciais para login automático; sessão controlada pela expiração (`exp`) do JWT |
-| **Configurações** | Intervalo de rastreamento, modo noturno, contato de emergência, embarcação ativa |
-| **Teste de API / Dispositivo** | Ferramentas internas de debug para chamadas HTTP manuais e teste do registro de dispositivo |
+| **Configurações** | Intervalo de rastreamento, modo noturno, tema escuro, contato de emergência, embarcação ativa |
+| **Teste de API / Dispositivo** | Ferramentas internas de debug para chamadas HTTP manuais, teste do registro de dispositivo e teste manual da notificação de recomendação |
 
 ### Stack Tecnológica
 
@@ -55,10 +58,12 @@
 - **Banco de dados NoSQL:** Hive via `hive_flutter` (preferências/tokens e histórico de chamadas de teste)
 - **Mapas:** `flutter_map` com tiles MBTiles, overlay de GeoTIFF, overlay de PNG georreferenciado, grade de temperatura (polígonos) e cache de mapa de ruas
 - **GPS:** `geolocator`
+- **Bússola:** `flutter_compass` (magnetômetro, usada em `AlertaRotaScreen` — independente do rumo de GPS)
+- **Notificações locais:** `flutter_local_notifications` (recomendação nova)
 - **Background tasks:** `workmanager`
 - **Armazenamento seguro:** `flutter_secure_storage` (ID de dispositivo no iOS; credenciais de login lembradas)
 - **Backend:** Blue Ocean API (REST, `blue-ocean-app-api.up.railway.app`), consumida via `ApiService`
-- **APIs externas:** Open-Meteo (previsão do tempo, ondas e grade de SST), OpenTopoData (profundidade/batimetria)
+- **APIs externas:** Open-Meteo (previsão do tempo, grade de SST), Open-Meteo Marine (ondas, swell, corrente, maré), OpenTopoData (profundidade/batimetria)
 
 ---
 
@@ -156,8 +161,6 @@ atlas/
 │   ├── icons/                         # Ícones customizados / launcher icon
 │   ├── overlays/                      # Pasta de referência para PNGs georreferenciados
 │   └── json/
-│       ├── vento.json                 # Dados de vento (modelo GFS)
-│       ├── correntes.json             # Dados de correntes (modelo HYCOM)
 │       └── posicoes/
 │           └── Routing3.json          # Pontos de rota de exemplo com dados meteorológicos
 │
@@ -194,14 +197,17 @@ atlas/
 │   │   │   ├── location_tracking_service.dart
 │   │   │   ├── mbtiles_service.dart
 │   │   │   ├── night_mode_service.dart
+│   │   │   ├── theme_mode_service.dart        # tema claro/escuro/sistema
 │   │   │   ├── pontos_service.dart
+│   │   │   ├── producao_reporter_service.dart
+│   │   │   ├── recomendacao_notification_service.dart  # notificação local de recomendação nova
 │   │   │   ├── sincronizacao_service.dart
 │   │   │   └── street_map_cache_service.dart
 │   │   ├── storage/
 │   │   │   └── api_storage_service.dart
 │   │   └── utils/
 │   │       ├── coordenadas_format.dart
-│   │       └── proximidade.dart
+│   │       └── proximidade.dart               # + projetarPontoNoRumo (geodésia direta)
 │   │
 │   └── features/
 │       ├── api_tester/presentation/
@@ -237,11 +243,14 @@ atlas/
 │       │   ├── domain/models/ponto_marcado.dart
 │       │   ├── presentation/
 │       │   │   ├── mapa_screen.dart
-│       │   │   └── mapa_widget.dart
+│       │   │   ├── mapa_widget.dart
+│       │   │   └── meus_pontos_screen.dart    # pontos marcados + recomendações, lista unificada
 │       │   └── widgets/
+│       │       ├── dados_oceanicos_ponto.dart # profundidade/SST/corrente/maré de um ponto qualquer
 │       │       ├── download_regiao_dialog.dart
 │       │       ├── mbtiles_tile_provider.dart
 │       │       ├── meteorologia_sheet.dart
+│       │       ├── ponto_marcado_list_tile.dart
 │       │       └── street_map_tile_provider.dart
 │       ├── metereologia/
 │       │   ├── data/
@@ -252,16 +261,19 @@ atlas/
 │       │   │   ├── leitura_profundidade.dart
 │       │   │   └── previsao_tempo.dart
 │       │   └── presentation/
+│       │       ├── alerta_rota_screen.dart    # vento/corrente/onda/swell à frente + bússola
 │       │       ├── condicoes_mar_screen.dart
-│       │       ├── condicoes_ponto_screen.dart
-│       │       └── gribs_screen.dart
+│       │       └── condicoes_ponto_screen.dart
 │       ├── producao/
 │       │   ├── domain/
 │       │   │   ├── classificacao_peso.dart
 │       │   │   ├── especies_comuns.dart
-│       │   │   └── models/producao_registro.dart
+│       │   │   ├── models/producao_registro.dart
+│       │   │   └── services/
+│       │   │       └── producao_pontos_analyzer.dart  # agrupa produção por ponto marcado
 │       │   └── presentation/
 │       │       ├── producao_historico_screen.dart
+│       │       ├── producao_por_ponto_screen.dart      # ranking de produção por ponto
 │       │       └── producao_screen.dart
 │       ├── recomendacao/
 │       │   ├── data/recomendacao_repository.dart
@@ -298,14 +310,12 @@ atlas/
 │           ├── position_card.dart
 │           ├── profundidade_card.dart
 │           ├── web_view_screen.dart
-│           ├── meteorology_widgets/
-│           │   ├── current_card.dart
-│           │   └── wind_card.dart
 │           ├── previsao_tempo/
 │           │   ├── condicoes_vento_card.dart
 │           │   └── previsao_tempo_widgets.dart      # barrel
 │           └── wave_forecast/
 │               ├── condicoes_atuais_card.dart
+│               ├── mare_card.dart                   # tábua de marés (preamar/baixa-mar)
 │               ├── sea_surface_temperature_card.dart
 │               └── wave_forecast_widgets.dart       # barrel
 │
@@ -342,6 +352,8 @@ atlas/
 | `url_launcher` | ^6.3.1 | Abrir links/telefone/WhatsApp externos |
 | `share_plus` | ^10.1.4 | Compartilhamento (ex: resumo de viagem) |
 | `webview_flutter` | ^4.10.0 | WebView embutida (`WebViewScreen`) |
+| `flutter_local_notifications` | ^18.0.1 | Notificação local de recomendação nova |
+| `flutter_compass` | ^0.8.1 | Bússola (magnetômetro) na tela Alerta de Rota |
 
 ### Dev
 
@@ -489,7 +501,7 @@ Config.grava(String chave, String valor)                // → Future<void>
 Config.limpa(String chave)                               // → Future<void>
 ```
 
-As chaves usadas ficam centralizadas em `Constantes` (`api`, `authToken`, `authCredencial`, `deviceId`, `organizacaoId`, `embarcacaoId`, `intervaloRastreamentoMinutos`, `modoNoturno`, `contatoEmergenciaWhatsapp`, `lembrarCredenciais`). É a base de armazenamento de quase todos os outros serviços.
+As chaves usadas ficam centralizadas em `Constantes` (`api`, `authToken`, `authCredencial`, `deviceId`, `organizacaoId`, `embarcacaoId`, `intervaloRastreamentoMinutos`, `modoNoturno`, `lembrarCredenciais`, `contatoEmergenciaWhatsapp`, `ocultarRecomendacoesExpiradas`, `temaModo`, `ultimaVerificacaoRecomendacoes`, `alcanceAlertaRotaMn`). É a base de armazenamento de quase todos os outros serviços.
 
 ---
 
@@ -650,6 +662,30 @@ Estado global (`ValueNotifier<bool> ativo`) do modo noturno — converte a UI pa
 
 ---
 
+### 7.12a ThemeModeService
+**Localização:** `core/services/theme_mode_service.dart`
+
+Estado global (`ValueNotifier<ThemeMode> modo`) do tema claro/escuro/sistema — diferente do `NightModeService` (que é um filtro vermelho por cima da UI, não o tema de verdade). Mesmo padrão: `carregar()` lê de `Config` (chave `temaModo`), `alternar(ThemeMode)` atualiza o `ValueNotifier` e persiste. Consumido em `main.dart` (`_buildTheme(Brightness)` gera a variante clara/escura da mesma paleta) e exposto na tela de Configurações via `SegmentedButton<ThemeMode>`.
+
+---
+
+### 7.12b RecomendacaoNotificationService
+**Localização:** `core/services/recomendacao_notification_service.dart` — namespace estático sobre `flutter_local_notifications`.
+
+```dart
+inicializar({void Function(String? payload)? aoTocarNotificacao})
+// idempotente — cria o canal Android e pede a permissão de notificação (Android 13+)
+
+verificarNovas()
+// busca RecomendacaoRepository().listar(); na 1ª execução só grava a marca d'água
+// (maior criadoEm visto) sem notificar; nas seguintes, notifica as recomendações
+// com criadoEm posterior à marca salva e avança a marca — evita re-notificar
+```
+
+Chamado pela mesma tarefa periódica do rastreamento de GPS (`location_worker.callbackDispatcher`), então só roda enquanto há uma viagem em andamento, no intervalo configurado (mínimo 15 min no Android — não é push de verdade, não depende de servidor/Firebase). No toque da notificação, `main.dart` usa um `GlobalKey<NavigatorState>` (`navigatorKey`) pra abrir `MeusPontosScreen`. Tem um botão de teste manual em `DispositivoTesteScreen` (zera a marca d'água e chama `verificarNovas()` na hora, sem esperar o ciclo do WorkManager).
+
+---
+
 ### 7.13 SincronizacaoService
 **Localização:** `core/services/sincronizacao_service.dart`
 
@@ -690,7 +726,7 @@ Persiste respostas HTTP da tela de Teste de API (`ApiEntry`): `save`, `getAll` (
 | `RecomendacaoRepository` (`features/recomendacao/data`) | `listar() → Future<List<Recomendacao>>`, `buscarPorId(String id) → Future<Recomendacao>` | Blue Ocean API, via `ApiService` |
 | `PrevisaoTempoRepository` (`features/metereologia/data`) | `buscar({latitude, longitude}) → Future<PrevisaoTempo>` | Open-Meteo (`http` direto) |
 | `ProfundidadeRepository` (`features/metereologia/data`) | `buscarPonto(...)`, `buscarVarios(List<LatLng>)` | OpenTopoData/GEBCO (`http` direto) |
-| `WaveForecastRepository` (`features/metereologia/data`) | `buscar({latitude, longitude}) → Future<WaveForecast>`, `buscarGrade(List<LatLng> pontos) → Future<List<SstPonto>>` | Open-Meteo Marine (`http` direto) |
+| `WaveForecastRepository` (`features/metereologia/data`) | `buscar({latitude, longitude}) → Future<WaveForecast>` (onda, swell, corrente, SST, **maré**), `buscarGrade(List<LatLng> pontos) → Future<List<SstPonto>>` | Open-Meteo Marine (`http` direto) |
 
 `buscarGrade` pede a SST atual (`current`, não `hourly` — mais leve) de vários pontos numa única chamada, usando listas separadas por vírgula nos parâmetros `latitude`/`longitude` da Open-Meteo; usado pela grade de temperatura do mapa (ver [9.6](#96-mapa-offline-mapa)).
 
@@ -743,7 +779,9 @@ Suporta os modos:
 
 **Rota entre registros de produção:** ao vir de "Ver no mapa" em `ProducaoHistoricoScreen`, cada registro de produção com coordenada vira um marcador (ícone de peixe) e, havendo 2 ou mais, uma linha os liga em ordem cronológica — estilo Waze/Google Maps, mesmo padrão visual da rota de histórico de GPS, mas em laranja. Essa rota **não tem botão de salvar** — o salvamento como rota planejada acontece automaticamente ao finalizar a viagem correspondente (ver [9.11](#911-viagem-viagem)).
 
-**Ponto marcado:** tocar num ponto marcado abre um diálogo com coordenadas, data, distância/rumo até a posição atual, e dados oceânicos do próprio ponto (profundidade, temperatura da superfície do mar e **corrente** — velocidade em nós e direção, todos buscados pelas coordenadas do ponto, não pelo GPS). Ações: **Solicitar Carta** (pré-preenche `SolicitarCartaScreen` com a coordenada), **Consultar aqui** (abre `CondicoesPontoScreen`, travada nessa coordenada — ver [9.7](#97-meteorologia-metereologia)) e **Remover**.
+**Ponto marcado:** tocar num ponto marcado abre um diálogo com coordenadas, data, distância/rumo até a posição atual, e dados oceânicos do próprio ponto — widget compartilhado `DadosOceanicosPonto` (profundidade, temperatura da superfície do mar, **corrente** e **maré**, todos buscados pelas coordenadas do ponto, não pelo GPS), mais a produção total já registrada perto dali (`ProducaoPorPonto`, ver [9.8](#98-produção-producao)). Ações: **Solicitar Carta** (pré-preenche `SolicitarCartaScreen` com a coordenada), **Consultar aqui** (abre `CondicoesPontoScreen`, travada nessa coordenada — ver [9.7](#97-meteorologia-metereologia)) e **Remover**.
+
+**Meus Pontos** (`MeusPontosScreen`, acessível por um ícone ao lado do botão de GPS no mapa): lista, no mesmo estilo visual da aba Recomendações (linhas com acento lateral colorido, divisor fino, card de detalhe flutuante), os pontos marcados e as recomendações juntos — reaproveita `RecomendacaoListTile`/`RecomendacaoCard` para as recomendações e um novo `PontoMarcadoListTile`/`_DetalhePontoMarcado` para os pontos marcados, ambos abrindo o detalhe no mesmo chrome de diálogo.
 
 **Outras interações do mapa:**
 - Marcar ponto manualmente (mira no centro, salvo em `ponto_marcado`)
@@ -755,11 +793,13 @@ Suporta os modos:
 
 ### 9.7 Meteorologia (`metereologia/`)
 **Telas:**
-- `CondicoesMarScreen` — temperatura da água, corrente, ondas/swell e clima na posição atual da embarcação (GPS) ou numa posição informada manualmente (`PosicaoAtualWidget` + `PosicaoManualWidget`).
+- `CondicoesMarScreen` — temperatura da água, corrente, ondas/swell, **maré** (`MareCard`) e clima na posição atual da embarcação (GPS) ou numa posição informada manualmente (`PosicaoAtualWidget` + `PosicaoManualWidget`).
 - `CondicoesPontoScreen` — mesma informação, mas **travada num único ponto de referência** (latitude/longitude fixos, recebidos por parâmetro) — sem GPS nem campo de posição manual, então não tem como trocar de posição sem querer no meio da consulta. Usada a partir de "Consultar aqui" no diálogo de um ponto marcado no mapa.
-- `GribProcessorScreen` — vento e correntes filtrados por proximidade (raio ≈ 80 mn) a partir de `vento.json`/`correntes.json`.
+- `AlertaRotaScreen` — ver [9.17](#917-alerta-de-rota-metereologia).
 
-Combina JSON local (vento, correntes) com APIs externas via `PrevisaoTempoRepository`/`ProfundidadeRepository`/`WaveForecastRepository`.
+Todos os dados vêm de APIs externas via `PrevisaoTempoRepository`/`ProfundidadeRepository`/`WaveForecastRepository` (Open-Meteo). A antiga tela de Gribs (`vento.json`/`correntes.json` locais) foi removida — não há mais consulta de dados fora da tela de condições do mar/ponto.
+
+**Tábua de marés:** `WaveForecastRepository.buscar()` já pede `sea_level_height_msl` junto com onda/swell/corrente/SST (mesma chamada, sem custo extra de rede). `WaveForecast.eventosMare` (getter em `core/models/wave_forecast.dart`) calcula os picos/vales dessa série horária — cada ponto onde a curva muda de direção é uma preamar (`TipoMare.alta`) ou baixa-mar (`TipoMare.baixa`), já que a Open-Meteo não expõe esses horários prontos. `MareCard` mostra o nível atual + os próximos eventos; `DadosOceanicosPonto` mostra uma linha compacta ("X m (preamar às HH:mm)").
 
 ### 9.8 Produção (`producao/`)
 **Tela:** `ProducaoScreen` — registro de captura com os campos, nessa ordem:
@@ -771,7 +811,9 @@ Combina JSON local (vento, correntes) com APIs externas via `PrevisaoTempoReposi
 
 Ao salvar: tenta capturar o GPS (`LocationService`); se falhar, salva mesmo assim sem coordenada, avisando por `SnackBar` (GPS não é obrigatório). O registro grava `quantidadeKg`/`pesoMedioUnitario` usando o **ponto médio** da faixa (o intervalo é só uma estimativa mostrada durante o lançamento).
 
-**Tela:** `ProducaoHistoricoScreen` — histórico e totais por espécie/tipo, exportação CSV, e um botão **"Ver no mapa"** que abre o mapa com a rota entre os registros geolocalizados dessa lista (ver [9.6](#96-mapa-offline-mapa)).
+**Tela:** `ProducaoHistoricoScreen` — histórico e totais por espécie/tipo, exportação CSV, botão **"Ver no mapa"** que abre o mapa com a rota entre os registros geolocalizados dessa lista (ver [9.6](#96-mapa-offline-mapa)), e botão **"Produção por ponto"**.
+
+**Tela:** `ProducaoPorPontoScreen` — ranking dos pontos marcados mais produtivos: `agruparProducaoPorPonto` (`producao_pontos_analyzer.dart`) associa cada registro de produção com coordenada ao ponto marcado mais próximo dentro de um raio fixo (5 mn, haversine via `calcularDistanciaNauticas`), soma o total em kg e a espécie em destaque por ponto, e ordena do mais produtivo pro menos. O mesmo cálculo alimenta a linha "Produção aqui" no diálogo de detalhe de um ponto marcado (ver [9.6](#96-mapa-offline-mapa)).
 
 ### 9.9 Recomendação (`recomendacao/`)
 Sem tela própria — é uma biblioteca de widgets (`RecomendacaoCard`, `RecomendacaoListTile`, `RecomendacaoPontoCard`, `RecomendacaoScoreBadge`, `RecomendacaoConfiancaDots`, `RecomendacaoValidadeChip`, `RecomendacaoVariavelChip`, `RecomendacoesList`) embutida em `dashboard`, `mapa` e `dispositivo`, alimentada por `RecomendacaoRepository`.
@@ -806,12 +848,20 @@ Sem tela própria — só `data/` (`LocalizacaoRepository`) e `domain/models` (`
 | `PositionCard`, `PosicaoAtualWidget`, `PosicaoManualWidget` | Coordenadas GPS (ao vivo ou digitadas manualmente) |
 | `BaseMeteorologyCard` | Classe abstrata base para todos os cards de meteorologia |
 | `InfoColumn` | Coluna com ícone + label + valor |
-| `WindCard`, `CurrentCard` | Cards de vento e corrente (dados locais, `vento.json`/`correntes.json`) |
 | `CondicoesVentoCard` | Card de previsão do tempo/vento (Open-Meteo) |
-| `CondicoesAtuaisCard`, `SeaSurfaceTemperatureCard` | Cards de ondas/temperatura da superfície do mar |
+| `CondicoesAtuaisCard`, `SeaSurfaceTemperatureCard`, `MareCard` | Cards de ondas/swell, temperatura da superfície do mar e tábua de marés |
+| `DadosOceanicosPonto` | Profundidade + SST + corrente + maré de um ponto qualquer (ao vivo, não depende do GPS) — usado nos diálogos de ponto marcado/recomendação, no mapa e em "Meus Pontos" |
 | `ProfundidadeCard` | Card de profundidade/batimetria |
 | `MeteorologiaSheet` | Bottom sheet draggável com os dados completos de um `PontoMapa` |
 | `WebViewScreen` | WebView genérica (`webview_flutter`) |
+
+### 9.17 Alerta de Rota (`metereologia/`)
+**Tela:** `AlertaRotaScreen` — em vez de uma grade de valores no mapa, responde diretamente "o que tem no meu caminho": projeta um ponto a X milhas náuticas (configurável, 5–100 mn, persistido via `Config`) no rumo atual e busca vento, corrente, altura de onda e swell **nesse ponto**, via `projetarPontoNoRumo` (geodésia direta/esférica, "inverso" da haversine — `core/utils/proximidade.dart`) + `PrevisaoTempoRepository`/`WaveForecastRepository`.
+
+- **Rumo**: usa `Position.heading` do GPS (curso sobre o solo) — só é válido com a embarcação em movimento (`speed > 0.5`); parada, mostra um aviso em vez de um rumo enganoso.
+- **Bússola** (card ao lado do de alcance): usa o **magnetômetro** (`flutter_compass`), não o GPS — funciona parada ou em movimento, mostrador fixo (N/L/S/O) com uma agulha girando pro rumo atual, só número em graus + rótulo cardinal (sem desenho de ponteiro).
+- **Simulação**: botão "Simular com ponto marcado" (ícone de frasco) — escolhe um ponto já salvo em `ponto_marcado` + um rumo arbitrário (slider 0–359°) e monta uma `Position` sintética (`isMocked: true`) nessa coordenada, rodando o mesmo pipeline de busca. Um banner amarelo deixa claro que não é o GPS real, com botão "Sair" (chama `_atualizar()`, que volta pro GPS real). Útil pra testar/planejar sem depender de a embarcação estar de fato em movimento.
+- **Cards de alerta**: vento (limiares de `CondicoesVentoCard`), corrente (limiares próprios em nós), onda e swell (limiares de `CondicoesAtuaisCard`, altura em metros) — cada um com ícone, cor por severidade (verde→vermelho) e direção.
 
 ---
 
@@ -1044,13 +1094,19 @@ class WaveHourEntry {
   final DateTime time;
   final double waveHeight, waveDirection... /* ver tabela completa em wave_forecast.dart */
   final double? swellWaveHeight, oceanCurrentVelocity, oceanCurrentDirection, seaSurfaceTemperature;
+  final double? seaLevelHeightMsl;  // nível do mar (m) — série usada como maré
   String get directionLabel; double get directionRadians;
+}
+enum TipoMare { alta, baixa }
+class MareEvento {
+  final DateTime time; final double alturaM; final TipoMare tipo;
 }
 class WaveForecast {
   final double latitude, longitude;
   final String timezone;
   final List<WaveHourEntry> hourly;
   WaveHourEntry? get current; List<WaveHourEntry> get upcoming;
+  List<MareEvento> get eventosMare;  // picos/vales de seaLevelHeightMsl em upcoming
   factory WaveForecast.fromJson(Map<String,dynamic> json); // Open-Meteo Marine
 }
 ```
@@ -1103,7 +1159,7 @@ A box `config` é aberta sob demanda pelo próprio `Config` (lazy init), na prim
 
 | Box | Tipo | Conteúdo | Gerenciada por |
 |-----|------|----------|---------------|
-| `config` | `Box<String>` | Preferências e tokens: `authToken`, `authCredencial`, `deviceId`, `organizacaoId`, `embarcacaoId`, `intervaloRastreamentoMinutos`, `modoNoturno`, `contatoEmergenciaWhatsapp`, `lembrarCredenciais`, `api` | `Config` |
+| `config` | `Box<String>` | Preferências e tokens: `authToken`, `authCredencial`, `deviceId`, `organizacaoId`, `embarcacaoId`, `intervaloRastreamentoMinutos`, `modoNoturno`, `temaModo`, `contatoEmergenciaWhatsapp`, `lembrarCredenciais`, `ocultarRecomendacoesExpiradas`, `ultimaVerificacaoRecomendacoes`, `alcanceAlertaRotaMn`, `api` | `Config` |
 | `api_responses` | `Box` (dynamic) | Respostas HTTP do Teste de API (`ApiEntry`) | `ApiStorageService` |
 
 Os dados são armazenados sem `TypeAdapter`/geração de código, garantindo simplicidade — o body de resposta HTTP é salvo como String JSON formatada.
@@ -1123,13 +1179,9 @@ Pasta de referência para PNGs georreferenciados. O fluxo atual **não depende d
 
 ### `assets/json/`
 
-**`vento.json`** — vento (modelo GFS, 0.25°): `latitude`, `longitude`, `u10`/`v10` (m/s), `velocidade` (nós), `direcao` (graus), `tmp2m` (K), `rh2m` (%).
-
-**`correntes.json`** — correntes marinhas (modelo HYCOM): `latitude`, `longitude`, `velocidade` (nós), `direcao` (graus), `temperatura_agua` (°C), `salinidade` (PSU).
-
 **`posicoes/Routing3.json`** — pontos de rota de exemplo, no formato `PontoMapa` (`empresa`, `embarcacao`, `dispositivo`, `instante`, `latitude`, `longitude`, `meteorologia`).
 
-> `clorofila.json` foi removido dos assets — a feature de clorofila (card, chip, legenda, lista de proximidade) foi retirada do app (ver [18](#18-próximos-passos)).
+> `vento.json`/`correntes.json` (dados locais, modelo GFS/HYCOM) e a tela de Gribs que os consumia foram removidos — não há mais consulta de dados meteorológicos além da tela de condições do mar/ponto (Open-Meteo). `clorofila.json` também foi removido dos assets — a feature de clorofila (card, chip, legenda, lista de proximidade) foi retirada do app (ver [18](#18-próximos-passos)).
 
 ---
 
@@ -1177,20 +1229,28 @@ LoginScreen
 
 ### Fluxo de Rastreamento
 
+O rastreamento em segundo plano é **escopado à viagem**, não ao login — começa em `NovaViagemScreen._salvarViagem()` (depois de confirmar permissão de localização "sempre" + exceção de otimização de bateria) e termina em `HistoricoLocalizacoesScreen._finalizarViagem()`. Login/Splash só retomam o rastreamento se já houver uma viagem com `status = 'em_andamento'` — não iniciam por conta própria.
+
 ```
-DashboardScreen.initState()
- └─ se viagem em andamento:
-     ├─ LocationTrackingService.iniciarRastreamento(intervaloMinutos)
-     │   └─ WorkManager.registerPeriodicTask (mín. 15 min)
-     │       └─ location_worker.callbackDispatcher()
-     │           └─ LocalizacaoReporterService.registrarESincronizar()
-     │               ├─ Geolocator.getCurrentPosition() + Battery.batteryLevel
-     │               ├─ INSERT localizacao_historico (sincronizado=0)
-     │               └─ sincronizarPendentes()
-     │                   ├─ AuthService.isLoggedIn()? senão para o rastreamento
-     │                   ├─ DispositivoRepository.buscarPorIdentificador(DeviceIdService.obtemId())
-     │                   └─ LocalizacaoRepository.enviar(...) por pendência → marca sincronizado=1
-     └─ (paralelo, foreground) mesma lógica disparada com frequência maior via Timer
+NovaViagemScreen._salvarViagem()
+ ├─ LocationService.solicitarPermissaoSempre()          (escalada em 2 etapas: whileInUse → always)
+ ├─ LocationService.solicitarIgnorarOtimizacaoBateria()  (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+ └─ LocationTrackingService.iniciarRastreamento(intervaloMinutos)
+     └─ WorkManager.registerPeriodicTask (mín. 15 min)
+         └─ location_worker.callbackDispatcher()
+             ├─ LocalizacaoReporterService.registrarESincronizar()
+             │   ├─ Geolocator.getCurrentPosition() + Battery.batteryLevel
+             │   ├─ INSERT localizacao_historico (sincronizado=0)
+             │   └─ sincronizarPendentes()
+             │       ├─ AuthService.isLoggedIn()? senão para o rastreamento
+             │       ├─ DispositivoRepository.buscarPorIdentificador(DeviceIdService.obtemId())
+             │       └─ LocalizacaoRepository.enviar(...) por pendência → marca sincronizado=1
+             └─ RecomendacaoNotificationService.verificarNovas()
+                 └─ notifica (flutter_local_notifications) se houver recomendação mais nova
+                    que a última verificação salva (ver §7.12b)
+
+HistoricoLocalizacoesScreen._finalizarViagem()
+ └─ LocationTrackingService.pararRastreamento()  (além de marcar status='finalizada')
 ```
 
 ### Fluxo do Mapa — sobreposição de PNG georreferenciado
@@ -1264,9 +1324,13 @@ MapaWidget.initState()
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.WAKE_LOCK" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 ```
 
-Para o WorkManager funcionar corretamente em background, o serviço deve estar declarado no manifest. `READ_EXTERNAL_STORAGE`/o seletor de documentos do sistema também cobrem a seleção de PNG de overlay via `file_picker`.
+Para o WorkManager funcionar corretamente em background, o serviço deve estar declarado no manifest. `READ_EXTERNAL_STORAGE`/o seletor de documentos do sistema também cobrem a seleção de PNG de overlay via `file_picker`. `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` evita que fabricantes agressivos (Xiaomi, Samsung, Huawei) matem a tarefa de rastreamento em segundo plano mesmo com localização "sempre" concedida. `POST_NOTIFICATIONS` (Android 13+) é exigida por qualquer notificação, inclusive as locais de recomendação nova.
+
+> **`flutter_local_notifications` exige core library desugaring** — sem `isCoreLibraryDesugaringEnabled = true` em `compileOptions` (+ dependência `coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:...")`) no `android/app/build.gradle.kts`, o Gradle falha em `checkDebugAarMetadata`. Já configurado no projeto — só um lembrete pra quem for adicionar outro plugin que dependa de APIs `java.time`.
 
 ### iOS (`ios/Runner/Info.plist`)
 
@@ -1736,6 +1800,17 @@ banco novo em `onCreate`.
 - [x] ~~Peso estimado como intervalo (mín.–máx.), não um único valor~~ — feito
 - [ ] Confirmar com o usuário se a tabela de peso por classificação (`classificacao_peso.dart`) precisa variar por tipo de peixe — hoje é a mesma para Kihada e Bati
 
+### Alertas e Meteorologia (Agosto 2026)
+
+- [x] ~~Remover a tela de Gribs (`vento.json`/`correntes.json` locais)~~ — feito, dados só via Open-Meteo agora
+- [x] ~~Tábua de marés (preamar/baixa-mar)~~ — feito (`WaveForecast.eventosMare`, `MareCard`)
+- [x] ~~Cruzar produção com pontos marcados por proximidade~~ — feito (`producao_pontos_analyzer.dart`, `ProducaoPorPontoScreen`)
+- [x] ~~Notificação local de recomendação nova~~ — feito (`RecomendacaoNotificationService`), sem push real (depende do ciclo do WorkManager, mín. 15 min)
+- [x] ~~Alerta de vento/corrente/onda/swell num ponto à frente da embarcação~~ — feito (`AlertaRotaScreen`), com simulação a partir de ponto marcado pra testar sem depender do GPS em movimento
+- [x] ~~Tema escuro~~ — feito (`ThemeModeService`) + harmonização de cores hardcoded nas telas
+- [ ] Camada visual de alerta (grade de vento/corrente forte no mapa, nos moldes da grade de SST) — considerada, mas o ponto-à-frente (`AlertaRotaScreen`) foi priorizado por ser mais acionável
+- [ ] Push de verdade (Firebase/FCM) pra notificação de recomendação, se o intervalo mínimo do WorkManager (15 min) não for suficiente na prática
+
 ### Qualidade de Código
 
 - [x] ~~Remover a feature de clorofila (card, chip, legenda, lista de proximidade, `clorofila.json`)~~ — feito, sem uso em nenhuma tela
@@ -1749,4 +1824,4 @@ banco novo em `onCreate`.
 
 ---
 
-*Documentação atualizada em Agosto de 2026 — Atlas Blue Ocean v1.0.0*
+*Documentação atualizada em 23 de Agosto de 2026 — Atlas Blue Ocean v1.0.0*
