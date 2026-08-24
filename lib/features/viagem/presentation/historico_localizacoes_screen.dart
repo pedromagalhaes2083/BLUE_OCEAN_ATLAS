@@ -271,7 +271,10 @@ class _HistoricoLocalizacoesScreenState
   }
 
   String _formatarDataHora(String dataIso) {
-    final date = DateTime.parse(dataIso);
+    // Gravado em UTC (ver LocalizacaoReporterService) — sem o .toLocal(),
+    // mostrava a hora UTC como se já fosse hora local (3h atrasada no
+    // Brasil, e às vezes até a data errada, pra registros feitos à noite).
+    final date = DateTime.parse(dataIso).toLocal();
     return DateFormat('dd/MM/yyyy HH:mm:ss').format(date);
   }
 

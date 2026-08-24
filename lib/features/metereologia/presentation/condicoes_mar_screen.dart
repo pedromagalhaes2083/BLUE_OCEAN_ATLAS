@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/posicao_atual_widget.dart';
-import '../../widgets/posicao_manual_widget.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
 import '../../widgets/wave_forecast/wave_forecast_widgets.dart';
@@ -85,8 +84,6 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
             onPosicaoObtida: (posicao) =>
                 _atualizarPosicao(posicao.latitude, posicao.longitude),
           ),
-          const SizedBox(height: 12),
-          PosicaoManualWidget(onBuscar: _atualizarPosicao),
           const SizedBox(height: 24),
           if (_lat == null || _lon == null)
             const Center(

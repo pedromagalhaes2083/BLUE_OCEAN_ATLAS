@@ -49,7 +49,7 @@ class MareCard extends StatelessWidget {
             if (eventos.isNotEmpty) ...[
               const SizedBox(height: 16),
               SizedBox(
-                height: 78,
+                height: 92,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: eventos.length > 6 ? 6 : eventos.length,
@@ -78,7 +78,7 @@ class _EventoMareChip extends StatelessWidget {
 
     return Container(
       width: 84,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
@@ -88,6 +88,7 @@ class _EventoMareChip extends StatelessWidget {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.max,
         children: [
           Icon(
             alta ? Icons.arrow_upward : Icons.arrow_downward,
@@ -99,13 +100,15 @@ class _EventoMareChip extends StatelessWidget {
             style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
+                height: 1.1,
                 color: alta ? Colors.teal.shade700 : Colors.blueGrey),
           ),
           Text('$h:$m',
               style: const TextStyle(
                   fontSize: 13, fontWeight: FontWeight.bold, height: 1)),
           Text('${evento.alturaM.toStringAsFixed(2)} m',
-              style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+              style: TextStyle(
+                  fontSize: 10, height: 1.1, color: Colors.grey[600])),
         ],
       ),
     );
