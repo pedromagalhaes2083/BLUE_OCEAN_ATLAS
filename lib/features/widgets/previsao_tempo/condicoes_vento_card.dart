@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:atlas/features/widgets/base_meteorology_card.dart';
+import '../../../core/utils/cor_tema.dart';
 import '../../metereologia/domain/models/previsao_tempo.dart';
 
 /// Card único com o vento atual (destaque), temperatura (secundária) e a
@@ -25,28 +26,30 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
   Widget buildContent(BuildContext context) {
     final atual = previsao.atual!;
     final proximas = previsao.proximasHoras;
+    final corRot = corRotulo(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildHeader(atual),
+        _buildHeader(atual, corRot),
         const Divider(height: 28),
-        SizedBox(width: double.infinity, child: _buildVentoPrincipal(atual)),
+        SizedBox(
+            width: double.infinity, child: _buildVentoPrincipal(atual, corRot)),
         const SizedBox(height: 16),
         const Divider(height: 1),
         const SizedBox(height: 12),
-        _buildTemperaturaSecundaria(atual),
+        _buildTemperaturaSecundaria(atual, corRot),
         if (proximas.isNotEmpty) ...[
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 12),
-          _buildTimeline(proximas),
+          _buildTimeline(proximas, corRot),
         ],
       ],
     );
   }
 
-  Widget _buildHeader(PrevisaoTempoAtual atual) {
+  Widget _buildHeader(PrevisaoTempoAtual atual, Color corRot) {
     final d = atual.horario.day.toString().padLeft(2, '0');
     final mo = atual.horario.month.toString().padLeft(2, '0');
     return Row(
@@ -61,19 +64,19 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        Text('$d/$mo', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+        Text('$d/$mo', style: TextStyle(color: corRot, fontSize: 13)),
       ],
     );
   }
 
-  Widget _buildVentoPrincipal(PrevisaoTempoAtual atual) {
+  Widget _buildVentoPrincipal(PrevisaoTempoAtual atual, Color corRot) {
     final velocidade = atual.velocidadeVento;
     return Column(
       children: [
         Text(
           'VELOCIDADE DO VENTO',
           style: TextStyle(
-              color: Colors.grey[600],
+              color: corRot,
               fontSize: 11,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5),
@@ -92,7 +95,7 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8, left: 4),
                 child: Text('km/h',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[700])),
+                    style: TextStyle(fontSize: 16, color: corRot)),
               ),
             ],
           ),
@@ -105,7 +108,7 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
           children: [
             Text('Direção: ${atual.direcaoVento}°',
                 style: TextStyle(
-                    color: Colors.grey[700],
+                    color: corRot,
                     fontSize: 13,
                     fontWeight: FontWeight.w500)),
             const SizedBox(width: 6),
@@ -143,12 +146,12 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
     );
   }
 
-  Widget _buildTemperaturaSecundaria(PrevisaoTempoAtual atual) {
+  Widget _buildTemperaturaSecundaria(PrevisaoTempoAtual atual, Color corRot) {
     return Row(
       children: [
-        Icon(Icons.thermostat, size: 18, color: Colors.grey[600]),
+        Icon(Icons.thermostat, size: 18, color: corRot),
         const SizedBox(width: 8),
-        Text('Temperatura', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+        Text('Temperatura', style: TextStyle(color: corRot, fontSize: 13)),
         const Spacer(),
         Text('${atual.temperatura.toStringAsFixed(1)} °C',
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
@@ -156,20 +159,20 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
     );
   }
 
-  Widget _buildTimeline(List<PrevisaoTempoHoraria> proximas) {
+  Widget _buildTimeline(List<PrevisaoTempoHoraria> proximas, Color corRot) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.schedule, size: 15, color: Colors.grey[600]),
+            Icon(Icons.schedule, size: 15, color: corRot),
             const SizedBox(width: 6),
             Text('Previsão horária',
                 style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+                    fontSize: 13, fontWeight: FontWeight.w600, color: corRot)),
             const Spacer(),
             Text('${proximas.length}h',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                style: TextStyle(fontSize: 12, color: corRot)),
           ],
         ),
         const SizedBox(height: 10),
@@ -212,6 +215,7 @@ class _HourChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final h = entry.horario.hour.toString().padLeft(2, '0');
     final m = entry.horario.minute.toString().padLeft(2, '0');
+    final corRot = corRotulo(context);
 
     return Container(
       width: 84,
@@ -230,7 +234,7 @@ class _HourChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: corRot,
               ),
             ),
             Transform.rotate(
@@ -244,12 +248,12 @@ class _HourChip extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold, height: 1),
                 ),
-                Text('°C', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                Text('°C', style: TextStyle(fontSize: 10, color: corRot)),
               ],
             ),
             Text(
               '${entry.velocidadeVento.toStringAsFixed(0)} km/h',
-              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 11, color: corRot),
             ),
             if (entry.precipitacao > 0)
               Row(

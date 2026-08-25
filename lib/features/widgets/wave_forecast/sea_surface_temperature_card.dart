@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:atlas/features/widgets/base_meteorology_card.dart';
 import '../../../core/models/wave_forecast.dart';
+import '../../../core/utils/cor_tema.dart';
 
 /// Card com a temperatura da superfície do mar (SST) — Open-Meteo Marine
 /// (`sea_surface_temperature`). Mostra um aviso de "Ponto em terra" se a
@@ -64,7 +65,7 @@ class SeaSurfaceTemperatureCard extends BaseMeteorologyCard {
         const SizedBox(height: 8),
         Text(
           'Superfície do mar',
-          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          style: TextStyle(color: corRotulo(context), fontSize: 12),
           textAlign: TextAlign.center,
         ),
       ],

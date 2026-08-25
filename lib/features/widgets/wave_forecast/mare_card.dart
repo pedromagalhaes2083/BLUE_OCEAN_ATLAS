@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/wave_forecast.dart';
+import '../../../core/utils/cor_tema.dart';
 
 /// Card de tábua de marés — nível do mar atual e as próximas preamares/
 /// baixa-mares, calculadas a partir da série horária de nível do mar da
@@ -17,10 +18,19 @@ class MareCard extends StatelessWidget {
 
     if (nivelAtual == null && eventos.isEmpty) return const SizedBox.shrink();
 
+    // Mesma técnica de `BaseMeteorologyCard._corResolvida` — sem isso, o
+    // card ficava um bloco pastel bem claro fixo em cima do tema escuro,
+    // destoando dos cards vizinhos (vento, ondas) que já se adaptam.
+    final escuro = Theme.of(context).brightness == Brightness.dark;
+    final corCard = Color.alphaBlend(
+      const Color(0xFFE0F2F1).withValues(alpha: escuro ? 0.18 : 1.0),
+      Theme.of(context).cardColor,
+    );
+
     return Card(
       elevation: 3,
       clipBehavior: Clip.antiAlias,
-      color: const Color(0xFFE0F2F1),
+      color: corCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
@@ -42,7 +52,7 @@ class MareCard extends StatelessWidget {
                 if (nivelAtual != null)
                   Text(
                     '${nivelAtual.toStringAsFixed(2)} m agora',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(color: corRotulo(context), fontSize: 12),
                   ),
               ],
             ),
@@ -108,7 +118,7 @@ class _EventoMareChip extends StatelessWidget {
                   fontSize: 13, fontWeight: FontWeight.bold, height: 1)),
           Text('${evento.alturaM.toStringAsFixed(2)} m',
               style: TextStyle(
-                  fontSize: 10, height: 1.1, color: Colors.grey[600])),
+                  fontSize: 10, height: 1.1, color: corRotulo(context))),
         ],
       ),
     );

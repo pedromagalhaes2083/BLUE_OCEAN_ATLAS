@@ -11,7 +11,6 @@ bool correnteSevera(double nos, double limiarNos) => nos >= limiarNos;
 /// Mesmo critério serve pra altura de onda e de swell (mesma unidade, m).
 bool alturaSevera(double metros, double limiarM) => metros >= limiarM;
 
-/// Ao contrário dos outros (que disparam "acima de"), temperatura dispara
-/// "abaixo de" — o interesse aqui é avisar de uma frente fria, não de
-/// perigo de navegação.
-bool temperaturaSevera(double celsius, double limiarC) => celsius < limiarC;
+/// Mesmo critério dos outros — dispara "acima de": água quente demais é o
+/// que interessa avisar aqui.
+bool temperaturaSevera(double celsius, double limiarC) => celsius >= limiarC;

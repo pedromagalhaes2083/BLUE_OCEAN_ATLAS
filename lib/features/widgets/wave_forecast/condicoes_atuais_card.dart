@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/wave_forecast.dart';
+import '../../../core/utils/cor_tema.dart';
 
 /// Card único com as condições atuais do mar: altura/período de onda,
 /// corrente (velocidade + direção), swell, direção da onda e a previsão
@@ -18,10 +19,21 @@ class CondicoesAtuaisCard extends StatelessWidget {
 
     final proximas = forecast.upcoming;
 
+    // Mesma técnica de `BaseMeteorologyCard._corResolvida` — funde a cor
+    // pastel de identidade do card como tinta translúcida sobre o
+    // `cardColor` do tema, em vez do literal puro (que ficava um bloco
+    // claro cego em cima do tema escuro).
+    final escuro = Theme.of(context).brightness == Brightness.dark;
+    final corCard = Color.alphaBlend(
+      const Color(0xFFEDF1F3).withValues(alpha: escuro ? 0.18 : 1.0),
+      Theme.of(context).cardColor,
+    );
+    final corRot = corRotulo(context);
+
     return Card(
       elevation: 3,
       clipBehavior: Clip.antiAlias,
-      color: const Color(0xFFEDF1F3),
+      color: corCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,14 +43,14 @@ class CondicoesAtuaisCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(entry),
+                _buildHeader(entry, corRot),
                 const SizedBox(height: 20),
-                _buildAlturaECorrente(entry),
+                _buildAlturaECorrente(entry, corRot),
                 if (entry.swellWaveHeight != null) ...[
                   const SizedBox(height: 16),
                   _divider(),
                   const SizedBox(height: 12),
-                  _buildSwellEDirecao(entry),
+                  _buildSwellEDirecao(entry, corRot),
                 ],
               ],
             ),
@@ -47,7 +59,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
             _divider(),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-              child: _buildTimeline(entry, proximas),
+              child: _buildTimeline(entry, proximas, corRot),
             ),
           ],
         ],
@@ -57,7 +69,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
 
   Widget _divider() => Divider(color: Colors.grey.withValues(alpha: 0.25), height: 1);
 
-  Widget _buildHeader(WaveHourEntry entry) {
+  Widget _buildHeader(WaveHourEntry entry, Color corRot) {
     final d = entry.time.day.toString().padLeft(2, '0');
     final mo = entry.time.month.toString().padLeft(2, '0');
     return Row(
@@ -70,35 +82,35 @@ class CondicoesAtuaisCard extends StatelessWidget {
               color: Colors.blueGrey, fontSize: 13, fontWeight: FontWeight.w600),
         ),
         const Spacer(),
-        Text('$d/$mo', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+        Text('$d/$mo', style: TextStyle(color: corRot, fontSize: 12)),
       ],
     );
   }
 
-  Widget _buildAlturaECorrente(WaveHourEntry entry) {
+  Widget _buildAlturaECorrente(WaveHourEntry entry, Color corRot) {
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: _buildAltura(entry)),
+          Expanded(child: _buildAltura(entry, corRot)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: VerticalDivider(
                 color: Colors.grey.withValues(alpha: 0.25), width: 1),
           ),
-          Expanded(child: _buildCorrente(entry)),
+          Expanded(child: _buildCorrente(entry, corRot)),
         ],
       ),
     );
   }
 
-  Widget _buildAltura(WaveHourEntry entry) {
+  Widget _buildAltura(WaveHourEntry entry, Color corRot) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('ALTURA DE ONDA',
             style: TextStyle(
-                color: Colors.grey[600],
+                color: corRot,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5)),
@@ -118,7 +130,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 4, left: 4),
               child: Text('m',
                   style: TextStyle(
-                      color: Colors.grey[700],
+                      color: corRot,
                       fontSize: 15,
                       fontWeight: FontWeight.w500)),
             ),
@@ -133,12 +145,12 @@ class CondicoesAtuaisCard extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text('Período ${entry.wavePeriod.toStringAsFixed(1)} s',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+            style: TextStyle(color: corRot, fontSize: 12)),
       ],
     );
   }
 
-  Widget _buildCorrente(WaveHourEntry entry) {
+  Widget _buildCorrente(WaveHourEntry entry, Color corRot) {
     final velocidade = entry.oceanCurrentVelocity;
     final direcao = entry.oceanCurrentDirection;
 
@@ -148,12 +160,12 @@ class CondicoesAtuaisCard extends StatelessWidget {
         children: [
           Text('CORRENTE',
               style: TextStyle(
-                  color: Colors.grey[600],
+                  color: corRot,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5)),
           const SizedBox(height: 8),
-          Text('Sem dados', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+          Text('Sem dados', style: TextStyle(color: corRot, fontSize: 13)),
         ],
       );
     }
@@ -163,7 +175,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
       children: [
         Text('CORRENTE',
             style: TextStyle(
-                color: Colors.grey[600],
+                color: corRot,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5)),
@@ -189,7 +201,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 4, left: 4),
                         child: Text('nós',
                             style: TextStyle(
-                                color: Colors.grey[700],
+                                color: corRot,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500)),
                       ),
@@ -197,7 +209,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
                   ),
                   if (direcao != null)
                     Text('$direcao°',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        style: TextStyle(color: corRot, fontSize: 12)),
                 ],
               ),
             ),
@@ -213,7 +225,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSwellEDirecao(WaveHourEntry entry) {
+  Widget _buildSwellEDirecao(WaveHourEntry entry, Color corRot) {
     return Wrap(
       spacing: 16,
       runSpacing: 6,
@@ -221,45 +233,46 @@ class CondicoesAtuaisCard extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.waves, size: 15, color: Colors.grey[600]),
+            Icon(Icons.waves, size: 15, color: corRot),
             const SizedBox(width: 6),
             Text(
               'Swell ${entry.swellWaveHeight!.toStringAsFixed(2)} m'
               '${entry.swellWavePeriod != null ? ' · ${entry.swellWavePeriod!.toStringAsFixed(1)} s' : ''}'
               '${entry.swellWaveDirection != null ? ' · ${entry.swellWaveDirection}°' : ''}',
               style: TextStyle(
-                  color: Colors.grey[800], fontSize: 12, fontWeight: FontWeight.w500),
+                  color: corRot, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.explore_outlined, size: 15, color: Colors.grey[600]),
+            Icon(Icons.explore_outlined, size: 15, color: corRot),
             const SizedBox(width: 6),
             Text('Dir. onda ${entry.waveDirection}°',
                 style: TextStyle(
-                    color: Colors.grey[800], fontSize: 12, fontWeight: FontWeight.w500)),
+                    color: corRot, fontSize: 12, fontWeight: FontWeight.w500)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildTimeline(WaveHourEntry current, List<WaveHourEntry> proximas) {
+  Widget _buildTimeline(
+      WaveHourEntry current, List<WaveHourEntry> proximas, Color corRot) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
+            Icon(Icons.schedule, size: 14, color: corRot),
             const SizedBox(width: 6),
             Text('Previsão horária',
                 style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+                    fontSize: 12, fontWeight: FontWeight.w600, color: corRot)),
             const Spacer(),
             Text('${proximas.length}h',
-                style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                style: TextStyle(fontSize: 11, color: corRot)),
           ],
         ),
         const SizedBox(height: 10),
@@ -307,6 +320,8 @@ class _HourChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final h = entry.time.hour.toString().padLeft(2, '0');
     final m = entry.time.minute.toString().padLeft(2, '0');
+    final corRot = corRotulo(context);
+    final corValor = Theme.of(context).colorScheme.onSurface;
 
     return Container(
       width: 74,
@@ -326,7 +341,7 @@ class _HourChip extends StatelessWidget {
               style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: isCurrent ? Colors.blue.shade900 : Colors.grey[700])),
+                  color: isCurrent ? Colors.blue.shade900 : corRot)),
           Transform.rotate(
             angle: entry.directionRadians,
             child: Icon(Icons.navigation,
@@ -335,21 +350,21 @@ class _HourChip extends StatelessWidget {
           Column(
             children: [
               Text(entry.waveHeight.toStringAsFixed(2),
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: isCurrent ? Colors.black87 : corValor,
                       height: 1)),
               Text('m',
                   style: TextStyle(
                       fontSize: 9,
-                      color: isCurrent ? Colors.blue.shade900 : Colors.grey[500])),
+                      color: isCurrent ? Colors.blue.shade900 : corRot)),
             ],
           ),
           Text('${entry.wavePeriod.toStringAsFixed(1)}s',
               style: TextStyle(
                   fontSize: 10,
-                  color: isCurrent ? Colors.blue.shade900 : Colors.grey[500])),
+                  color: isCurrent ? Colors.blue.shade900 : corRot)),
         ],
       ),
     );

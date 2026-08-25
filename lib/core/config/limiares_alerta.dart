@@ -15,9 +15,8 @@ class LimiaresAlerta {
   final bool correnteAtivo;
   final double correnteLimiarNos;
 
-  /// Alerta de temperatura é sobre uma frente fria/quente que interessa
-  /// pra pesca, não sobre risco de navegação como os outros três — por
-  /// isso desligado por padrão, e o critério é "abaixo de", não "acima de".
+  /// Alerta de temperatura é sobre água quente demais, não sobre risco de
+  /// navegação como os outros três — por isso desligado por padrão.
   final bool temperaturaAtivo;
   final double temperaturaLimiarC;
 
@@ -40,7 +39,7 @@ class LimiaresAlerta {
     correnteAtivo: true,
     correnteLimiarNos: 1.5,
     temperaturaAtivo: false,
-    temperaturaLimiarC: 20,
+    temperaturaLimiarC: 27.4,
   );
 
   LimiaresAlerta copyWith({

@@ -123,15 +123,16 @@ class _AlertaConfigScreenState extends State<AlertaConfigScreen> {
                 _CardLimiar(
                   icon: Icons.thermostat_outlined,
                   titulo: 'Temperatura da água',
-                  subtitulo: 'Alerta quando a temperatura cair abaixo de',
+                  subtitulo: 'Alerta quando a temperatura passar de',
                   ativo: _limiares.temperaturaAtivo,
                   onAtivoChanged: (v) =>
                       _atualizar(_limiares.copyWith(temperaturaAtivo: v)),
                   valor: _limiares.temperaturaLimiarC,
-                  min: 10,
-                  max: 30,
-                  divisoes: 20,
+                  min: 20,
+                  max: 32,
+                  divisoes: 60,
                   unidade: '°C',
+                  casasDecimais: 1,
                   onValorChanged: (v) => _atualizarLocal(
                       _limiares.copyWith(temperaturaLimiarC: v)),
                   onValorChangedFim: (v) =>

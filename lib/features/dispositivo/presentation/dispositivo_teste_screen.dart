@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/services/device_id_service.dart';
+import '../../../core/utils/cor_tema.dart';
 import '../../../core/services/recomendacao_notification_service.dart';
 import '../data/dispositivo_repository.dart';
 import '../domain/models/dispositivo.dart';
@@ -212,23 +213,25 @@ class _DispositivoTesteScreenState extends State<DispositivoTesteScreen> {
   }
 
   Widget _buildDispositivoCard(Dispositivo d) {
+    final escuro = Theme.of(context).brightness == Brightness.dark;
+    final corDestaque = escuro ? Colors.green.shade200 : null;
     return Card(
-      color: Colors.green[50],
+      color: escuro ? Colors.green.withValues(alpha: 0.15) : Colors.green[50],
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _linha('id', d.id),
-            _linha('identificador', d.identificador),
-            _linha('nome', d.nome),
-            _linha('organizacaoId', d.organizacaoId),
-            _linha('empresaId', d.empresaId ?? '—'),
-            _linha('status', '${d.status}'),
-            _linha('tipo', '${d.tipo}'),
-            _linha('ambiente', '${d.ambiente}'),
-            _linha('atuante', '${d.atuante}'),
-            _linha('atualizadoEm', '${d.atualizadoEm ?? '—'}'),
+            _linha('id', d.id, cor: corDestaque),
+            _linha('identificador', d.identificador, cor: corDestaque),
+            _linha('nome', d.nome, cor: corDestaque),
+            _linha('organizacaoId', d.organizacaoId, cor: corDestaque),
+            _linha('empresaId', d.empresaId ?? '—', cor: corDestaque),
+            _linha('status', '${d.status}', cor: corDestaque),
+            _linha('tipo', '${d.tipo}', cor: corDestaque),
+            _linha('ambiente', '${d.ambiente}', cor: corDestaque),
+            _linha('atuante', '${d.atuante}', cor: corDestaque),
+            _linha('atualizadoEm', '${d.atualizadoEm ?? '—'}', cor: corDestaque),
           ],
         ),
       ),
@@ -314,7 +317,7 @@ class _DispositivoTesteScreenState extends State<DispositivoTesteScreen> {
     );
   }
 
-  Widget _linha(String label, String valor) {
+  Widget _linha(String label, String valor, {Color? cor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -323,12 +326,12 @@ class _DispositivoTesteScreenState extends State<DispositivoTesteScreen> {
           SizedBox(
             width: 140,
             child: Text(label,
-                style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                style: TextStyle(color: corRotulo(context), fontSize: 12)),
           ),
           Expanded(
             child: Text(valor,
-                style:
-                    const TextStyle(fontSize: 13, fontFamily: 'monospace')),
+                style: TextStyle(
+                    fontSize: 13, fontFamily: 'monospace', color: cor)),
           ),
         ],
       ),

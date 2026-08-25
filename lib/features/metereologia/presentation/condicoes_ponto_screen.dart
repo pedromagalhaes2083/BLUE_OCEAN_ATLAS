@@ -76,6 +76,9 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final escuroTelaPonto = Theme.of(context).brightness == Brightness.dark;
+    final corPinPonto =
+        escuroTelaPonto ? Colors.blue.shade200 : Colors.blue.shade900;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -93,18 +96,21 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Card(
-            color: Colors.blue[50],
+            color: escuroTelaPonto
+                ? Colors.blue.withValues(alpha: 0.18)
+                : Colors.blue[50],
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Icon(Icons.push_pin, color: Colors.blue[900]),
+                  Icon(Icons.push_pin, color: corPinPonto),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       formatarCoordenadasDMSCompacta(
                           widget.latitude, widget.longitude),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, color: corPinPonto),
                     ),
                   ),
                 ],

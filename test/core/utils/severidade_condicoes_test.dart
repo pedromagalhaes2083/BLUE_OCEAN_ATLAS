@@ -42,10 +42,10 @@ void main() {
   });
 
   group('temperaturaSevera', () {
-    test('dispara abaixo do limiar (frente fria), não acima', () {
-      expect(temperaturaSevera(19.9, 20), isTrue);
-      expect(temperaturaSevera(20, 20), isFalse);
-      expect(temperaturaSevera(25, 20), isFalse);
+    test('dispara acima ou no limiar (água quente), não abaixo', () {
+      expect(temperaturaSevera(27.3, 27.4), isFalse);
+      expect(temperaturaSevera(27.4, 27.4), isTrue);
+      expect(temperaturaSevera(28.0, 27.4), isTrue);
     });
   });
 }

@@ -3,6 +3,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../core/config/limiares_alerta.dart';
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../../core/utils/severidade_condicoes.dart';
@@ -406,7 +407,7 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: cor ?? Colors.grey)),
+                        color: cor ?? corRotulo(context))),
               ],
             ),
           ),
