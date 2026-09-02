@@ -226,4 +226,125 @@ void main() {
       );
     });
   });
+
+  group('viagem — no máximo uma em andamento (v15)', () {
+    test(
+        'índice único impede uma segunda linha com status = em_andamento',
+        () async {
+      final helper = DatabaseHelper.instance;
+      await helper.insert('viagem', {
+        'data_inicio': DateTime(2026, 1, 1).toIso8601String(),
+        'embarcacao_id': 'embarcacao-uuid-1',
+        'status': 'em_andamento',
+      });
+
+      expect(
+        () => helper.insert('viagem', {
+          'data_inicio': DateTime(2026, 1, 2).toIso8601String(),
+          'embarcacao_id': 'embarcacao-uuid-1',
+          'status': 'em_andamento',
+        }),
+        throwsA(anything),
+      );
+
+      final ativas = await helper.queryWhere(
+        'viagem',
+        where: 'status = ?',
+        whereArgs: ['em_andamento'],
+      );
+      expect(ativas, hasLength(1));
+    });
+
+    test('viagens com outros status não são afetadas pelo índice', () async {
+      final helper = DatabaseHelper.instance;
+      await helper.insert('viagem', {
+        'data_inicio': DateTime(2026, 1, 1).toIso8601String(),
+        'embarcacao_id': 'embarcacao-uuid-1',
+        'status': 'concluida',
+      });
+      await helper.insert('viagem', {
+        'data_inicio': DateTime(2026, 1, 2).toIso8601String(),
+        'embarcacao_id': 'embarcacao-uuid-1',
+        'status': 'concluida',
+      });
+      await helper.insert('viagem', {
+        'data_inicio': DateTime(2026, 1, 3).toIso8601String(),
+        'embarcacao_id': 'embarcacao-uuid-1',
+        'status': 'em_andamento',
+      });
+
+      final todas = await helper.query('viagem');
+      expect(todas, hasLength(3));
+    });
+
+    test(
+        'upgrade de uma instalação antiga (v14) com duas viagens em '
+        'andamento finaliza todas menos a mais recente antes de criar o '
+        'índice — sem isso, o CREATE UNIQUE INDEX quebraria a migração',
+        () async {
+      // Recria o schema como ele era na v14 (sem o índice), com estado
+      // inválido que só existia por causa do bug corrigido nesta versão —
+      // NovaViagemScreen agora impede isso na origem.
+      final caminho = await DatabaseHelper.instance.caminhoArquivo();
+      final dbAntigo = await databaseFactory.openDatabase(
+        caminho,
+        options: OpenDatabaseOptions(
+          version: 14,
+          onCreate: (db, version) async {
+            await db.execute('''
+              CREATE TABLE viagem (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT,
+                data_inicio TEXT NOT NULL,
+                data_termino TEXT,
+                embarcacao_id TEXT,
+                status TEXT NOT NULL,
+                remoto_id TEXT
+              )
+            ''');
+          },
+        ),
+      );
+      final idAntiga = await dbAntigo.insert('viagem', {
+        'data_inicio': DateTime(2026, 1, 1).toIso8601String(),
+        'embarcacao_id': 'embarcacao-uuid-1',
+        'status': 'em_andamento',
+      });
+      final idRecente = await dbAntigo.insert('viagem', {
+        'data_inicio': DateTime(2026, 1, 5).toIso8601String(),
+        'embarcacao_id': 'embarcacao-uuid-1',
+        'status': 'em_andamento',
+      });
+      await dbAntigo.close();
+
+      // Reabre pelo DatabaseHelper de verdade — dispara onUpgrade 14 → 15.
+      final db = await DatabaseHelper.instance.database;
+
+      final ativas = await db.query(
+        'viagem',
+        where: 'status = ?',
+        whereArgs: ['em_andamento'],
+      );
+      expect(ativas, hasLength(1));
+      expect(ativas.first['id'], idRecente);
+
+      final finalizada = await db.query(
+        'viagem',
+        where: 'id = ?',
+        whereArgs: [idAntiga],
+      );
+      expect(finalizada.single['status'], 'concluida');
+      expect(finalizada.single['data_termino'], isNotNull);
+
+      // O índice existe e continua funcionando depois da migração.
+      expect(
+        () => db.insert('viagem', {
+          'data_inicio': DateTime(2026, 1, 6).toIso8601String(),
+          'embarcacao_id': 'embarcacao-uuid-1',
+          'status': 'em_andamento',
+        }),
+        throwsA(anything),
+      );
+    });
+  });
 }

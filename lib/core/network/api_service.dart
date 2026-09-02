@@ -47,9 +47,14 @@ class ApiService {
     await Config.grava(Constantes.authCredencial, responseLogin.body);
 
     // A organização não vem no corpo do login — é uma claim do próprio JWT.
+    // O backend usa "00000000-..." como sentinela de "nenhuma organização
+    // escolhida ainda" pra usuário com mais de uma organização — gravar
+    // isso como se fosse uma organização de verdade faria toda chamada
+    // seguinte usar um id inválido em vez de disparar a escolha em
+    // [LoginScreen._escolherOrganizacaoSeNecessario].
     final claims = decodeJwtPayload(token);
     final organizacaoId = claims['organizacaoId'] as String?;
-    if (organizacaoId != null) {
+    if (organizacaoId != null && organizacaoId != _organizacaoIdVazia) {
       await Config.grava(Constantes.organizacaoId, organizacaoId);
     }
   }
@@ -188,17 +193,29 @@ class ApiService {
     return Config.obtem(Constantes.authToken);
   }
 
-  // TODO: usar a organização do usuário/dispositivo em vez de um valor fixo.
-  static const _organizacaoIdEstatica = '11111111-1111-1111-1111-111111111111';
+  /// Sentinela usada pelo próprio backend pra "nenhuma organização
+  /// escolhida" (é o valor que já vem na claim `organizacaoId` do JWT
+  /// nesse caso — ver [login]). Único fallback aceitável aqui: nunca uma
+  /// organização real, pra nunca associar dado a uma organização errada
+  /// silenciosamente — se o backend não aceitar isso pra um recurso
+  /// específico, a chamada falha (visível no log/erro), em vez de "dar
+  /// certo" contra a organização de outra pessoa.
+  static const _organizacaoIdVazia = '00000000-0000-0000-0000-000000000000';
 
-  /// Cabeçalhos padrão de toda chamada autenticada: token do usuário e
-  /// organização atual (exigida pelos recursos em `base/estrutura`).
+  /// Cabeçalhos padrão de toda chamada autenticada: token do usuário e a
+  /// organização escolhida no login (exigida pelos recursos em
+  /// `base/estrutura`) — antes era um id fixo de organização de
+  /// demonstração pra qualquer usuário; agora usa a que o usuário
+  /// realmente selecionou entre as suas.
   static Future<Map<String, String>> _headers({bool comCorpo = false}) async {
     final token = await _token();
+    final organizacaoId =
+        await Config.obtem(Constantes.organizacaoId, _organizacaoIdVazia);
     return {
       if (comCorpo) 'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
-      'x-organization-id': _organizacaoIdEstatica,
+      'x-organization-id':
+          organizacaoId.isEmpty ? _organizacaoIdVazia : organizacaoId,
     };
   }
 

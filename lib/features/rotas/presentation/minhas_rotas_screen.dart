@@ -95,6 +95,16 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
     );
   }
 
+  Future<void> _editarRota(RotaPlanejada rota) async {
+    final salvou = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapaScreen(modoPlanejarRota: true, rotaParaEditar: rota),
+      ),
+    );
+    if (salvou == true) _carregar();
+  }
+
   Future<void> _apagarRota(RotaPlanejada rota) async {
     final confirmou = await showDialog<bool>(
       context: context,
@@ -191,6 +201,11 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
                                 icon: const Icon(Icons.health_and_safety_outlined),
                                 tooltip: 'Analisar condições da rota',
                                 onPressed: () => _analisarRota(rota),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                tooltip: 'Editar rota',
+                                onPressed: () => _editarRota(rota),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline),

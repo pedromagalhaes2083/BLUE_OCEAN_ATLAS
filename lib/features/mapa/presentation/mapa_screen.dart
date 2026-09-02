@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../producao/domain/models/producao_registro.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
+import '../../rotas/domain/models/rota_planejada.dart';
 import 'mapa_widget.dart';
 
 class MapaScreen extends StatelessWidget {
@@ -24,12 +25,18 @@ class MapaScreen extends StatelessWidget {
   /// os liga em ordem cronológica — ver [MapaWidget.producaoPontos].
   final List<ProducaoRegistro>? producaoPontos;
 
+  /// Se informada (junto com [modoPlanejarRota]), abre em modo de edição
+  /// dessa rota já salva, em vez de criar uma nova — ver
+  /// [MapaWidget.rotaParaEditar].
+  final RotaPlanejada? rotaParaEditar;
+
   const MapaScreen({
     super.key,
     this.recomendacao,
     this.rota,
     this.modoPlanejarRota = false,
     this.producaoPontos,
+    this.rotaParaEditar,
   });
 
   @override
@@ -38,7 +45,7 @@ class MapaScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           modoPlanejarRota
-              ? 'Nova Rota Planejada'
+              ? (rotaParaEditar != null ? 'Editar Rota' : 'Nova Rota Planejada')
               : recomendacao != null
                   ? recomendacao!.titulo.isEmpty
                       ? 'Recomendação'
@@ -58,6 +65,7 @@ class MapaScreen extends StatelessWidget {
             margemZoom: 4,
             modoPlanejarRota: modoPlanejarRota,
             producaoPontos: producaoPontos,
+            rotaParaEditar: rotaParaEditar,
           ),
           if (!modoPlanejarRota && producaoPontos == null)
             const Positioned(

@@ -589,22 +589,26 @@ Chamado pelo callback do WorkManager (`location_worker.dart`) e por `PosicaoAtua
 
 ```dart
 sincronizarPendentes()
-// se sincronizacaoHabilitada == false, retorna sem tocar em rede (comportamento atual)
-// senão: confere sessão, resolve dispositivoId (DeviceIdService + DispositivoRepository),
-// busca producao_registro com sincronizado=0, envia cada um via ProducaoRepository
+// confere sessão; busca producao_registro com sincronizado=0
+// por registro: pula se faltar tipo_peixe/classificacao/quantidade_unidades (pré-v11)
+//               pula se não tiver viagem_id vinculado (obrigatório no backend)
+//               adia se a viagem local ainda não tem remoto_id (POST de criação em andamento/falhou)
+//               resolve especieId no catálogo (cache por tipo dentro da chamada) e envia via ProducaoRepository
 // e marca sincronizado=1 por linha (um erro não trava a fila inteira)
 ```
 
-**`sincronizacaoHabilitada = false` — desligada de propósito.** O backend ainda não tem
-endpoint de produção (`Endpoints.producaoRegistro` é um placeholder, confirmado com o
-usuário em 2026-08). Toda a arquitetura de envio já está pronta e testada — DTO
-(`ProducaoEnvio`), repositório (`ProducaoRepository`), fila local, resolução de
-dispositivo — mas nenhuma chamada de rede acontece até essa flag virar `true`. Para
-ativar de verdade, quando o backend tiver o endpoint real: (1) atualizar
-`Endpoints.producaoRegistro` com o path correto, (2) virar `sincronizacaoHabilitada`
-para `true`. `ProducaoScreen._salvarProducao()` já chama `sincronizarPendentes()`
-(fire-and-forget) depois de cada `insert` bem-sucedido — não precisa mexer no ponto de
-chamada.
+**Integração real (2026-08).** O backend tem `POST base/resultado/capturas`
+(`Endpoints.capturas`), mas o corpo é bem mais simples que o modelo local: só
+`viagemId` (remoto), `especieId` (do catálogo genérico `base/resultado/especies`,
+cadastrado na plataforma — o app só lista, nunca cria), `pesoKg`, `quantidade` e
+`instante`. Não existe conceito de tipo/classificação de peixe nem dispositivo/
+coordenada no backend. `ProducaoReporterService` resolve os dois IDs que faltam:
+`especieId` via `EspecieRepository` (mapeando `TipoPeixe.kihada`/`bati` → "Atum", único
+item de atum do catálogo) e o `viagemId` remoto via `viagem.remoto_id` (coluna nova,
+preenchida por `NovaViagemScreen` depois que `ViagemRepository.criar()` retorna o UUID
+gerado). Um registro de produção só sincroniza depois que a viagem dele já sincronizou.
+`ProducaoScreen._salvarProducao()` já chama `sincronizarPendentes()` (fire-and-forget)
+depois de cada `insert` bem-sucedido — não precisa mexer no ponto de chamada.
 
 ---
 
@@ -1360,7 +1364,7 @@ O app usa **graus decimais** internamente em todos os modelos e no banco de dado
 
 ### Sincronização
 
-Dados gerados offline (`localizacao_historico`, `producao_registro`) são salvos com `sincronizado = 0`. A localização já é sincronizada de fato (`LocalizacaoReporterService.sincronizarPendentes`); produção tem o mesmo pipeline pronto (`ProducaoReporterService.sincronizarPendentes`), mas desligado até o backend confirmar o endpoint real (ver §7.7a).
+Dados gerados offline (`localizacao_historico`, `producao_registro`) são salvos com `sincronizado = 0`, e ambos já sincronizam de fato (`LocalizacaoReporterService.sincronizarPendentes` e `ProducaoReporterService.sincronizarPendentes` — ver §7.7a).
 
 ### Tema único (`main.dart` → `_buildTheme()`)
 
@@ -1766,8 +1770,8 @@ banco novo em `onCreate`.
 
 - [x] ~~Substituir credenciais hardcoded por API de autenticação real~~ — feito (`AuthService`/`ApiService` já usam a Blue Ocean API)
 - [x] ~~Implementar sincronização de `localizacao_historico`~~ — feito (`LocalizacaoReporterService.sincronizarPendentes`)
-- [x] ~~Implementar sincronização de `producao_registro`~~ — arquitetura pronta e testada (`ProducaoReporterService`, `ProducaoRepository`, `ProducaoEnvio`), mas **desligada** (`sincronizacaoHabilitada = false`) até o backend confirmar o endpoint real — ver §7.7a
-- [ ] Substituir `Endpoints.producaoRegistro` (hoje placeholder) pelo path real e ligar `ProducaoReporterService.sincronizacaoHabilitada` assim que o backend tiver o endpoint
+- [x] ~~Implementar sincronização de `producao_registro`~~ — feito (`ProducaoReporterService` → `POST base/resultado/capturas`, `sincronizacaoHabilitada = true`) — ver §7.7a
+- [x] ~~Seletor de embarcação/espécie a partir do catálogo remoto~~ — feito (`EmbarcacaoRepository`/`EspecieRepository`, cadastro continua sendo feito só pela plataforma online, o app nunca cria)
 - [ ] Download de cartas náuticas a partir de S3 (hoje `CartasScreen` já lista `url_s3`, mas o download efetivo precisa ser confirmado/testado ponta a ponta)
 
 ### Melhorias de Produto

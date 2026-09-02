@@ -40,6 +40,12 @@ class _LoginScreenState extends State<LoginScreen> {
         lembrar: _lembrarCredenciais,
       );
 
+      // Antes de qualquer chamada que dependa da organização certa
+      // (recomendações, dispositivo etc.) — sem isso, o app usava um id
+      // fixo de organização de demonstração pra qualquer usuário.
+      await _escolherOrganizacaoSeNecessario();
+      if (!mounted) return;
+
       try {
         await SincronizacaoService.sincronizar();
       } catch (e) {
@@ -88,6 +94,51 @@ class _LoginScreenState extends State<LoginScreen> {
           : 'Erro ao conectar. Tente novamente.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Busca as organizações do usuário logado e decide a ativa: só uma,
+  /// escolhe sozinho; mais de uma, pede pro usuário escolher (diálogo sem
+  /// como fechar sem escolher — deixar sem organização selecionada
+  /// quebraria as chamadas seguintes). Falha ao buscar (rede etc.) não
+  /// bloqueia o login — fica valendo o que já estava salvo antes.
+  Future<void> _escolherOrganizacaoSeNecessario() async {
+    List<Organizacao> organizacoes;
+    try {
+      organizacoes = await AuthService.listarMinhasOrganizacoes();
+    } catch (e) {
+      debugPrint('Erro ao buscar organizações do usuário: $e');
+      return;
+    }
+    if (organizacoes.isEmpty) return;
+
+    if (organizacoes.length == 1) {
+      await AuthService.definirOrganizacaoAtiva(organizacoes.first.id);
+      return;
+    }
+
+    if (!mounted) return;
+    final escolhida = await showDialog<Organizacao>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: const Text('Escolha a organização'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: organizacoes
+                .map((org) => ListTile(
+                      title: Text(org.nome),
+                      onTap: () => Navigator.pop(dialogContext, org),
+                    ))
+                .toList(),
+          ),
+        ),
+      ),
+    );
+    if (escolhida != null) {
+      await AuthService.definirOrganizacaoAtiva(escolhida.id);
     }
   }
 

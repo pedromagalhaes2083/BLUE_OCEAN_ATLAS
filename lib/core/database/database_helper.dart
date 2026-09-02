@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 13,
+      version: 15,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -90,9 +90,11 @@ class DatabaseHelper {
       data_inicio TEXT NOT NULL,
       data_termino TEXT,
       embarcacao_id TEXT,
-      status TEXT NOT NULL
+      status TEXT NOT NULL,
+      remoto_id TEXT
     )
   ''');
+    await _criarIndiceViagemUnicaAtiva(db);
 
     // Tabela de Registro de Produção
     await db.execute('''
@@ -170,6 +172,37 @@ class DatabaseHelper {
     if (oldVersion < 13) {
       await _criarTabelaPortoMare(db);
     }
+    if (oldVersion < 14) {
+      // Guarda o UUID que o backend gerou pra viagem (ver
+      // `ViagemRepository.criar`) — sem ele, capturas dessa viagem nunca
+      // conseguem sincronizar, porque `viagemId` é obrigatório em
+      // `POST base/resultado/capturas` (ver ProducaoReporterService).
+      await db.execute('ALTER TABLE viagem ADD COLUMN remoto_id TEXT');
+    }
+    if (oldVersion < 15) {
+      // Reforça no banco a regra de "no máximo uma viagem em andamento"
+      // que a UI já passou a checar (ver NovaViagemScreen) — sem isso, uma
+      // condição de corrida (duplo toque, duas telas) ainda conseguiria
+      // criar duas. Se um instalação antiga já tiver mais de uma (bug
+      // anterior a essa correção), finaliza todas menos a mais recente
+      // antes de criar o índice único, senão o CREATE UNIQUE INDEX falha.
+      final duplicadas = await db.query(
+        'viagem',
+        columns: ['id'],
+        where: 'status = ?',
+        whereArgs: ['em_andamento'],
+        orderBy: 'id DESC',
+      );
+      for (var i = 1; i < duplicadas.length; i++) {
+        await db.update(
+          'viagem',
+          {'status': 'concluida', 'data_termino': DateTime.now().toIso8601String()},
+          where: 'id = ?',
+          whereArgs: [duplicadas[i]['id']],
+        );
+      }
+      await _criarIndiceViagemUnicaAtiva(db);
+    }
     if (oldVersion >= 10 && oldVersion < 12) {
       // Rotas criadas a partir de registros de produção (ver MapaWidget)
       // ficam atreladas à embarcação/viagem de origem, em vez de exigir um
@@ -180,6 +213,16 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE rota_planejada ADD COLUMN embarcacao_id TEXT');
       await db.execute('ALTER TABLE rota_planejada ADD COLUMN viagem_id INTEGER');
     }
+  }
+
+  /// Índice único parcial: no máximo uma linha com `status = 'em_andamento'`
+  /// em toda a tabela — a UI já impede isso (ver NovaViagemScreen), este é
+  /// só o reforço no banco contra condição de corrida.
+  Future<void> _criarIndiceViagemUnicaAtiva(Database db) async {
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_viagem_unica_ativa
+      ON viagem(status) WHERE status = 'em_andamento'
+    ''');
   }
 
   Future<void> _criarTabelaSolicitacaoCarta(Database db) async {

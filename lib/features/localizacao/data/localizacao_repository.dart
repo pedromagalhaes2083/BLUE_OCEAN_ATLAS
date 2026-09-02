@@ -13,7 +13,7 @@ class LocalizacaoRepository {
       'instante': dados.instante.toIso8601String(),
       'latitude': dados.latitude,
       'longitude': dados.longitude,
-      'precisaoMetros': dados.precisaoMetros,
+      if (dados.precisaoMetros != null) 'precisaoMetros': dados.precisaoMetros,
       if (dados.altitude != null) 'altitude': dados.altitude,
       if (dados.velocidadeNos != null) 'velocidade': dados.velocidadeNos,
       if (dados.direcao != null) 'direcao': dados.direcao,

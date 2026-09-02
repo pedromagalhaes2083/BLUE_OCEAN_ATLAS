@@ -21,10 +21,6 @@ import 'location_tracking_service.dart';
 /// [LocationTrackingService.iniciarRastreamento], no intervalo configurado
 /// pelo usuário, e também na abertura do app (ver [PosicaoAtualWidget]).
 class LocalizacaoReporterService {
-  /// Valor padrão informado pelo usuário — usado enquanto a tela de
-  /// Configurações não tiver um valor próprio salvo para este aparelho.
-  static const _embarcacaoIdPadrao = 'c8f1da10-e015-41c9-920f-ce2c512c3a95';
-
   /// [posicaoConhecida] evita um novo fix de GPS quando quem chamou (ex:
   /// [PosicaoAtualWidget] na abertura do app) já obteve a posição atual
   /// segundos antes.
@@ -95,10 +91,10 @@ class LocalizacaoReporterService {
       debugPrint('🔑 Token renovado automaticamente — rastreamento continua.');
     }
 
-    final embarcacaoId = await Config.obtem(
-      Constantes.embarcacaoId,
-      _embarcacaoIdPadrao,
-    );
+    // Sem fallback pra uma embarcação real: se nada foi configurado ainda,
+    // os registros ficam pendentes localmente em vez de serem enviados
+    // associados a uma embarcação que pode não ser a do usuário.
+    final embarcacaoId = await Config.obtem(Constantes.embarcacaoId, '');
     if (embarcacaoId.isEmpty) {
       debugPrint(
           '⚠️ Sincronização pulada: embarcacaoId não configurado (ver tela de Configurações).');
@@ -138,7 +134,7 @@ class LocalizacaoReporterService {
           instante: DateTime.parse(registro['data_hora'] as String),
           latitude: registro['latitude'] as double,
           longitude: registro['longitude'] as double,
-          precisaoMetros: (registro['precisao'] as num?)?.toDouble() ?? 0,
+          precisaoMetros: (registro['precisao'] as num?)?.toDouble(),
           altitude: (registro['altitude'] as num?)?.toDouble(),
           velocidadeNos: velocidadeMs != null ? velocidadeMs * 1.94384 : null,
           direcao: (registro['direcao'] as num?)?.toInt(),

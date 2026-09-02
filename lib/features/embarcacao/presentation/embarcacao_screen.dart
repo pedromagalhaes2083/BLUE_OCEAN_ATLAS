@@ -10,7 +10,6 @@ import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/models/embarcacao.dart';
 import 'embarcacao_configuracao_screen.dart';
 
-const _embarcacaoIdPadrao = 'c8f1da10-e015-41c9-920f-ce2c512c3a95';
 const _kgPorTonelada = 1000.0;
 
 class EmbarcacaoScreen extends StatefulWidget {
@@ -53,14 +52,13 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
         registros = await widget.dbHelper.query('embarcacao');
       }
 
-      final embarcacaoId =
-          await Config.obtem(Constantes.embarcacaoId, _embarcacaoIdPadrao);
+      final embarcacaoId = await Config.obtem(Constantes.embarcacaoId, '');
 
       if (!mounted) return;
       setState(() {
         _embarcacao =
             registros.isNotEmpty ? Embarcacao.fromMap(registros.first) : null;
-        _embarcacaoId = embarcacaoId;
+        _embarcacaoId = embarcacaoId.trim().isEmpty ? null : embarcacaoId.trim();
       });
     } catch (e) {
       if (!mounted) return;

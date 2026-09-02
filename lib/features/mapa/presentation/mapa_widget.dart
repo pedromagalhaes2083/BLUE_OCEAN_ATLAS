@@ -18,6 +18,7 @@ import '../../metereologia/presentation/condicoes_ponto_screen.dart';
 import '../../../core/services/pontos_service.dart';
 import '../../../core/services/street_map_cache_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../producao/domain/especies_comuns.dart';
@@ -25,6 +26,7 @@ import '../../producao/domain/models/producao_registro.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_variavel_chip.dart';
 import '../domain/models/ponto_marcado.dart';
+import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
 import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/download_regiao_dialog.dart';
@@ -87,6 +89,12 @@ class MapaWidget extends StatefulWidget {
   /// trajeto como uma rota planejada. Vem de `ProducaoHistoricoScreen`.
   final List<ProducaoRegistro>? producaoPontos;
 
+  /// Se informada (junto com [modoPlanejarRota]), a tela abre já com os
+  /// pontos e o nome dessa rota preenchidos, e "Salvar rota" atualiza o
+  /// registro existente em vez de criar um novo — usada por "Editar rota"
+  /// em `MinhasRotasScreen`.
+  final RotaPlanejada? rotaParaEditar;
+
   const MapaWidget({
     super.key,
     this.recomendacao,
@@ -94,6 +102,7 @@ class MapaWidget extends StatefulWidget {
     this.margemZoom = 2,
     this.modoPlanejarRota = false,
     this.producaoPontos,
+    this.rotaParaEditar,
   });
 
   @override
@@ -230,6 +239,15 @@ class MapaWidgetState extends State<MapaWidget> {
     _loadPontos();
     _carregarPontosMarcados();
     _carregarOverlayRecomendacao();
+
+    final rotaEditando = widget.rotaParaEditar;
+    if (rotaEditando != null) {
+      _pontosRotaPlanejada = List.of(rotaEditando.pontos);
+      _nomeRotaController.text = rotaEditando.nome;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focarPontos(_pontosRotaPlanejada);
+      });
+    }
   }
 
   /// Baixa e aplica o PNG georreferenciado da recomendação atual, se houver
@@ -237,12 +255,28 @@ class MapaWidgetState extends State<MapaWidget> {
   /// arquivo usada na sobreposição manual (ver [GeoPngHelper]). Falha
   /// silenciosamente (só um aviso) em vez de travar o mapa: a recomendação
   /// continua utilizável sem a sobreposição se o download ou o PNG falhar.
+  ///
+  /// A URL vem de um bucket S3 — normalmente uma URL assinada com validade
+  /// curta (o backend não expõe o bucket publicamente). Uma recomendação
+  /// vinda do cache offline (ver [RecomendacaoRepository]) pode carregar
+  /// uma URL já vencida, daí o tratamento específico pra 403/404 abaixo,
+  /// em vez de só repetir o HTTP status cru.
   Future<void> _carregarOverlayRecomendacao() async {
     final url = widget.recomendacao?.cartaNauticaUrl;
     if (url == null || url.isEmpty) return;
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 403 || response.statusCode == 404) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Carta da recomendação não disponível (o link pode ter expirado)')),
+        );
+        return;
+      }
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception('Download falhou: HTTP ${response.statusCode}');
       }
@@ -258,7 +292,9 @@ class MapaWidgetState extends State<MapaWidget> {
       debugPrint('⚠️ Não foi possível aplicar o PNG da recomendação: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível carregar a carta da recomendação: $e')),
+        SnackBar(
+            content: Text(mensagemErroAmigavel(e,
+                prefixo: 'Não foi possível carregar a carta da recomendação'))),
       );
     }
   }
@@ -309,13 +345,44 @@ class MapaWidgetState extends State<MapaWidget> {
     }
   }
 
+  /// Atualiza uma rota já existente: apaga os pontos antigos e grava os
+  /// novos na ordem atual, e atualiza o nome — mesma tabela, mesmo id, só
+  /// não recria o registro (preserva `data_criacao` original).
+  Future<void> _atualizarRotaPlanejada(
+    int rotaId,
+    String nome,
+    List<LatLng> pontos,
+  ) async {
+    await _dbHelper.update('rota_planejada', {'nome': nome}, id: rotaId);
+    await _dbHelper.deleteWhere(
+      'rota_planejada_ponto',
+      where: 'rota_planejada_id = ?',
+      whereArgs: [rotaId],
+    );
+    for (var i = 0; i < pontos.length; i++) {
+      final p = pontos[i];
+      await _dbHelper.insert('rota_planejada_ponto', {
+        'rota_planejada_id': rotaId,
+        'latitude': p.latitude,
+        'longitude': p.longitude,
+        'ordem': i,
+      });
+    }
+  }
+
   Future<void> _salvarRotaPlanejada() async {
     final nome = _nomeRotaController.text.trim();
     if (nome.isEmpty || _pontosRotaPlanejada.length < 2) return;
 
     setState(() => _salvandoRota = true);
     try {
-      await _persistirRotaPlanejada(nome, _pontosRotaPlanejada);
+      final rotaEditando = widget.rotaParaEditar;
+      if (rotaEditando != null) {
+        await _atualizarRotaPlanejada(
+            rotaEditando.id!, nome, _pontosRotaPlanejada);
+      } else {
+        await _persistirRotaPlanejada(nome, _pontosRotaPlanejada);
+      }
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -1354,7 +1421,9 @@ class MapaWidgetState extends State<MapaWidget> {
               Expanded(
                 child: Text(
                   widget.modoPlanejarRota
-                      ? 'Nova Rota Planejada'
+                      ? (widget.rotaParaEditar != null
+                          ? 'Editar Rota'
+                          : 'Nova Rota Planejada')
                       : widget.recomendacao != null
                           ? widget.recomendacao!.titulo.isEmpty
                               ? 'Recomendação'
@@ -2045,7 +2114,9 @@ class MapaWidgetState extends State<MapaWidget> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.check),
-                      label: const Text('Salvar rota'),
+                      label: Text(widget.rotaParaEditar != null
+                          ? 'Salvar alterações'
+                          : 'Salvar rota'),
                     ),
                   ),
                 ],

@@ -6,11 +6,13 @@ import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/localizacao_reporter_service.dart';
+import '../../../core/utils/erro_amigavel.dart';
+import '../data/embarcacao_repository.dart';
 import '../domain/models/embarcacao.dart';
+import '../domain/models/embarcacao_remota.dart';
 import 'cadastrar_embarcacao_screen.dart';
 import 'widgets/foto_embarcacao_picker.dart';
 
-const _embarcacaoIdPadrao = 'c8f1da10-e015-41c9-920f-ce2c512c3a95';
 const _kgPorTonelada = 1000.0;
 const _litrosPorGalao = 3.78541;
 
@@ -45,6 +47,20 @@ class _EmbarcacaoConfiguracaoScreenState
   bool _isSaving = false;
   bool _testandoEnvio = false;
 
+  /// Nome da embarcação do catálogo remoto que corresponde ao
+  /// `_embarcacaoIdController.text` atual — carregado sob demanda pra
+  /// mostrar junto do ID (que continua sendo a fonte da verdade). Nulo
+  /// enquanto não resolvido ou se o ID não bateu com nenhuma da lista.
+  String? _nomeEmbarcacaoRemota;
+  bool _buscandoNomeRemoto = false;
+
+  /// true quando já existia um `Constantes.embarcacaoId` salvo de verdade
+  /// (não o fallback [_embarcacaoIdPadrao]) no momento em que a tela
+  /// carregou — trava a escolha depois da primeira vez: uma vez vinculado,
+  /// o mestre não pode trocar sozinho pelo app (só a plataforma). Ver
+  /// [_carregar].
+  bool _embarcacaoJaVinculada = false;
+
   @override
   void initState() {
     super.initState();
@@ -67,8 +83,13 @@ class _EmbarcacaoConfiguracaoScreenState
     setState(() => _isLoading = true);
     try {
       final registros = await widget.dbHelper.query('embarcacao');
-      final embarcacaoId =
-          await Config.obtem(Constantes.embarcacaoId, _embarcacaoIdPadrao);
+      // Sem fallback pra uma embarcação real aqui: o campo começa vazio de
+      // verdade até o mestre escolher pelo catálogo (ver
+      // `_escolherEmbarcacaoRemota`) — um valor pré-preenchido arriscaria
+      // vincular à embarcação errada se salvo sem querer.
+      final embarcacaoIdSalvo = await Config.obtem(Constantes.embarcacaoId, '');
+      final jaVinculada = embarcacaoIdSalvo.trim().isNotEmpty;
+      final embarcacaoId = embarcacaoIdSalvo;
 
       Embarcacao? embarcacao;
       if (registros.isNotEmpty) {
@@ -91,8 +112,10 @@ class _EmbarcacaoConfiguracaoScreenState
             embarcacao?.numeroTripulantes?.toString() ?? '';
         _mestreIdController.text = embarcacao?.mestreId ?? '';
         _embarcacaoIdController.text = embarcacaoId;
+        _embarcacaoJaVinculada = jaVinculada;
         _fotoPath = embarcacao?.foto;
       });
+      _resolverNomeRemoto(embarcacaoId);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,6 +124,49 @@ class _EmbarcacaoConfiguracaoScreenState
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Busca no catálogo remoto o nome correspondente ao ID já configurado —
+  /// só pra exibição (o ID continua sendo o que realmente é salvo/usado).
+  /// Melhor-esforço: sem rede ou ID não encontrado, o campo de nome
+  /// remoto simplesmente fica vazio, sem travar a tela.
+  Future<void> _resolverNomeRemoto(String embarcacaoId) async {
+    if (embarcacaoId.trim().isEmpty) return;
+    setState(() => _buscandoNomeRemoto = true);
+    try {
+      final lista = await EmbarcacaoRepository().listar();
+      String? nomeEncontrado;
+      for (final e in lista) {
+        if (e.id == embarcacaoId) {
+          nomeEncontrado = e.nome;
+          break;
+        }
+      }
+      if (!mounted) return;
+      setState(() => _nomeEmbarcacaoRemota = nomeEncontrado);
+    } catch (e) {
+      debugPrint('Erro ao buscar nome remoto da embarcação: $e');
+    } finally {
+      if (mounted) setState(() => _buscandoNomeRemoto = false);
+    }
+  }
+
+  /// Abre o diálogo de escolha da embarcação — lista o catálogo real da
+  /// plataforma (quem cadastra é lá, não o app) em vez de deixar o mestre
+  /// digitar o ID à mão, que é sujeito a erro de digitação. Só chamado
+  /// enquanto [_embarcacaoJaVinculada] for falso — depois da primeira
+  /// vinculação, a escolha fica travada (ver doc do campo).
+  Future<void> _escolherEmbarcacaoRemota() async {
+    if (_embarcacaoJaVinculada) return;
+    final escolhida = await showDialog<EmbarcacaoRemota>(
+      context: context,
+      builder: (_) => const _EscolhaEmbarcacaoDialog(),
+    );
+    if (escolhida == null) return;
+    setState(() {
+      _embarcacaoIdController.text = escolhida.id;
+      _nomeEmbarcacaoRemota = escolhida.nome;
+    });
   }
 
   String _formatarNumero(double valor) {
@@ -354,11 +420,73 @@ class _EmbarcacaoConfiguracaoScreenState
                           : null,
                     ),
                     const SizedBox(height: 18),
+                    InkWell(
+                      onTap: _embarcacaoJaVinculada
+                          ? null
+                          : _escolherEmbarcacaoRemota,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Embarcação vinculada (plataforma)',
+                          prefixIcon: Icon(
+                              _embarcacaoJaVinculada
+                                  ? Icons.lock_outline
+                                  : Icons.directions_boat_filled,
+                              color: _embarcacaoJaVinculada
+                                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                                  : Theme.of(context).colorScheme.primary,
+                              size: 20),
+                          suffixIcon: _embarcacaoJaVinculada
+                              ? null
+                              : const Icon(Icons.arrow_drop_down),
+                          enabledBorder: _embarcacaoJaVinculada
+                              ? null
+                              : OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      width: 1.5),
+                                ),
+                        ),
+                        child: _buscandoNomeRemoto
+                            ? const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(
+                                _nomeEmbarcacaoRemota ??
+                                    (_embarcacaoIdController.text.trim().isEmpty
+                                        ? 'Toque para escolher'
+                                        : '(ID não encontrado no catálogo)'),
+                                style: _nomeEmbarcacaoRemota == null
+                                    ? TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant)
+                                    : null,
+                              ),
+                      ),
+                    ),
+                    if (_embarcacaoJaVinculada) ...[
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: Text(
+                          'Vinculada — só pode ser alterada pela plataforma.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
                     _campoTexto(
                       label: 'ID Embarcação',
                       controller: _embarcacaoIdController,
                       icon: Icons.tag,
-                      destacado: true,
+                      readOnly: _embarcacaoJaVinculada,
                       style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
                       suffixIcon: IconButton(
                         icon: _testandoEnvio
@@ -474,6 +602,7 @@ class _EmbarcacaoConfiguracaoScreenState
     required TextEditingController controller,
     required IconData icon,
     bool destacado = false,
+    bool readOnly = false,
     TextStyle? style,
     Widget? suffixIcon,
     TextInputType? keyboardType,
@@ -483,6 +612,7 @@ class _EmbarcacaoConfiguracaoScreenState
       controller: controller,
       keyboardType: keyboardType,
       style: style,
+      readOnly: readOnly,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
@@ -561,5 +691,116 @@ class _EmbarcacaoConfiguracaoScreenState
     final parsed =
         isInt ? int.tryParse(value.trim()) : double.tryParse(value.trim());
     return parsed == null ? 'Informe um número válido' : null;
+  }
+}
+
+/// Diálogo de busca/escolha no catálogo de embarcações da plataforma —
+/// mesmo padrão do `_BuscaPortoDialog` em NovaViagemScreen, mas sem a
+/// opção de cadastrar: quem cadastra embarcação é a plataforma online,
+/// não o app (só lista pra escolha).
+class _EscolhaEmbarcacaoDialog extends StatefulWidget {
+  const _EscolhaEmbarcacaoDialog();
+
+  @override
+  State<_EscolhaEmbarcacaoDialog> createState() =>
+      _EscolhaEmbarcacaoDialogState();
+}
+
+class _EscolhaEmbarcacaoDialogState extends State<_EscolhaEmbarcacaoDialog> {
+  final _buscaController = TextEditingController();
+  List<EmbarcacaoRemota> _resultados = [];
+  bool _carregando = false;
+  String? _erro;
+
+  @override
+  void initState() {
+    super.initState();
+    _buscar();
+  }
+
+  @override
+  void dispose() {
+    _buscaController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _buscar() async {
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
+    try {
+      final resultados = await EmbarcacaoRepository()
+          .listar(nome: _buscaController.text.trim());
+      if (!mounted) return;
+      setState(() => _resultados = resultados);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _erro = mensagemErroAmigavel(e));
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Escolher embarcação'),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: 420,
+        child: Column(
+          children: [
+            TextField(
+              controller: _buscaController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Buscar por nome',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.arrow_forward),
+                  onPressed: _buscar,
+                ),
+              ),
+              onSubmitted: (_) => _buscar(),
+            ),
+            const SizedBox(height: 12),
+            Expanded(child: _buildConteudo()),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConteudo() {
+    if (_carregando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_erro != null) {
+      return Center(
+        child: Text(_erro!, textAlign: TextAlign.center),
+      );
+    }
+    if (_resultados.isEmpty) {
+      return const Center(child: Text('Nenhuma embarcação encontrada'));
+    }
+    return ListView.builder(
+      itemCount: _resultados.length,
+      itemBuilder: (context, index) {
+        final e = _resultados[index];
+        return ListTile(
+          leading: const Icon(Icons.directions_boat),
+          title: Text(e.nome),
+          subtitle: e.codigo == null ? null : Text(e.codigo!),
+          onTap: () => Navigator.pop(context, e),
+        );
+      },
+    );
   }
 }

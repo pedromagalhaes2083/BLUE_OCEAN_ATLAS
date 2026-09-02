@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import '../../../core/config/config.dart';
+import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/producao_reporter_service.dart';
@@ -37,6 +39,12 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
   final _observacaoController = TextEditingController();
 
   String _embarcacaoNome = 'Não definida';
+
+  /// ID real da embarcação (UUID do catálogo remoto, configurado em
+  /// Configurações → Embarcação) — nunca o nome/registro exibido em
+  /// [_embarcacaoNome]. É o valor de verdade gravado no registro; o nome é
+  /// só pra exibição na tela.
+  String? _embarcacaoId;
   int? _viagemAtivaId;
   bool _isSalvando = false;
   bool _capturandoLocalizacao = false;
@@ -66,6 +74,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
       whereArgs: ['em_andamento'],
       orderBy: 'id DESC',
     );
+    final embarcacaoId = await Config.obtem(Constantes.embarcacaoId, '');
 
     if (!mounted) return;
     setState(() {
@@ -76,6 +85,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                 ? embarcacao['registro'] as String
                 : (embarcacao['nome'] as String? ?? 'Não definida');
       }
+      _embarcacaoId = embarcacaoId.trim().isEmpty ? null : embarcacaoId.trim();
       if (viagens.isNotEmpty) {
         _viagemAtivaId = viagens.first['id'] as int;
       }
@@ -111,6 +121,17 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_tipoPeixe == null || _classificacao == null) {
       setState(() {}); // força a Form a mostrar os erros dos dropdowns
+      return;
+    }
+    final embarcacaoId = _embarcacaoId;
+    if (embarcacaoId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nenhuma embarcação vinculada — configure em Configurações → Embarcação antes de registrar produção.',
+          ),
+        ),
+      );
       return;
     }
 
@@ -150,7 +171,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
 
       final registro = ProducaoRegistro(
         id: 0,
-        embarcacaoId: _embarcacaoNome,
+        embarcacaoId: embarcacaoId,
         dataHora: DateTime.now(),
         especie: tipo.label,
         quantidadeKg: unidades * pesoMedio,

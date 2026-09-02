@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/services/battery_optimization_service.dart';
 import '../../../core/services/device_id_service.dart';
 import '../../../core/services/location_tracking_service.dart';
 import '../../../core/services/night_mode_service.dart';
@@ -37,10 +38,17 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   bool _fazendoBackup = false;
   bool _ocultarRecomendacoesExpiradas = false;
 
+  /// `null` enquanto ainda não checou — `true`/`false` depois. Só é
+  /// preocupante quando `false`: o Android pode matar o rastreamento em
+  /// segundo plano sem avisar (ver [BatteryOptimizationService]).
+  bool? _ignorandoOtimizacaoBateria;
+  bool _pedindoIsencaoBateria = false;
+
   @override
   void initState() {
     super.initState();
     _carregar();
+    _checarOtimizacaoBateria();
   }
 
   @override
@@ -72,6 +80,23 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       _contatoEmergenciaController.text = contatoEmergencia;
       _ocultarRecomendacoesExpiradas = ocultarExpiradas == 'true';
     });
+  }
+
+  Future<void> _checarOtimizacaoBateria() async {
+    final ignorando = await BatteryOptimizationService.estaIgnorandoOtimizacao();
+    if (!mounted) return;
+    setState(() => _ignorandoOtimizacaoBateria = ignorando);
+  }
+
+  Future<void> _pedirIsencaoBateria() async {
+    setState(() => _pedindoIsencaoBateria = true);
+    await BatteryOptimizationService.solicitarIsencao();
+    if (!mounted) return;
+    // O resultado do diálogo do sistema não vem no retorno da chamada em
+    // todo fabricante — reconsulta o status de verdade em vez de confiar
+    // no valor devolvido.
+    await _checarOtimizacaoBateria();
+    if (mounted) setState(() => _pedindoIsencaoBateria = false);
   }
 
   Future<void> _alternarOcultarRecomendacoesExpiradas(bool valor) async {
@@ -292,6 +317,69 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       ),
                     ),
                   ),
+                  if (_ignorandoOtimizacaoBateria == false) ...[
+                    const SizedBox(height: 12),
+                    Card(
+                      elevation: 3,
+                      color: Colors.orange[50],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                            color: Colors.orange.withValues(alpha: 0.4)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.battery_alert,
+                                    color: Colors.orange[900]),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Otimização de bateria pode interromper o rastreamento',
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.orange[900]),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'O aparelho pode parar de registrar a posição a cada '
+                              '15 minutos durante uma viagem, sem nenhum aviso, se o '
+                              'Atlas não estiver isento da otimização de bateria do '
+                              'sistema.',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.orange[900]),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _pedindoIsencaoBateria
+                                    ? null
+                                    : _pedirIsencaoBateria,
+                                icon: _pedindoIsencaoBateria
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.battery_charging_full),
+                                label: const Text('Isentar o app'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   const Text(
                     'Aparência',

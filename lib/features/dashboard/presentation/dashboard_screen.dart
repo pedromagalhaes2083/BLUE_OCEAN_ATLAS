@@ -805,7 +805,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       MaterialPageRoute(
         builder: (_) => NovaViagemScreen(
           dbHelper: widget.dbHelper,
-          embarcacao: embarcacaoAtual!.nome,
         ),
       ),
     );

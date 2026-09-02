@@ -11,7 +11,11 @@ class LocalizacaoEnvio {
   final DateTime instante;
   final double latitude;
   final double longitude;
-  final double precisaoMetros;
+
+  /// Precisão do sinal GPS em metros — nulo quando desconhecida (nunca
+  /// convertido pra `0`, que significaria precisão perfeita, um valor real
+  /// diferente de "não sei").
+  final double? precisaoMetros;
   final double? altitude;
   final double? velocidadeNos;
   final int? direcao;

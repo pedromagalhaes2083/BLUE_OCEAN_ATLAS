@@ -1,14 +1,20 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../config/config.dart';
 import '../config/constantes.dart';
+import '../database/database_helper.dart';
 import '../network/api_service.dart';
+import '../network/endpoints.dart';
+import '../services/location_tracking_service.dart';
 import 'jwt_utils.dart';
+import 'models/organizacao.dart';
 import 'models/usuario.dart';
 
 export '../network/excecoes.dart';
+export 'models/organizacao.dart';
 export 'models/usuario.dart';
 
 class AuthService {
@@ -26,6 +32,7 @@ class AuthService {
     bool lembrar = false,
   }) async {
     await ApiService.login(usuario, senha);
+    await _tratarTrocaDeUsuario();
     if (lembrar) {
       await _secureStorage.write(key: _chaveUsuarioLembrado, value: usuario);
       await _secureStorage.write(key: _chaveSenhaLembrada, value: senha);
@@ -35,8 +42,90 @@ class AuthService {
     }
   }
 
+  /// Compara o usuário que acabou de logar com o do último login salvo —
+  /// diferente, apaga os dados locais do usuário anterior (pontos
+  /// marcados, rotas planejadas, produção, viagens e a configuração de
+  /// embarcação): o app é local-first e nada dessas tabelas tem coluna de
+  /// usuário/organização, então sem essa limpeza um segundo mestre
+  /// logando no mesmo aparelho herdaria os dados do primeiro. Primeiro
+  /// login do aparelho (nada salvo ainda) não limpa nada, só grava.
+  static Future<void> _tratarTrocaDeUsuario() async {
+    final usuarioAtual = await usuarioLogado();
+    final novoId = usuarioAtual?.id ?? '';
+    if (novoId.isEmpty) return;
+
+    final idAnterior = await Config.obtem(Constantes.ultimoUsuarioId);
+    if (deveLimparAoTrocarUsuario(idAnterior, novoId)) {
+      await _limparDadosLocaisDoUsuarioAnterior();
+    }
+    await Config.grava(Constantes.ultimoUsuarioId, novoId);
+  }
+
+  /// Decisão pura (sem I/O) usada por [_tratarTrocaDeUsuario] — separada
+  /// só pra dar pra testar sem precisar simular login/Config/SQLite.
+  /// `idAnterior` vazio (primeiro login do aparelho, nada salvo ainda)
+  /// nunca limpa; `novoId` vazio (resposta de login sem id extraível)
+  /// também nunca limpa, pra não apagar dados por engano num caso
+  /// inesperado da API.
+  @visibleForTesting
+  static bool deveLimparAoTrocarUsuario(String idAnterior, String novoId) {
+    if (novoId.isEmpty || idAnterior.isEmpty) return false;
+    return idAnterior != novoId;
+  }
+
+  static Future<void> _limparDadosLocaisDoUsuarioAnterior() async {
+    debugPrint('🔄 Usuário diferente do último login — limpando dados locais');
+    try {
+      await LocationTrackingService().pararRastreamento();
+    } catch (e) {
+      debugPrint('❌ Erro ao parar rastreamento na troca de usuário: $e');
+    }
+
+    const tabelas = [
+      'rota_planejada_ponto',
+      'rota_planejada',
+      'producao_registro',
+      'localizacao_historico',
+      'viagem',
+      'ponto_marcado',
+      'embarcacao',
+    ];
+    for (final tabela in tabelas) {
+      try {
+        await DatabaseHelper.instance.deleteWhere(tabela, where: '1 = 1');
+      } catch (e) {
+        debugPrint('❌ Erro ao limpar "$tabela" na troca de usuário: $e');
+      }
+    }
+
+    await Config.limpa(Constantes.embarcacaoId);
+    await Config.limpa(Constantes.cacheRecomendacoes);
+    await Config.limpa(Constantes.cacheRecomendacoesEm);
+    await Config.limpa(Constantes.ultimaVerificacaoRecomendacoes);
+  }
+
   static Future<bool> lembrarCredenciaisAtivo() async {
     return (await Config.obtem(Constantes.lembrarCredenciais)) == 'true';
+  }
+
+  /// Organizações que o usuário logado participa — chamado logo após o
+  /// login pra decidir qual fica ativa (ver [Constantes.organizacaoId]).
+  /// Sem essa escolha, [ApiService] usava um id fixo de organização de
+  /// demonstração pra qualquer usuário, então quem participasse de outra
+  /// organização tinha as chamadas da API todas apontando pro lugar errado.
+  static Future<List<Organizacao>> listarMinhasOrganizacoes() async {
+    final json = await ApiService.get(Endpoints.euOrganizacoes);
+    final lista = (json as Map<String, dynamic>)['organizacoes'] as List? ?? [];
+    return lista
+        .map((e) => Organizacao.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Grava qual organização fica ativa pro resto da sessão — é o que
+  /// [ApiService] manda no header `x-organization-id` de toda chamada
+  /// autenticada a partir de agora.
+  static Future<void> definirOrganizacaoAtiva(String organizacaoId) async {
+    await Config.grava(Constantes.organizacaoId, organizacaoId);
   }
 
   /// Tenta logar de novo com a credencial salva (quando "lembrar" estava

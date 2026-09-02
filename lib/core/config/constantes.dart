@@ -29,4 +29,10 @@ class Constantes {
   static const String alertaCorrenteLimiarNos = 'alerta_corrente_limiar_nos';
   static const String alertaTemperaturaAtivo = 'alerta_temperatura_ativo';
   static const String alertaTemperaturaLimiarC = 'alerta_temperatura_limiar_c';
+
+  /// Id do usuário do último login bem-sucedido — comparado a cada login
+  /// novo pra detectar troca de usuário no mesmo aparelho (ver
+  /// `AuthService._tratarTrocaDeUsuario`) e decidir se limpa os dados
+  /// locais do usuário anterior.
+  static const String ultimoUsuarioId = 'ultimo_usuario_id';
 }

@@ -1,41 +1,24 @@
-import '../classificacao_peso.dart';
-
-/// Dados de um registro de produção a enviar para a API
-/// (`POST base/operacao/producao/salva` — endpoint ainda placeholder, ver
-/// `Endpoints.producaoRegistro`).
+/// Dados de uma captura a enviar para a API
+/// (`POST base/resultado/capturas` — ver [ProducaoRepository]).
 ///
-/// Mesmo contrato estável que [LocalizacaoEnvio] segue pra localização: se
-/// a rota, os nomes de campo ou o formato do corpo mudarem no backend, só
-/// [ProducaoRepository] precisa mudar — este modelo e quem o utiliza
-/// permanecem os mesmos.
+/// O corpo aceito pelo backend é bem mais simples que o registro local
+/// ([ProducaoRegistro]): não existe conceito de tipo/classificação de
+/// peixe, dispositivo, ou coordenada — só `viagemId` (remoto),
+/// `especieId` (do catálogo), peso total e quantidade de animais. Quem
+/// resolve esses dois IDs a partir do registro local é
+/// [ProducaoReporterService], não este modelo.
 class ProducaoEnvio {
-  final String embarcacaoId;
-  final String dispositivoId;
+  final String viagemId;
+  final String especieId;
+  final double pesoKg;
+  final int quantidade;
   final DateTime instante;
-  final TipoPeixe tipoPeixe;
-  final Classificacao classificacao;
-  final int quantidadeUnidades;
-  final double pesoMedioUnitario;
-  final double quantidadeKg; // total = quantidadeUnidades * pesoMedioUnitario
-  final double? latitude;
-  final double? longitude;
-  final double? precisaoMetros;
-  final int? viagemId;
-  final String? observacao;
 
   const ProducaoEnvio({
-    required this.embarcacaoId,
-    required this.dispositivoId,
+    required this.viagemId,
+    required this.especieId,
+    required this.pesoKg,
+    required this.quantidade,
     required this.instante,
-    required this.tipoPeixe,
-    required this.classificacao,
-    required this.quantidadeUnidades,
-    required this.pesoMedioUnitario,
-    required this.quantidadeKg,
-    this.latitude,
-    this.longitude,
-    this.precisaoMetros,
-    this.viagemId,
-    this.observacao,
   });
 }
