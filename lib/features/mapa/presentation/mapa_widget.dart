@@ -1935,10 +1935,10 @@ class MapaWidgetState extends State<MapaWidget> {
                       alignment: Alignment.topCenter,
                       child: GestureDetector(
                         onTap: () => _mostrarInfoPontoRecomendacao(p),
-                        child: const Icon(
-                          Icons.location_on,
-                          color: Colors.deepOrange,
-                          size: 32,
+                        child: Image.asset(
+                          'assets/icons/icon_cardume.png',
+                          width: 32,
+                          height: 32,
                         ),
                       ),
                     ))

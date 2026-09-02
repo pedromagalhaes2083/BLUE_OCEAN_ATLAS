@@ -38,6 +38,35 @@ class _NovaViagemScreenState extends State<NovaViagemScreen> {
   Porto? _portoDestino;
   bool _salvando = false;
 
+  /// Sugestão de nome mostrada só como `hintText` (some assim que o mestre
+  /// digitar algo) — nunca preenchida de verdade no controller, pra não
+  /// virar o nome da viagem sem o mestre escolher isso.
+  String? _nomeSugerido;
+
+  static const _meses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarNomeSugerido();
+  }
+
+  Future<void> _carregarNomeSugerido() async {
+    final registros = await widget.dbHelper.query('embarcacao');
+    if (!mounted || registros.isEmpty) return;
+    final nomeEmbarcacao = registros.first['nome'] as String?;
+    if (nomeEmbarcacao == null || nomeEmbarcacao.trim().isEmpty) return;
+
+    final agora = DateTime.now();
+    setState(() {
+      _nomeSugerido =
+          '${nomeEmbarcacao.trim()} - ${_meses[agora.month - 1]} ${agora.day}';
+    });
+  }
+
   Future<void> _salvarViagem() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -330,8 +359,9 @@ class _NovaViagemScreenState extends State<NovaViagemScreen> {
             children: [
               TextFormField(
                 controller: _nomeController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Nome da Viagem (opcional)',
+                  hintText: _nomeSugerido,
                 ),
               ),
               const SizedBox(height: 20),
