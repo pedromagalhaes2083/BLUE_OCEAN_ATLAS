@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/wave_forecast.dart';
 import '../../../core/utils/cor_tema.dart';
+import '../../../core/utils/fase_lua.dart';
 
 /// Card de tábua de marés — nível do mar atual e as próximas preamares/
 /// baixa-mares, calculadas a partir da série horária de nível do mar da
@@ -9,7 +10,11 @@ import '../../../core/utils/cor_tema.dart';
 class MareCard extends StatelessWidget {
   final WaveForecast forecast;
 
-  const MareCard({super.key, required this.forecast});
+  /// Abre a tela "Maré e Pesca de Atum" (ver `MareEPescaAtumScreen`) —
+  /// opcional, mesmo padrão do [FaseLuaCard.onTap].
+  final VoidCallback? onTap;
+
+  const MareCard({super.key, required this.forecast, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +37,9 @@ class MareCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       color: corCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,8 +61,14 @@ class MareCard extends StatelessWidget {
                     '${nivelAtual.toStringAsFixed(2)} m agora',
                     style: TextStyle(color: corRotulo(context), fontSize: 12),
                   ),
+                if (onTap != null) ...[
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right, size: 18, color: corRotulo(context)),
+                ],
               ],
             ),
+            const SizedBox(height: 8),
+            _SelaMareAstronomica(tipo: calcularTipoMareAstronomica(calcularFaseLua())),
             if (eventos.isNotEmpty) ...[
               const SizedBox(height: 16),
               SizedBox(
@@ -70,6 +83,49 @@ class MareCard extends StatelessWidget {
             ],
           ],
         ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Sizígia (perto de lua nova/cheia — correntes mais fortes) vs.
+/// quadratura (perto dos quartos — correntes mais fracas), calculada só a
+/// partir da fase da lua (ver `calcularTipoMareAstronomica`), sem
+/// depender do modelo de maré ajustado em si.
+class _SelaMareAstronomica extends StatelessWidget {
+  final TipoMareAstronomica tipo;
+
+  const _SelaMareAstronomica({required this.tipo});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color cor;
+    final IconData icone;
+    switch (tipo) {
+      case TipoMareAstronomica.sizigia:
+        cor = Colors.orange.shade800;
+        icone = Icons.keyboard_double_arrow_up;
+      case TipoMareAstronomica.quadratura:
+        cor = Colors.blueGrey;
+        icone = Icons.horizontal_rule;
+      case TipoMareAstronomica.transicao:
+        cor = corRotulo(context);
+        icone = Icons.trending_flat;
+    }
+
+    return Tooltip(
+      message: tipo.nota,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icone, size: 14, color: cor),
+          const SizedBox(width: 4),
+          Text(
+            'Maré de ${tipo.label.toLowerCase()}',
+            style: TextStyle(fontSize: 11, color: cor, fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }

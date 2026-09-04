@@ -29,11 +29,15 @@ class Config {
 
   static Future<void> grava(String chave, String valor) async {
     await _inicia();
-    _box.put(chave, valor);
+    // Sem o `await` aqui, quem chama `Config.grava` acredita que o valor já
+    // está salvo assim que o método retorna, mas a escrita em disco do Hive
+    // ainda pode estar em andamento — um kill do processo bem nessa janela
+    // perderia o valor silenciosamente (auditoria de 2026-09).
+    await _box.put(chave, valor);
   }
 
   static Future<void> limpa(String chave) async {
     await _inicia();
-    _box.delete(chave);
+    await _box.delete(chave);
   }
 }

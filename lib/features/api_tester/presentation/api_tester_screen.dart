@@ -135,7 +135,7 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
       );
 
       // Salva no Hive
-      _storage.save(ApiEntry(
+      await _storage.save(ApiEntry(
         url: _interpolate(rawUrl),
         method: _method,
         statusCode: res.statusCode,
@@ -472,9 +472,9 @@ class _ApiTesterScreenState extends State<ApiTesterScreen>
                   style: TextStyle(color: Colors.grey[600], fontSize: 13)),
               const Spacer(),
               TextButton.icon(
-                onPressed: () {
-                  _storage.clear();
-                  setState(() {});
+                onPressed: () async {
+                  await _storage.clear();
+                  if (mounted) setState(() {});
                 },
                 icon: const Icon(Icons.delete_sweep, size: 18),
                 label: const Text('Limpar tudo'),

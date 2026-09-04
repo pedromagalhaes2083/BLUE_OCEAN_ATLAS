@@ -304,6 +304,10 @@ class MapaWidgetState extends State<MapaWidget> {
     _mbtiles.close();
     _nomePontoController.dispose();
     _nomeRotaController.dispose();
+    // Sem isso, o AnimationController interno do MapController (usado nas
+    // animações de pan/zoom) ficava vivo depois da tela fechar (auditoria
+    // de 2026-09).
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -1867,18 +1871,13 @@ class MapaWidgetState extends State<MapaWidget> {
                       point: LatLng(registro.latitude!, registro.longitude!),
                       width: 32,
                       height: 32,
+                      alignment: Alignment.topCenter,
                       child: GestureDetector(
                         onTap: () => _mostrarInfoRegistroProducao(registro),
-                        // Ícone de peixe puro (sem bolinha de fundo sólida)
-                        // — a borda branca funciona como halo de contraste
-                        // em qualquer basemap, carta escura ou mapa de ruas.
-                        child: const Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Icon(Icons.set_meal, color: Colors.white, size: 30),
-                            Icon(Icons.set_meal,
-                                color: Colors.deepOrange, size: 25),
-                          ],
+                        child: Image.asset(
+                          'assets/icons/icon_cardume_vermelho.png',
+                          width: 32,
+                          height: 32,
                         ),
                       ),
                     ))

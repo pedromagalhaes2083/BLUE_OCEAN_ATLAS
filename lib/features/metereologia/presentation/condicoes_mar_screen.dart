@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/erro_amigavel.dart';
+import '../../../core/utils/fase_lua.dart';
 import '../../widgets/posicao_atual_widget.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
+import '../../widgets/wave_forecast/fase_lua_card.dart';
 import '../../widgets/wave_forecast/wave_forecast_widgets.dart';
+import 'mare_pesca_atum_screen.dart';
 import '../data/previsao_tempo_repository.dart';
 import '../data/profundidade_repository.dart';
 import '../data/wave_forecast_repository.dart';
 import '../domain/models/leitura_profundidade.dart';
+import 'fase_lua_screen.dart';
 
 /// Tela com as condições do mar (temperatura da água, corrente, ondas/swell
 /// e clima) na posição atual da embarcação — ou em qualquer outra posição
@@ -86,6 +90,19 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
             onPosicaoObtida: (posicao) =>
                 _atualizarPosicao(posicao.latitude, posicao.longitude),
           ),
+          const SizedBox(height: 16),
+          // A fase da lua não depende de GPS nem de rede (ver
+          // `calcularFaseLua`) — mostra já, sem esperar a posição nem a
+          // previsão de onda/vento carregarem. Só o nascer/pôr por dia
+          // depende de coordenada, e fica na tela dedicada (ver [onTap]).
+          FaseLuaCard(
+            faseAtual: calcularFaseLua(),
+            proximasFases: proximasFasesPrincipais(),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FaseLuaScreen()),
+            ),
+          ),
           const SizedBox(height: 24),
           if (_lat == null || _lon == null)
             const Center(
@@ -153,7 +170,13 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
             if (_waveForecast != null) ...[
               CondicoesAtuaisCard(forecast: _waveForecast!),
               const SizedBox(height: 16),
-              MareCard(forecast: _waveForecast!),
+              MareCard(
+                forecast: _waveForecast!,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MareEPescaAtumScreen()),
+                ),
+              ),
             ],
           ],
         ],

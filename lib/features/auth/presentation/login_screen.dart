@@ -19,8 +19,12 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usuarioController = TextEditingController(text: 'admin@blueocean.io');
-  final _senhaController = TextEditingController(text: 'SuperSecret123!');
+  // Sem valor pré-preenchido — uma credencial de demonstração real ficava
+  // digitada por padrão aqui, então qualquer pessoa que abrisse o app e
+  // tocasse "Entrar" logava numa conta administrativa de verdade
+  // (auditoria de 2026-09).
+  final _usuarioController = TextEditingController();
+  final _senhaController = TextEditingController();
   bool _isLoading = false;
   bool _lembrarCredenciais = false;
   String? _erro;

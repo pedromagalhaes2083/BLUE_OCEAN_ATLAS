@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:atlas/features/widgets/base_meteorology_card.dart';
 import '../../../core/utils/cor_tema.dart';
+import '../../../core/utils/tendencia_pressao.dart';
 import '../../metereologia/domain/models/previsao_tempo.dart';
 
 /// Card único com o vento atual (destaque), temperatura (secundária) e a
@@ -39,6 +40,7 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
         const Divider(height: 1),
         const SizedBox(height: 12),
         _buildTemperaturaSecundaria(atual, corRot),
+        _buildTendenciaPressao(corRot),
         if (proximas.isNotEmpty) ...[
           const SizedBox(height: 20),
           const Divider(height: 1),
@@ -156,6 +158,51 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
         Text('${atual.temperatura.toStringAsFixed(1)} °C',
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
       ],
+    );
+  }
+
+  /// Pressão + seta de tendência (últimas 3h) — um dos preditores mais
+  /// citados por pescadores: pressão caindo costuma anteceder mudança de
+  /// tempo (peixe mais ativo). Sem 3h de dado suficiente (ex: logo depois
+  /// de abrir o app), fica em branco em vez de mostrar algo incerto.
+  Widget _buildTendenciaPressao(Color corRot) {
+    final tendencia = calcularTendenciaPressao(
+      previsao.horaria
+          .map((h) => (horario: h.horario, pressaoHpa: h.pressao))
+          .toList(),
+    );
+    if (tendencia == null) return const SizedBox.shrink();
+
+    final IconData icone;
+    final Color cor;
+    switch (tendencia.tipo) {
+      case TendenciaPressaoTipo.caindo:
+        icone = Icons.trending_down;
+        cor = Colors.orange.shade800;
+      case TendenciaPressaoTipo.subindo:
+        icone = Icons.trending_up;
+        cor = Colors.blueGrey;
+      case TendenciaPressaoTipo.estavel:
+        icone = Icons.trending_flat;
+        cor = Colors.grey.shade600;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          Icon(Icons.speed, size: 18, color: corRot),
+          const SizedBox(width: 8),
+          Text('Pressão', style: TextStyle(color: corRot, fontSize: 13)),
+          const Spacer(),
+          Icon(icone, size: 16, color: cor),
+          const SizedBox(width: 4),
+          Text(
+            '${tendencia.pressaoAtualHpa.toStringAsFixed(0)} hPa · ${tendencia.tipo.label}',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cor),
+          ),
+        ],
+      ),
     );
   }
 

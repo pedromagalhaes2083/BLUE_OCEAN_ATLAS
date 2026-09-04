@@ -59,8 +59,8 @@ class ApiStorageService {
 
   Box get _box => Hive.box(_boxName);
 
-  void save(ApiEntry entry) {
-    _box.add(entry.toMap());
+  Future<void> save(ApiEntry entry) {
+    return _box.add(entry.toMap());
   }
 
   List<ApiEntry> getAll() {
@@ -72,12 +72,12 @@ class ApiStorageService {
         .toList(); // mais recente primeiro
   }
 
-  void delete(int hiveIndex) {
-    _box.deleteAt(hiveIndex);
+  Future<void> delete(int hiveIndex) {
+    return _box.deleteAt(hiveIndex);
   }
 
-  void clear() {
-    _box.clear();
+  Future<void> clear() {
+    return _box.clear();
   }
 
   int get count => _box.length;

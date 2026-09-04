@@ -7,6 +7,7 @@ import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../cartas/presentation/solicitar_cartas_screen.dart';
 import '../../metereologia/presentation/condicoes_ponto_screen.dart';
+import '../../metereologia/presentation/mare_pesca_atum_screen.dart';
 import '../../recomendacao/data/recomendacao_repository.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_card.dart';
@@ -462,6 +463,27 @@ class _DetalhePontoMarcado extends StatelessWidget {
             },
             icon: const Icon(Icons.water_outlined, size: 18),
             label: const Text('Consultar aqui'),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MareEPescaAtumScreen(
+                    latitude: ponto.latitude,
+                    longitude: ponto.longitude,
+                    nomePonto: ponto.nome,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.phishing, size: 18),
+            label: const Text('Maré e Pesca aqui'),
           ),
         ),
         const SizedBox(height: 8),
