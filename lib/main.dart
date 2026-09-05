@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/database/database_helper.dart';
@@ -16,6 +17,12 @@ final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: binding);
+
+  // Porta de comunicação com o serviço em primeiro plano do rastreamento
+  // (ver LocationTrackingService/LocationForegroundTaskHandler) — precisa
+  // ser chamado cedo, antes de qualquer outra coisa que dependa do estado
+  // do serviço, mesmo que este app não troque dados com ele hoje.
+  FlutterForegroundTask.initCommunicationPort();
 
   final dbHelper = DatabaseHelper.instance;
 

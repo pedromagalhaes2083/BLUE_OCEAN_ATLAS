@@ -8,7 +8,7 @@ import '../config/constantes.dart';
 
 /// Avisa (notificação local) quando o servidor gera uma recomendação nova —
 /// checado pela mesma tarefa periódica do rastreamento de GPS (ver
-/// `location_worker.dart`), então só roda enquanto há uma viagem em
+/// `location_foreground_task_handler.dart`), então só roda enquanto há uma viagem em
 /// andamento, no intervalo configurado pelo usuário (mínimo 15 min no
 /// Android). Não é push de verdade (não exige servidor/Firebase): compara o
 /// que a API retorna agora com a última verificação salva localmente.

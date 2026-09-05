@@ -12,6 +12,7 @@ class Embarcacao {
   final String? mestreId;
   final String? motorUsado;
   final String? foto;
+  final String? remotoId;
 
   Embarcacao({
     this.id,
@@ -27,6 +28,7 @@ class Embarcacao {
     this.mestreId,
     this.motorUsado,
     this.foto,
+    this.remotoId,
   });
 
   // ====================== fromMap (do banco) ======================
@@ -46,6 +48,7 @@ class Embarcacao {
       mestreId: map['mestre_id'],
       motorUsado: map['motor_usado'],
       foto: map['foto'],
+      remotoId: map['remoto_id'],
     );
   }
 
@@ -65,6 +68,7 @@ class Embarcacao {
       'mestre_id': mestreId,
       'motor_usado': motorUsado,
       'foto': foto,
+      'remoto_id': remotoId,
     };
   }
 
@@ -83,6 +87,7 @@ class Embarcacao {
     String? mestreId,
     String? motorUsado,
     String? foto,
+    String? remotoId,
   }) {
     return Embarcacao(
       id: id ?? this.id,
@@ -99,6 +104,7 @@ class Embarcacao {
       mestreId: mestreId ?? this.mestreId,
       motorUsado: motorUsado ?? this.motorUsado,
       foto: foto ?? this.foto,
+      remotoId: remotoId ?? this.remotoId,
     );
   }
 

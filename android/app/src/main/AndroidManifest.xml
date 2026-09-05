@@ -10,8 +10,19 @@
 <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 <!-- Android 13+ exige essa permissão em runtime pra qualquer notificação,
      inclusive as locais (flutter_local_notifications) usadas para avisar de
-     uma recomendação nova chegada em segundo plano. -->
+     uma recomendação nova chegada em segundo plano, e a notificação
+     persistente do rastreamento em primeiro plano abaixo. -->
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<!-- Serviço em primeiro plano (ver LocationTrackingService/
+     flutter_foreground_task) — sem isso o rastreamento de posição era só
+     uma tarefa periódica do WorkManager (best-effort, sujeita a atraso e
+     ao Doze), que o sistema podia parar de rodar ao fechar o app; com o
+     serviço em primeiro plano + notificação persistente, o rastreamento
+     continua rodando mesmo com o app fechado (só para se o mestre tocar
+     "Finalizar" ou o sistema encerrar via "Forçar parada"). -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
     <application
         android:label="Atlas v1.0"
         android:name="${applicationName}"
@@ -43,6 +54,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Serviço em primeiro plano do rastreamento (ver comentário da
+             permissão FOREGROUND_SERVICE_LOCATION acima e
+             LocationTrackingService) — declarado pelo próprio
+             flutter_foreground_task, precisa só do tipo certo aqui. -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

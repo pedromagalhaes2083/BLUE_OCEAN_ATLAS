@@ -26,9 +26,22 @@ class Endpoints {
   static const portos = 'base/operacao/portos';
   static const viagens = 'base/operacao/viagens';
 
+  /// Viagem ativa do usuário logado — base do fluxo login → viagem ativa
+  /// → embarcação dela (ver [ViagemRepository.buscarAtual]). Retornava
+  /// 422/QueryFailedError do backend nos primeiros testes em 2026-09;
+  /// corrigido no backend no mesmo mês — confirmado com curl real (HTTP
+  /// 200, corpo `{"viagem": {...}}`, ver [ViagemAtualRemota]).
+  static const viagemAtual = 'base/operacao/viagens/eu/atual';
+
   /// Catálogo de embarcações cadastradas na plataforma online — o app só
   /// lista pra escolha (ver [EmbarcacaoRepository]), nunca cria.
   static const embarcacoesIndice = 'base/operacao/embarcacoes/indice';
+
+  /// Embarcação de um id específico — usado por [EmbarcacaoRepository.buscarPorId]
+  /// pra resolver a embarcação da viagem ativa (ver [ContextoViagemService]),
+  /// já que o fluxo login → viagem ativa fornece só o `embarcacaoId`, não o
+  /// objeto inteiro. Confirmado em 2026-09 (curl com token real, HTTP 200).
+  static String embarcacaoPorId(String id) => 'base/operacao/embarcacoes/$id';
 
   /// Catálogo de espécies cadastradas na plataforma online — mesmo padrão
   /// de [embarcacoesIndice], só listagem pra escolha.

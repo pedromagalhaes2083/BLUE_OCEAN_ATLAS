@@ -1,5 +1,6 @@
 import '../../../core/network/api_service.dart';
 import '../../../core/network/endpoints.dart';
+import '../domain/models/viagem_atual_remota.dart';
 
 /// Único lugar que conhece a rota/formato de `POST base/operacao/viagens`
 /// — cria a viagem no backend depois que ela já foi salva localmente
@@ -51,5 +52,24 @@ class ViagemRepository {
     final resposta = await ApiService.post(Endpoints.viagens, corpo)
         as Map<String, dynamic>;
     return resposta['id'] as String;
+  }
+
+  /// Viagem ativa do usuário logado (`GET base/operacao/viagens/eu/atual`)
+  /// — base do fluxo login → viagem ativa → embarcação (ver
+  /// `ContextoViagemService`). `null` quando o usuário não tem nenhuma
+  /// viagem em andamento agora; deixa passar a exceção em qualquer outro
+  /// erro (rede, servidor) — quem chama decide se trata isso como "sem
+  /// viagem ativa" ou mostra o erro, igual aos outros repositórios.
+  Future<ViagemAtualRemota?> buscarAtual() async {
+    final resposta = await ApiService.get(Endpoints.viagemAtual);
+    if (resposta == null) return null;
+    final corpo = resposta as Map<String, dynamic>;
+    // Resposta confirmada em 2026-09: {"viagem": {...}} quando há viagem
+    // ativa. Sem uma viagem sem-viagem-ativa real pra confirmar o formato,
+    // trata `{"viagem": null}` (ou ausente) como "sem viagem ativa" também,
+    // além do corpo inteiro vindo null — mais tolerante que assumir só um
+    // dos dois formatos.
+    if (corpo['viagem'] == null && !corpo.containsKey('id')) return null;
+    return ViagemAtualRemota.fromJson(corpo);
   }
 }

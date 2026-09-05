@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:atlas/core/auth/auth_service.dart';
 import 'package:atlas/core/config/config.dart';
 import 'package:atlas/core/config/constantes.dart';
+import 'package:atlas/core/services/contexto_viagem_service.dart';
 import 'package:atlas/core/services/location_tracking_service.dart';
 import 'package:atlas/core/services/sincronizacao_service.dart';
 import 'package:atlas/core/utils/erro_amigavel.dart';
@@ -58,10 +59,18 @@ class _LoginScreenState extends State<LoginScreen> {
         debugPrint('Erro ao sincronizar dados do dispositivo: $e');
       }
 
+      // Fluxo login → viagem ativa → embarcação (ver ContextoViagemService):
+      // busca a viagem em andamento do usuário no backend e resolve a
+      // embarcação a partir dela, antes da checagem puramente local logo
+      // abaixo. Best-effort — nunca lança, sem viagem ativa ou erro de
+      // backend o app segue com o que já tinha localmente.
+      await ContextoViagemService.resolverAoLogar(widget.dbHelper);
+      if (!mounted) return;
+
       // O rastreamento em segundo plano só roda com uma viagem em
       // andamento (ver NovaViagemScreen/HistoricoLocalizacoesScreen) — aqui
       // só retoma se o usuário tinha saído (logout) no meio de uma viagem
-      // ainda ativa.
+      // ainda ativa (local ou, agora, recém-sincronizada do backend acima).
       try {
         final viagensAtivas = await widget.dbHelper.queryWhere(
           'viagem',

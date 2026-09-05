@@ -8,6 +8,7 @@ import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/producao_reporter_service.dart';
+import '../../embarcacao/data/embarcacao_local_lookup.dart';
 import '../domain/classificacao_peso.dart';
 import '../domain/models/producao_registro.dart';
 import 'producao_historico_screen.dart';
@@ -67,7 +68,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
   // Identifica a embarcação registrada e a viagem em andamento (se houver)
   // pra preencher o registro corretamente, em vez de valores fixos.
   Future<void> _carregarContexto() async {
-    final embarcacoes = await widget.dbHelper.query('embarcacao');
+    final registroEmbarcacao = await buscarEmbarcacaoLocalAtual(widget.dbHelper);
     final viagens = await widget.dbHelper.queryWhere(
       'viagem',
       where: 'status = ?',
@@ -78,8 +79,8 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
 
     if (!mounted) return;
     setState(() {
-      if (embarcacoes.isNotEmpty) {
-        final embarcacao = embarcacoes.first;
+      if (registroEmbarcacao != null) {
+        final embarcacao = registroEmbarcacao;
         _embarcacaoNome =
             (embarcacao['registro'] as String?)?.isNotEmpty == true
                 ? embarcacao['registro'] as String

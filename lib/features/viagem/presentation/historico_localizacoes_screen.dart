@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/services/contexto_viagem_service.dart';
 import '../../../core/services/location_tracking_service.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../mapa/presentation/mapa_screen.dart';
@@ -34,6 +35,12 @@ class _HistoricoLocalizacoesScreenState
   bool _isLoading = true;
   bool _finalizando = false;
   bool _viagemFinalizada = false;
+  bool _sincronizando = false;
+
+  // Viagem ativa exibida — começa com a que a tela recebeu, mas pode ser
+  // atualizada em memória depois de um "Sincronizar" (ver [_sincronizar]),
+  // sem precisar fechar e reabrir a tela.
+  late Viagem? _viagemAtiva;
 
   // Estatísticas calculadas sobre o histórico carregado.
   double? _distanciaMn;
@@ -44,8 +51,45 @@ class _HistoricoLocalizacoesScreenState
   @override
   void initState() {
     super.initState();
+    _viagemAtiva = widget.viagemAtiva;
     _viagemFinalizada = widget.viagemAtiva?.isFinalizada ?? false;
     _carregarHistorico();
+  }
+
+  /// Busca a viagem ativa na plataforma de novo (ver [ContextoViagemService])
+  /// — não há mais criação de viagem no app, só esse "puxar de novo" quando
+  /// a tela abre sem nenhuma viagem em andamento.
+  Future<void> _sincronizar() async {
+    setState(() => _sincronizando = true);
+    final encontrou = await ContextoViagemService.sincronizar(widget.dbHelper);
+    if (!mounted) return;
+
+    if (encontrou) {
+      final ativas = await widget.dbHelper.queryWhere(
+        'viagem',
+        where: 'status = ?',
+        whereArgs: ['em_andamento'],
+      );
+      if (!mounted) return;
+      setState(() {
+        _viagemAtiva = ativas.isEmpty ? null : Viagem.fromMap(ativas.first);
+        _viagemFinalizada = false;
+      });
+      await _carregarHistorico();
+      if (!mounted) return;
+    }
+
+    setState(() => _sincronizando = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          encontrou
+              ? 'Viagem ativa sincronizada.'
+              : 'Nenhuma viagem ativa encontrada na plataforma agora.',
+        ),
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   Future<void> _carregarHistorico() async {
@@ -136,7 +180,7 @@ class _HistoricoLocalizacoesScreenState
   }
 
   Future<void> _compartilharResumo() async {
-    final viagem = widget.viagemAtiva;
+    final viagem = _viagemAtiva;
 
     var producaoTexto = '';
     if (viagem != null) {
@@ -176,7 +220,7 @@ class _HistoricoLocalizacoesScreenState
   }
 
   Future<void> _finalizarViagem() async {
-    final viagem = widget.viagemAtiva;
+    final viagem = _viagemAtiva;
     if (viagem == null) return;
 
     final confirmar = await showDialog<bool>(
@@ -302,33 +346,53 @@ class _HistoricoLocalizacoesScreenState
   @override
   Widget build(BuildContext context) {
     final viagemEmAndamento =
-        widget.viagemAtiva != null && !_viagemFinalizada;
+        _viagemAtiva != null && !_viagemFinalizada;
+
+    // Sem `viagemId` (filtro de uma viagem específica já encerrada), esta
+    // tela é "a viagem em andamento" — sem nenhuma ativa, mostra o
+    // tratamento de erro dedicado em vez do histórico solto sem contexto
+    // (ver ContextoViagemService: não existe mais criar viagem no app, só
+    // sincronizar com o que está ativo na plataforma).
+    final semViagemAtiva = widget.viagemId == null && !viagemEmAndamento;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Histórico de Localizações'),
+        title: const Text('Viagem Atual'),
         actions: [
-          if (_historico.isNotEmpty)
+          if (!semViagemAtiva && _historico.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.route),
               tooltip: 'Ver rota na carta',
               onPressed: _verRotaNaCarta,
             ),
-          if (_distanciaMn != null)
+          if (!semViagemAtiva && _distanciaMn != null)
             IconButton(
               icon: const Icon(Icons.share),
               tooltip: 'Compartilhar resumo da viagem',
               onPressed: _compartilharResumo,
             ),
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _carregarHistorico,
+            icon: _sincronizando
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            tooltip: semViagemAtiva
+                ? 'Sincronizar com a viagem ativa'
+                : 'Atualizar',
+            onPressed: _sincronizando
+                ? null
+                : (semViagemAtiva ? _sincronizar : _carregarHistorico),
           ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : semViagemAtiva
+              ? _buildSemViagemAtiva()
+              : Column(
               children: [
                 if (viagemEmAndamento) _buildCardViagemAtiva(),
                 if (_distanciaMn != null) _buildCardEstatisticas(),
@@ -405,8 +469,51 @@ class _HistoricoLocalizacoesScreenState
     );
   }
 
+  Widget _buildSemViagemAtiva() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.sailing_outlined,
+                size: 80,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(height: 16),
+            const Text(
+              'Nenhuma viagem em andamento',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'As viagens agora são criadas na plataforma. Toque em '
+              'sincronizar para buscar a viagem ativa.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _sincronizando ? null : _sincronizar,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade900),
+              icon: _sincronizando
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.sync),
+              label: const Text('Sincronizar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCardViagemAtiva() {
-    final viagem = widget.viagemAtiva!;
+    final viagem = _viagemAtiva!;
     // No claro, mantém o verde original — o tom azul do tema só entra no
     // escuro, onde o verde pastel fixo ficava um bloco claro cego em cima
     // do fundo escuro.

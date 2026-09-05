@@ -22,4 +22,14 @@ class EmbarcacaoRepository {
         .map((e) => EmbarcacaoRemota.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  /// Embarcação de um id específico — usado pra resolver a embarcação da
+  /// viagem ativa (ver `ContextoViagemService`), já que o fluxo
+  /// login → viagem ativa fornece só o `embarcacaoId`, não o objeto
+  /// inteiro. Confirmado em 2026-09 (curl com token real, HTTP 200).
+  Future<EmbarcacaoRemota?> buscarPorId(String id) async {
+    final json =
+        await ApiService.get(Endpoints.embarcacaoPorId(id)) as Map<String, dynamic>;
+    return EmbarcacaoRemota.fromJson(json);
+  }
 }

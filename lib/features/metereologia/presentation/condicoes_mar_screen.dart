@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/fase_lua.dart';
+import '../../../core/utils/tabela_solunar.dart';
 import '../../widgets/posicao_atual_widget.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
 import '../../widgets/wave_forecast/fase_lua_card.dart';
+import '../../widgets/wave_forecast/tabela_solunar_card.dart';
 import '../../widgets/wave_forecast/wave_forecast_widgets.dart';
 import 'mare_pesca_atum_screen.dart';
+import '../data/fase_lua_repository.dart';
 import '../data/previsao_tempo_repository.dart';
 import '../data/profundidade_repository.dart';
 import '../data/wave_forecast_repository.dart';
+import '../domain/models/dia_lunar.dart';
 import '../domain/models/leitura_profundidade.dart';
 import 'fase_lua_screen.dart';
 
@@ -38,6 +42,11 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
   LeituraProfundidade? _profundidade;
   bool _carregandoOceano = false;
   String? _erroOceano;
+
+  // Dias lunares (nascer/pôr) usados só pra montar a tabela solunar de hoje
+  // (ver [_periodosSolunaresHoje]) — busca à parte, best-effort: uma falha
+  // aqui não deve derrubar o resto da tela (ver [_buscarDiasLunares]).
+  List<DiaLunar>? _diasLunares;
 
   Future<void> _buscarDadosOceano() async {
     if (_lat == null || _lon == null) return;
@@ -67,6 +76,38 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
     } finally {
       if (mounted) setState(() => _carregandoOceano = false);
     }
+
+    _buscarDiasLunares();
+  }
+
+  /// Busca à parte da principal (ver comentário do campo) — não usa o
+  /// mesmo try/catch de cima pra um erro aqui nunca aparecer como "erro ao
+  /// buscar previsão" e esconder onda/vento/maré que já carregaram certo.
+  Future<void> _buscarDiasLunares() async {
+    if (_lat == null || _lon == null) return;
+    try {
+      final dias =
+          await FaseLuaRepository().buscar(latitude: _lat!, longitude: _lon!);
+      if (!mounted) return;
+      setState(() => _diasLunares = dias);
+    } catch (e) {
+      debugPrint('Erro ao buscar dias lunares pra tabela solunar: $e');
+    }
+  }
+
+  /// Períodos solunares de hoje — precisa dos dias vizinhos pra interpolar
+  /// perto da virada do dia (ver `calcularPeriodosSolunares`), por isso usa
+  /// a lista inteira, não só o dia de hoje.
+  List<PeriodoSolunar> get _periodosSolunaresHoje {
+    final dias = _diasLunares;
+    if (dias == null) return [];
+    final agora = DateTime.now();
+    final inicioDoDia = DateTime(agora.year, agora.month, agora.day);
+    return calcularPeriodosSolunares(
+      dias,
+      desde: inicioDoDia,
+      janela: const Duration(days: 1),
+    );
   }
 
   // ── Posição ──────────────────────────────────────────────────────────────
@@ -103,6 +144,10 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
               MaterialPageRoute(builder: (_) => const FaseLuaScreen()),
             ),
           ),
+          if (_periodosSolunaresHoje.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            TabelaSolunarCard(periodos: _periodosSolunaresHoje),
+          ],
           const SizedBox(height: 24),
           if (_lat == null || _lon == null)
             const Center(

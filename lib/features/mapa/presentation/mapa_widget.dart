@@ -30,6 +30,7 @@ import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
 import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/download_regiao_dialog.dart';
+import '../widgets/legenda_grade_temperatura.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
 import '../widgets/street_map_tile_provider.dart';
@@ -799,17 +800,6 @@ class MapaWidgetState extends State<MapaWidget> {
     ];
   }
 
-  /// Verde (mais fria) → amarelo → laranja (mais quente), normalizado pelo
-  /// mínimo/máximo encontrados na própria grade — não uma escala fixa, pra
-  /// sempre aproveitar a variação real do trecho de mar consultado.
-  Color _corGradeTemperatura(double temperatura, double min, double max) {
-    if (max <= min) return Colors.orange;
-    final t = ((temperatura - min) / (max - min)).clamp(0.0, 1.0);
-    return t < 0.5
-        ? Color.lerp(Colors.green, Colors.yellow, t * 2)!
-        : Color.lerp(Colors.yellow, Colors.deepOrange, (t - 0.5) * 2)!;
-  }
-
   /// Zoom mínimo pra desenhar o valor em cima de cada célula — abaixo disso
   /// as células ficam pequenas demais na tela e os números se atropelam uns
   /// nos outros; a cor de fundo continua aparecendo em qualquer zoom.
@@ -843,7 +833,7 @@ class MapaWidgetState extends State<MapaWidget> {
     return [
       PolygonLayer(
         polygons: comTemperatura.map((p) {
-          final cor = _corGradeTemperatura(p.temperaturaC!, min, max);
+          final cor = corGradeTemperatura(p.temperaturaC!, min, max);
           return Polygon(
             points: [
               LatLng(p.latitude - meiaCelula, p.longitude - meiaCelula),
@@ -877,62 +867,6 @@ class MapaWidgetState extends State<MapaWidget> {
             .toList(),
       ),
     ];
-  }
-
-  /// Barra compacta com a escala de cores da grade (mín. → máx.) — sem ela,
-  /// os números espremidos nas células (ou escondidos, em zoom baixo — ver
-  /// [_zoomMinimoRotuloGrade]) não dão pra entender a variação de
-  /// temperatura sozinhos.
-  Widget _buildLegendaGradeTemperatura() {
-    final (min, max) = _gradeTemperaturaMinMax!;
-    return Positioned(
-      top: 56,
-      right: 8,
-      child: Material(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text('SST',
-                  style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Container(
-                width: 90,
-                height: 10,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                  gradient: const LinearGradient(colors: [
-                    Colors.green,
-                    Colors.yellow,
-                    Colors.deepOrange,
-                  ]),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('${min.toStringAsFixed(0)}°',
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 11)),
-                  const SizedBox(width: 74),
-                  Text('${max.toStringAsFixed(0)}°',
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 11)),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   // ── Sobreposição de imagem ───────────────────────────────────────────────
@@ -1393,7 +1327,10 @@ class MapaWidgetState extends State<MapaWidget> {
           if (_overlayAtiva && !_modoMarcarPonto && !widget.modoPlanejarRota)
             _buildOverlayOpacidadeControl(),
           if (_mostrarGradeTemperatura && _gradeTemperaturaMinMax != null)
-            _buildLegendaGradeTemperatura(),
+            LegendaGradeTemperatura(
+              min: _gradeTemperaturaMinMax!.$1,
+              max: _gradeTemperaturaMinMax!.$2,
+            ),
           if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
           if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
           if (!_modoMarcarPonto &&

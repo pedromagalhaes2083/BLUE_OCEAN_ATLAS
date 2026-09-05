@@ -6,9 +6,10 @@ import 'package:flutter/services.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/services/contexto_viagem_service.dart';
 import '../../mapa/presentation/mapa_screen.dart';
+import '../data/embarcacao_local_lookup.dart';
 import '../domain/models/embarcacao.dart';
-import 'embarcacao_configuracao_screen.dart';
 
 const _kgPorTonelada = 1000.0;
 
@@ -30,6 +31,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
   Embarcacao? _embarcacao;
   String? _embarcacaoId;
   bool _isLoading = true;
+  bool _sincronizando = false;
 
   @override
   void initState() {
@@ -40,24 +42,24 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
   Future<void> _carregar() async {
     setState(() => _isLoading = true);
     try {
-      List<Map<String, dynamic>> registros;
+      Map<String, dynamic>? registro;
       if (widget.embarcacao?.id != null) {
         final db = await widget.dbHelper.database;
-        registros = await db.query(
+        final registros = await db.query(
           'embarcacao',
           where: 'id = ?',
           whereArgs: [widget.embarcacao!.id],
         );
+        registro = registros.isNotEmpty ? registros.first : null;
       } else {
-        registros = await widget.dbHelper.query('embarcacao');
+        registro = await buscarEmbarcacaoLocalAtual(widget.dbHelper);
       }
 
       final embarcacaoId = await Config.obtem(Constantes.embarcacaoId, '');
 
       if (!mounted) return;
       setState(() {
-        _embarcacao =
-            registros.isNotEmpty ? Embarcacao.fromMap(registros.first) : null;
+        _embarcacao = registro != null ? Embarcacao.fromMap(registro) : null;
         _embarcacaoId = embarcacaoId.trim().isEmpty ? null : embarcacaoId.trim();
       });
     } catch (e) {
@@ -70,14 +72,26 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
     }
   }
 
-  Future<void> _editar() async {
-    final resultado = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => EmbarcacaoConfiguracaoScreen(dbHelper: widget.dbHelper),
+  /// Busca a viagem ativa do usuário na plataforma de novo e resolve a
+  /// embarcação a partir dela — não existe mais cadastro/edição manual de
+  /// embarcação no app (ver [ContextoViagemService]).
+  Future<void> _sincronizar() async {
+    setState(() => _sincronizando = true);
+    final encontrou = await ContextoViagemService.sincronizar(widget.dbHelper);
+    if (!mounted) return;
+    await _carregar();
+    if (!mounted) return;
+    setState(() => _sincronizando = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          encontrou
+              ? 'Embarcação sincronizada com a viagem ativa.'
+              : 'Nenhuma viagem ativa encontrada na plataforma agora.',
+        ),
+        duration: const Duration(seconds: 4),
       ),
     );
-    if (resultado == true) _carregar();
   }
 
   void _rastrear() {
@@ -471,15 +485,30 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 20),
             const Text(
-              'Nenhuma embarcação encontrada',
+              'Nenhuma embarcação vinculada',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
             Text(
-              'Cadastre uma embarcação para começar',
+              'A embarcação é vinculada automaticamente a partir da sua '
+              'viagem ativa na plataforma.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _sincronizando ? null : _sincronizar,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade900),
+              icon: _sincronizando
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.sync),
+              label: const Text('Sincronizar'),
             ),
           ],
         ),
@@ -512,9 +541,15 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                onPressed: _editar,
-                icon: const Icon(Icons.edit),
-                label: const Text('Editar'),
+                onPressed: _sincronizando ? null : _sincronizar,
+                icon: _sincronizando
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync),
+                label: const Text('Sincronizar'),
               ),
             ),
             const SizedBox(width: 12),

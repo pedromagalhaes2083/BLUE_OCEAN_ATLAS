@@ -13,7 +13,7 @@ import '../utils/severidade_condicoes.dart';
 /// Notificação (com vibração) quando vento, corrente, onda ou swell no
 /// ponto à frente da embarcação ficam severos — checado tanto em primeiro
 /// plano (`AlertaRotaScreen`, a cada busca) quanto em segundo plano
-/// (`location_worker.callbackDispatcher`, durante uma viagem em
+/// (`location_foreground_task_handler.LocationForegroundTaskHandler`, durante uma viagem em
 /// andamento), pelo mesmo método, pra não duplicar a lógica de limiar em
 /// dois lugares. Canal e inicialização são independentes de
 /// [RecomendacaoNotificationService] — plugins/canais separados, mesmo
@@ -135,7 +135,7 @@ class AlertaCondicaoNotificationService {
 
   /// Versão da checagem pra rodar em segundo plano, durante uma viagem —
   /// chamada pela mesma tarefa periódica do rastreamento de GPS (ver
-  /// `location_worker.callbackDispatcher`), então só roda enquanto há uma
+  /// `location_foreground_task_handler.LocationForegroundTaskHandler`), então só roda enquanto há uma
   /// viagem em andamento (é quando esse worker existe). Captura a posição
   /// e o rumo atuais, projeta o ponto à frente no alcance configurado (o
   /// mesmo usado em `AlertaRotaScreen`, salvo em [Constantes.alcanceAlertaRotaMn])

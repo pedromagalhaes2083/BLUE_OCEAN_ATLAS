@@ -168,7 +168,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
 
     // Se o rastreamento já estiver rodando, reinicia com o novo intervalo.
     final service = LocationTrackingService();
-    if (service.isTracking) {
+    if (await service.isTracking) {
       await service.iniciarRastreamento(intervaloMinutos: novoValor);
     }
 

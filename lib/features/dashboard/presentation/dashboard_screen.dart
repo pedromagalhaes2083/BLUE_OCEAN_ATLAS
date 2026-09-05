@@ -1,7 +1,6 @@
 import 'package:atlas/features/cartas/presentation/cartas_screen.dart';
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
 import 'package:atlas/features/mapa/presentation/mapa_widget.dart';
-import 'package:atlas/features/embarcacao/presentation/cadastrar_embarcacao_screen.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
 import 'package:atlas/features/metereologia/presentation/alerta_rota_screen.dart';
 import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.dart';
@@ -21,8 +20,8 @@ import '../../../core/utils/coordenadas_format.dart';
 import '../../metereologia/data/profundidade_repository.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../metereologia/domain/models/leitura_profundidade.dart';
-import '../../viagem/presentation/nova_viagem_screen.dart';
 import '../../viagem/domain/models/viagem.dart';
+import '../../../core/services/contexto_viagem_service.dart';
 import 'package:atlas/core/auth/auth_service.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
@@ -30,6 +29,7 @@ import '../../../core/services/localizacao_reporter_service.dart';
 import '../../../core/services/night_mode_service.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
+import '../../embarcacao/data/embarcacao_local_lookup.dart';
 import '../../embarcacao/domain/models/embarcacao.dart';
 import 'package:atlas/features/widgets/posicao_atual_widget.dart';
 import 'package:atlas/features/widgets/web_view_screen.dart';
@@ -135,11 +135,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 // ==================== RASTREAMENTO ====================
 
   // O rastreamento (LocationTrackingService) só roda enquanto há viagem em
-  // andamento — começa em NovaViagemScreen e para em
+  // andamento — começa quando a viagem ativa é sincronizada (ver
+  // ContextoViagemService) e para em
   // HistoricoLocalizacoesScreen._finalizarViagem. Aqui só refletimos o
   // status real do serviço (e o intervalo configurado) pra UI.
   Future<void> _atualizarStatusRastreamento() async {
-    final ativo = _trackingService.isTracking;
+    final ativo = await _trackingService.isTracking;
     final intervalo = int.tryParse(await Config.obtem(
           Constantes.intervaloRastreamentoMinutos,
           '$intervaloMinimoMinutos',
@@ -160,7 +161,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => isLoading = true);
 
     try {
-      final embarcacoes = await widget.dbHelper.query('embarcacao');
+      final registroEmbarcacao = await buscarEmbarcacaoLocalAtual(widget.dbHelper);
 
       // Viagem em andamento — a mais recente, caso hajam registros antigos
       // de antes da viagem ter sido finalizada corretamente.
@@ -176,8 +177,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (viagens.isNotEmpty) {
         viagem = Viagem.fromMap(viagens.first);
       }
-      if (embarcacoes.isNotEmpty) {
-        embarcacao = Embarcacao.fromMap(embarcacoes.first);
+      if (registroEmbarcacao != null) {
+        embarcacao = Embarcacao.fromMap(registroEmbarcacao);
       }
 
       final pendentes = await widget.dbHelper.queryWhere(
@@ -582,12 +583,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             ListTile(
-              leading: Icon(viagemAtual == null ? Icons.add : Icons.sailing),
-              title: Text(
-                  viagemAtual == null ? 'Nova Viagem' : 'Viagem Atual'),
-              onTap: () => viagemAtual == null
-                  ? _iniciarNovaViagem()
-                  : _abrirHistoricoPosicoes(context),
+              leading: const Icon(Icons.sailing),
+              title: const Text('Viagem Atual'),
+              onTap: () => _abrirHistoricoPosicoes(context),
             ),
             ListTile(
               leading: const Icon(Icons.add_circle_outline),
@@ -756,19 +754,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
 // ==================== MÉTODOS DE AÇÃO ====================
-  /// Mostra um alerta se não houver embarcação cadastrada, com atalho pra
-  /// cadastrar. Retorna true só quando já existe uma embarcação e a tela
-  /// que chamou pode prosseguir.
+  /// Mostra um alerta se não houver embarcação vinculada, com atalho pra
+  /// sincronizar com a viagem ativa na plataforma (não há mais cadastro
+  /// manual — ver [ContextoViagemService]). Retorna true só quando já
+  /// existe uma embarcação e a tela que chamou pode prosseguir.
   Future<bool> _exigirEmbarcacaoCadastrada({required String motivo}) async {
     if (embarcacaoAtual != null) return true;
 
-    final cadastrar = await showDialog<bool>(
+    final sincronizar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nenhuma embarcação cadastrada'),
+        title: const Text('Nenhuma embarcação vinculada'),
         content: Text(
-          'Cadastre a embarcação antes de $motivo — os registros precisam '
-          'estar vinculados a uma embarcação.',
+          'A embarcação é vinculada automaticamente pela sua viagem ativa '
+          'na plataforma. Sincronize antes de $motivo.',
         ),
         actions: [
           TextButton(
@@ -777,29 +776,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Cadastrar Embarcação'),
+            child: const Text('Sincronizar'),
           ),
         ],
       ),
     );
-    if (cadastrar == true && mounted) {
-      await _abrirCadastroEmbarcacao(context);
+    if (sincronizar == true && mounted) {
+      await _sincronizarContextoViagem();
     }
     return false;
   }
 
   /// Mostra um alerta se não houver viagem em andamento, com atalho pra
-  /// iniciar uma. Retorna true só quando já existe uma viagem ativa.
+  /// sincronizar. Retorna true só quando já existe uma viagem ativa.
   Future<bool> _exigirViagemAtiva({required String motivo}) async {
     if (viagemAtual != null) return true;
 
-    final iniciar = await showDialog<bool>(
+    final sincronizar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Nenhuma viagem em andamento'),
         content: Text(
-          'Inicie uma viagem antes de $motivo — os registros precisam '
-          'estar vinculados a uma viagem.',
+          'As viagens agora são criadas na plataforma. Sincronize antes de '
+          '$motivo, ou peça pra iniciar a viagem por lá.',
         ),
         actions: [
           TextButton(
@@ -808,34 +807,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Iniciar Viagem'),
+            child: const Text('Sincronizar'),
           ),
         ],
       ),
     );
-    if (iniciar == true && mounted) {
-      await _iniciarNovaViagem();
+    if (sincronizar == true && mounted) {
+      await _sincronizarContextoViagem();
     }
     return false;
   }
 
-  Future<void> _iniciarNovaViagem() async {
-    final podeContinuar =
-        await _exigirEmbarcacaoCadastrada(motivo: 'iniciar uma viagem');
-    if (!podeContinuar || !mounted) return;
-
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => NovaViagemScreen(
-          dbHelper: widget.dbHelper,
+  /// Busca a viagem ativa do usuário na plataforma e resolve a embarcação a
+  /// partir dela (ver [ContextoViagemService]) — não existe mais criação de
+  /// viagem nem cadastro de embarcação dentro do app, as duas nascem na
+  /// retaguarda. Dá feedback por SnackBar e recarrega o dashboard.
+  Future<void> _sincronizarContextoViagem() async {
+    final encontrou = await ContextoViagemService.sincronizar(widget.dbHelper);
+    if (!mounted) return;
+    _carregarDados();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          encontrou
+              ? 'Viagem ativa sincronizada.'
+              : 'Nenhuma viagem ativa encontrada na plataforma agora.',
         ),
+        duration: const Duration(seconds: 4),
       ),
     );
-
-    if (result == true) {
-      _carregarDados();
-    }
   }
 
   Future<void> _logout() async {
@@ -936,27 +936,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _abrirCadastroEmbarcacao(BuildContext context) async {
-    if (embarcacaoAtual?.nome.isNotEmpty ?? false) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EmbarcacaoScreen(
-            dbHelper: widget.dbHelper,
-            embarcacao: embarcacaoAtual,
-          ),
+    // Não há mais cadastro manual de embarcação — sem uma vinculada ainda,
+    // EmbarcacaoScreen mostra o estado vazio com o atalho de sincronizar
+    // (ver ContextoViagemService).
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EmbarcacaoScreen(
+          dbHelper: widget.dbHelper,
+          embarcacao: embarcacaoAtual,
         ),
-      );
-      _carregarDados();
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CadastrarEmbarcacaoScreen(
-            dbHelper: widget.dbHelper,
-          ),
-        ),
-      );
-      _carregarDados();
-    }
+      ),
+    );
+    _carregarDados();
   }
 }

@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 15,
+      version: 16,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -61,7 +61,8 @@ class DatabaseHelper {
     numero_tripulantes INTEGER,
     mestre_id TEXT,
     motor_usado TEXT,
-    foto TEXT
+    foto TEXT,
+    remoto_id TEXT
   )
 ''');
 
@@ -202,6 +203,28 @@ class DatabaseHelper {
         );
       }
       await _criarIndiceViagemUnicaAtiva(db);
+    }
+    if (oldVersion < 16) {
+      // Espelha o id da embarcação vinculada pela viagem ativa (ver
+      // ContextoViagemService) — sem essa coluna, sincronizar de novo
+      // sempre criaria uma linha nova em vez de atualizar a existente
+      // (mesmo padrão de `viagem.remoto_id` acima). Cadastro/edição manual
+      // de embarcação no app acabou nesse ponto: quem cria/atualiza agora é
+      // a retaguarda, o app só espelha.
+      //
+      // Checa se a tabela existe antes de alterar — instalações reais
+      // sempre têm `embarcacao` (criada no onCreate), mas alguns testes
+      // reabrem um banco "antigo" simulado só com a tabela `viagem` pra
+      // testar a migração de índice acima, e a ausência não deveria quebrar
+      // essa migração, que não depende dela.
+      final tabelas = await db.query(
+        'sqlite_master',
+        where: 'type = ? AND name = ?',
+        whereArgs: ['table', 'embarcacao'],
+      );
+      if (tabelas.isNotEmpty) {
+        await db.execute('ALTER TABLE embarcacao ADD COLUMN remoto_id TEXT');
+      }
     }
     if (oldVersion >= 10 && oldVersion < 12) {
       // Rotas criadas a partir de registros de produção (ver MapaWidget)
