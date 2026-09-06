@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/database/database_helper.dart';
@@ -25,11 +26,15 @@ import '../../producao/domain/especies_comuns.dart';
 import '../../producao/domain/models/producao_registro.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_variavel_chip.dart';
+import '../data/clorofila_repository.dart';
+import '../domain/models/leitura_clorofila.dart';
 import '../domain/models/ponto_marcado.dart';
 import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
+import '../widgets/camadas_painel.dart';
 import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/download_regiao_dialog.dart';
+import '../widgets/legenda_clorofila.dart';
 import '../widgets/legenda_grade_temperatura.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
@@ -164,6 +169,34 @@ class MapaWidgetState extends State<MapaWidget> {
   bool _carregandoGradeTemperatura = false;
   List<SstPonto> _gradeTemperatura = [];
   bool _gradeRotulosVisiveis = true;
+
+  // ── Informações náuticas (OpenSeaMap) ────────────────────────────────────
+  // Tiles públicos de marcas náuticas/boias/faróis/portos (transparentes,
+  // sobrepostos ao mapa de ruas) — só faz sentido junto do OpenStreetMap
+  // (_camadaRuas), nunca sobre a carta MBTiles/GeoTIFF carregada.
+  bool _mostrarInfoNautica = false;
+
+  // ── Profundidade / Curvas de profundidade (OpenSeaMap depth project) ────
+  // WMS de verdade do próprio projeto de profundidade do OpenSeaMap — dado
+  // batimétrico real (GEBCO), não inventado. Achados direto no código-fonte
+  // público do `online_chart` do OpenSeaMap em 2026-09 (ver comentário na
+  // camada, mais abaixo, com a fonte). Comunitário/baixa capacidade — por
+  // isso desligado por padrão, igual as outras camadas.
+  bool _mostrarProfundidade = false;
+  bool _mostrarCurvasProfundidade = false;
+
+  // ── Clorofila-a (Copernicus Marine) ──────────────────────────────────────
+  // Indicador de produtividade biológica/oceanográfica — nunca tratado como
+  // biomassa de peixe (ver doc de `LeituraClorofila`). Endpoint ainda
+  // pendente no backend (ver Endpoints.oceanoClorofila); a UI trata "sem
+  // dado"/erro de rede da mesma forma que os outros dados oceânicos do
+  // mapa, sem inventar valor.
+  bool _mostrarClorofila = false;
+  bool _carregandoClorofila = false;
+  ClorofilaResposta? _clorofila;
+  String? _erroClorofila;
+  LatLngBounds? _clorofilaBoundsConsultado;
+  DateTime? _clorofilaUltimaConsulta;
 
   // ── Sobreposição de imagem (PNG georreferenciado) ────────────────────────
   bool _overlayAtiva = false;
@@ -869,6 +902,198 @@ class MapaWidgetState extends State<MapaWidget> {
     ];
   }
 
+  // ── Informações náuticas (OpenSeaMap) ────────────────────────────────────
+
+  void _alternarInfoNautica() {
+    setState(() => _mostrarInfoNautica = !_mostrarInfoNautica);
+  }
+
+  // ── Profundidade / Curvas de profundidade (OpenSeaMap depth project) ────
+
+  void _alternarProfundidade() {
+    setState(() => _mostrarProfundidade = !_mostrarProfundidade);
+  }
+
+  void _alternarCurvasProfundidade() {
+    setState(() => _mostrarCurvasProfundidade = !_mostrarCurvasProfundidade);
+  }
+
+  // ── Clorofila-a (Copernicus Marine) ──────────────────────────────────────
+
+  /// Liga/desliga a camada. Ao ligar, busca a clorofila do viewport visível
+  /// agora (spec: "obter o bounding box visível... solicitar somente os
+  /// dados necessários pra essa área", nunca o oceano inteiro).
+  void _alternarClorofila() {
+    if (_mostrarClorofila) {
+      setState(() => _mostrarClorofila = false);
+      return;
+    }
+    setState(() => _mostrarClorofila = true);
+    _buscarClorofila(forcar: true);
+  }
+
+  /// Distância mínima (graus) de deslocamento do centro do mapa antes de
+  /// buscar de novo, e intervalo mínimo entre buscas — evita uma chamada
+  /// nova a cada pixel de pan/zoom (spec: "evitar chamadas repetidas").
+  static const _clorofilaDistanciaMinimaRebusca = 0.3;
+  static const _clorofilaIntervaloMinimoRebusca = Duration(seconds: 4);
+
+  /// Busca a clorofila do viewport atual — chamado ao ligar a camada e,
+  /// depois, de novo (debounced) quando o mapa se move o suficiente (ver
+  /// `onPositionChanged` em [_buildFlutterMap]). [forcar] pula o debounce
+  /// (usado ao ligar a camada e no botão de tentar de novo).
+  Future<void> _buscarClorofila({bool forcar = false}) async {
+    if (!_mostrarClorofila) return;
+    final bounds = _mapController.camera.visibleBounds;
+
+    if (!forcar) {
+      final ultima = _clorofilaUltimaConsulta;
+      if (ultima != null &&
+          DateTime.now().difference(ultima) < _clorofilaIntervaloMinimoRebusca) {
+        return;
+      }
+      final anterior = _clorofilaBoundsConsultado;
+      if (anterior != null) {
+        final deslocamento = (bounds.center.latitude - anterior.center.latitude)
+                .abs() +
+            (bounds.center.longitude - anterior.center.longitude).abs();
+        if (deslocamento < _clorofilaDistanciaMinimaRebusca) return;
+      }
+    }
+
+    setState(() {
+      _carregandoClorofila = true;
+      _erroClorofila = null;
+    });
+    _clorofilaBoundsConsultado = bounds;
+    _clorofilaUltimaConsulta = DateTime.now();
+
+    try {
+      final resposta = await ClorofilaRepository().buscar(bounds: bounds);
+      if (!mounted) return;
+      setState(() => _clorofila = resposta);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _erroClorofila =
+          mensagemErroAmigavel(e, prefixo: 'Erro ao buscar clorofila-a'));
+    } finally {
+      if (mounted) setState(() => _carregandoClorofila = false);
+    }
+  }
+
+  /// Um quadrado colorido por célula (`PolygonLayer`, escala fixa — ver
+  /// [corClorofila]) com uma camada invisível de `Marker`s por cima só pra
+  /// capturar o toque (`PolygonLayer` desta versão do flutter_map não tem
+  /// callback de toque próprio) e abrir o valor do ponto tocado.
+  List<Widget> _buildCamadaClorofila() {
+    final clorofila = _clorofila;
+    if (clorofila == null) return const [];
+    final comValor =
+        clorofila.pontos.where((p) => p.valorMgM3 != null).toList();
+    if (comValor.isEmpty) return const [];
+
+    // Metade do espaçamento típico do produto (~1km ≈ 0.009°) — só uma
+    // estimativa visual pra desenhar a célula; o valor em si nunca é
+    // inventado (ver doc de LeituraClorofila).
+    const meiaCelula = 0.009 / 2;
+
+    return [
+      PolygonLayer(
+        polygons: comValor
+            .map((p) => Polygon(
+                  points: [
+                    LatLng(p.latitude - meiaCelula, p.longitude - meiaCelula),
+                    LatLng(p.latitude - meiaCelula, p.longitude + meiaCelula),
+                    LatLng(p.latitude + meiaCelula, p.longitude + meiaCelula),
+                    LatLng(p.latitude + meiaCelula, p.longitude - meiaCelula),
+                  ],
+                  color: corClorofila(p.valorMgM3!).withValues(alpha: 0.6),
+                ))
+            .toList(),
+      ),
+      MarkerLayer(
+        markers: comValor
+            .map((p) => Marker(
+                  point: LatLng(p.latitude, p.longitude),
+                  width: 28,
+                  height: 28,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () => _mostrarInfoClorofila(p),
+                  ),
+                ))
+            .toList(),
+      ),
+    ];
+  }
+
+  void _mostrarInfoClorofila(LeituraClorofila ponto) {
+    final resposta = _clorofila;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Clorofila-a'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              ponto.valorMgM3 != null
+                  ? 'Valor: ${ponto.valorMgM3!.toStringAsFixed(2)} mg/m³'
+                  : 'Sem dado válido pra esse ponto',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            if (resposta != null)
+              Text('Data: ${DateFormat('dd/MM/yyyy').format(resposta.data)}'),
+            const SizedBox(height: 4),
+            Text('Fonte: ${resposta?.source ?? 'Copernicus Marine'}'),
+            const SizedBox(height: 12),
+            const Text(
+              'Indicador de produtividade biológica/oceanográfica — não '
+              'representa diretamente quantidade de peixe.',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Painel de camadas ─────────────────────────────────────────────────────
+
+  void _abrirPainelCamadas() {
+    showModalBottomSheet(
+      context: context,
+      // Sem isso, o bottom sheet padrão trava numa altura fixa (~metade da
+      // tela) mesmo com o ConstrainedBox+SingleChildScrollView do
+      // CamadasPainel — visto no dispositivo, a lista cortava embaixo.
+      isScrollControlled: true,
+      builder: (_) => CamadasPainel(
+        mapaDeRuas: _camadaRuas,
+        onMapaDeRuasChanged: (v) => setState(() => _camadaRuas = v),
+        informacoesNauticas: _mostrarInfoNautica,
+        onInformacoesNauticasChanged: (_) => _alternarInfoNautica(),
+        profundidade: _mostrarProfundidade,
+        onProfundidadeChanged: (_) => _alternarProfundidade(),
+        curvasProfundidade: _mostrarCurvasProfundidade,
+        onCurvasProfundidadeChanged: (_) => _alternarCurvasProfundidade(),
+        temperatura: _mostrarGradeTemperatura,
+        onTemperaturaChanged: (_) => _alternarGradeTemperatura(),
+        clorofila: _mostrarClorofila,
+        onClorofilaChanged: (_) => _alternarClorofila(),
+        pontosDePesca: _mostrarProducao,
+        onPontosDePescaChanged: (_) => _alternarProducao(),
+      ),
+    );
+  }
+
   // ── Sobreposição de imagem ───────────────────────────────────────────────
 
   /// Liga/desliga a camada de sobreposição. Na primeira vez que é ligada
@@ -1331,6 +1556,10 @@ class MapaWidgetState extends State<MapaWidget> {
               min: _gradeTemperaturaMinMax!.$1,
               max: _gradeTemperaturaMinMax!.$2,
             ),
+          if (_mostrarClorofila)
+            LegendaClorofila(dataDoDado: _clorofila?.data),
+          if (_mostrarClorofila && _erroClorofila != null)
+            _buildErroClorofila(),
           if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
           if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
           if (!_modoMarcarPonto &&
@@ -1378,7 +1607,10 @@ class MapaWidgetState extends State<MapaWidget> {
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
-              if (_loading || _carregandoProducao || _carregandoGradeTemperatura)
+              if (_loading ||
+                  _carregandoProducao ||
+                  _carregandoGradeTemperatura ||
+                  _carregandoClorofila)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: SizedBox(
@@ -1486,6 +1718,16 @@ class MapaWidgetState extends State<MapaWidget> {
                         const BoxConstraints(minWidth: 44, minHeight: 44),
                   ),
                 ),
+              if (!widget.modoPlanejarRota)
+                IconButton(
+                  icon: const Icon(Icons.layers_outlined,
+                      color: Colors.white, size: 22),
+                  tooltip: 'Camadas do mapa',
+                  onPressed: _abrirPainelCamadas,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 44),
+                ),
             ],
           ),
         ),
@@ -1558,6 +1800,41 @@ class MapaWidgetState extends State<MapaWidget> {
               Text(
                 '${(_overlayOpacidade * 100).round()}%',
                 style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Erro ao buscar clorofila (rede, backend, endpoint ainda não
+  /// implementado) — mesmo tratamento visual dos outros erros de dado
+  /// oceânico do app: mensagem amigável + botão de tentar de novo, nunca
+  /// um valor inventado no lugar (ver [CondicoesMarScreen] pro mesmo
+  /// padrão fora do mapa).
+  Widget _buildErroClorofila() {
+    return Positioned(
+      bottom: 90,
+      left: 8,
+      right: 8,
+      child: Material(
+        color: Colors.red.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(_erroClorofila!,
+                    style: const TextStyle(color: Colors.white, fontSize: 12)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
+                tooltip: 'Tentar de novo',
+                onPressed: () => _buscarClorofila(forcar: true),
               ),
             ],
           ),
@@ -1647,6 +1924,10 @@ class MapaWidgetState extends State<MapaWidget> {
               setState(() => _gradeRotulosVisiveis = rotulosVisiveis);
             }
           }
+          // Refaz a busca de clorofila quando o mapa se move o bastante —
+          // debounced dentro do próprio método (ver _buscarClorofila), pra
+          // não disparar uma chamada nova a cada frame do gesto de pan/zoom.
+          if (_mostrarClorofila) _buscarClorofila();
         },
         onTap: widget.modoPlanejarRota
             ? (_, ponto) => setState(
@@ -1654,9 +1935,46 @@ class MapaWidgetState extends State<MapaWidget> {
             : null,
       ),
       children: [
-        if (_camadaRuas)
-          TileLayer(tileProvider: StreetMapTileProvider(_streetCache))
-        else ...[
+        if (_camadaRuas) ...[
+          TileLayer(tileProvider: StreetMapTileProvider(_streetCache)),
+          // Sombreamento de profundidade (GEBCO, via GeoServer do próprio
+          // OpenSeaMap) — dado batimétrico real, achado no código-fonte
+          // público do site oficial (`OpenSeaMap/online_chart`), não
+          // inventado. Fica abaixo das marcas náuticas (símbolos precisam
+          // continuar visíveis por cima do sombreamento).
+          if (_mostrarProfundidade)
+            TileLayer(
+              wmsOptions: WMSTileLayerOptions(
+                baseUrl: 'https://geoserver.openseamap.org/geoserver/gwc/service/wms?',
+                layers: const ['gebco2021:gebco_2021'],
+                format: 'image/png',
+                version: '1.1.1',
+              ),
+              userAgentPackageName: 'com.blueocean.atlas',
+            ),
+          // Curvas de profundidade (isóbatas) — mesmo projeto de
+          // profundidade do OpenSeaMap, servidor GeoServer dedicado a ele.
+          if (_mostrarCurvasProfundidade)
+            TileLayer(
+              wmsOptions: WMSTileLayerOptions(
+                baseUrl: 'https://depth.openseamap.org/geoserver/openseamap/wms?',
+                layers: const ['openseamap:contour', 'openseamap:contour2'],
+                format: 'image/png',
+                version: '1.1.0',
+              ),
+              userAgentPackageName: 'com.blueocean.atlas',
+            ),
+          // Informações náuticas do OpenSeaMap (marcas, boias, faróis,
+          // portos) — tiles públicos, transparentes, só fazem sentido
+          // sobre o mapa de ruas (nunca sobre a carta MBTiles/GeoTIFF
+          // carregada, por isso dentro desse `if (_camadaRuas)`).
+          // Atribuição: © OpenSeaMap contributors (ver CamadasPainel).
+          if (_mostrarInfoNautica)
+            TileLayer(
+              urlTemplate: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.blueocean.atlas',
+            ),
+        ] else ...[
           if (_mode == _MapMode.mbtiles)
             TileLayer(
               tileProvider: MbtilesTileProvider(_mbtiles),
@@ -1710,6 +2028,10 @@ class MapaWidgetState extends State<MapaWidget> {
         // do mapa no momento em que foi ativada.
         if (_mostrarGradeTemperatura && _gradeTemperatura.isNotEmpty)
           ..._buildCamadaGradeTemperatura(),
+        // Clorofila-a (Copernicus Marine) — indicador de produtividade,
+        // nunca biomassa de peixe (ver doc de LeituraClorofila/legenda).
+        if (_mostrarClorofila && _clorofila != null)
+          ..._buildCamadaClorofila(),
         // Rota sendo planejada manualmente — cada toque no mapa adiciona um
         // ponto numerado em sequência.
         if (widget.modoPlanejarRota && _pontosRotaPlanejada.length > 1)

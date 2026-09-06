@@ -42,11 +42,28 @@ class LocationTrackingService {
   Future<void> _configurar({required int intervaloMinutos}) async {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'atlas_rastreamento',
+        // "_v2": o canal antigo ("atlas_rastreamento") foi criado com
+        // importância padrão da lib (LOW) — Android trava a importância
+        // de um canal na criação e não deixa mudar depois via código
+        // (só o próprio usuário, manualmente, nas configurações do
+        // sistema). Em prioridade baixa, a OneUI (Samsung) deixa
+        // dispensar a notificação com um simples swipe, mesmo sendo de um
+        // serviço em primeiro plano — testado no dispositivo, confirmado
+        // que dispensava. Precisa de um id de canal novo pra recriar do
+        // zero com a importância certa; o antigo fica órfão no aparelho
+        // (inofensivo, sem notificação nova associada a ele).
+        channelId: 'atlas_rastreamento_v2',
         channelName: 'Rastreamento de viagem',
         channelDescription:
             'Notificação permanente enquanto o Atlas está enviando a '
-            'posição da embarcação durante uma viagem em andamento.',
+            'posição da embarcação durante uma viagem em andamento. Não é '
+            'possível dispensar enquanto a viagem estiver ativa — '
+            'finalize a viagem no app pra parar o rastreamento.',
+        // DEFAULT (não LOW, o padrão da lib) — é o que impede o gesto de
+        // swipe-pra-dispensar em notificações de serviço em primeiro
+        // plano na maioria dos fabricantes, inclusive OneUI.
+        channelImportance: NotificationChannelImportance.DEFAULT,
+        priority: NotificationPriority.DEFAULT,
         onlyAlertOnce: true,
       ),
       // No iOS não existe "serviço em primeiro plano" — o rastreamento em
@@ -104,15 +121,23 @@ class LocationTrackingService {
     await _pedirPermissoesNecessarias();
 
     if (await FlutterForegroundTask.isRunningService) {
-      await FlutterForegroundTask.restartService();
-    } else {
-      await FlutterForegroundTask.startService(
-        serviceId: 257,
-        notificationTitle: 'Atlas Blue Ocean — Rastreamento ativo',
-        notificationText: 'Iniciando envio de posição...',
-        callback: iniciarLocationForegroundTaskHandler,
-      );
+      // Não usa `restartService()` aqui: o Android reinicia o serviço
+      // sozinho após um update do app (`autoRunOnMyPackageReplaced`),
+      // reaproveitando as opções nativas persistidas *antes* desse
+      // `_configurar()` acima rodar — na prática, `restartService()`
+      // então mantinha o canal/importância antigos em vez de aplicar os
+      // novos (foi assim que a notificação de "atlas_rastreamento" (LOW)
+      // sobreviveu à troca pra "atlas_rastreamento_v2" (DEFAULT) num
+      // teste real no dispositivo). Parar e iniciar de novo garante que a
+      // notificação atual sempre reflete a config atual.
+      await FlutterForegroundTask.stopService();
     }
+    await FlutterForegroundTask.startService(
+      serviceId: 257,
+      notificationTitle: 'Atlas Blue Ocean — Rastreamento ativo',
+      notificationText: 'Iniciando envio de posição...',
+      callback: iniciarLocationForegroundTaskHandler,
+    );
 
     debugPrint('🚀 Rastreamento de localização iniciado (a cada $intervalo min)');
   }

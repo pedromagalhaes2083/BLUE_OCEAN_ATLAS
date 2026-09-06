@@ -50,4 +50,18 @@ class Endpoints {
   /// Capturas de produção (confirmado no backend em 2026-08) — ver
   /// [ProducaoRepository].
   static const capturas = 'base/resultado/capturas';
+
+  /// Clorofila-a de superfície (Copernicus Marine, produto
+  /// `OCEANCOLOUR_ATL_BGC_L4_NRT_009_116`) recortada pra uma bbox — ver
+  /// [ClorofilaRepository]. Nunca chamado direto do app: as credenciais do
+  /// Copernicus ficam só no backend, que consulta a Copernicus Marine Toolbox
+  /// e devolve pro app só o recorte pedido (ver `ClorofilaRepository` e a
+  /// documentação de arquitetura anexada a essa mudança).
+  ///
+  /// AINDA NÃO IMPLEMENTADO NO BACKEND — proposto em 2026-09 seguindo a
+  /// mesma convenção `base/<domínio>/<recurso>` dos demais endpoints deste
+  /// arquivo; ajuste aqui se o time de backend confirmar um path diferente.
+  /// O app já está com o cliente pronto pra consumir assim que existir (ver
+  /// [ClorofilaRepository.buscar]).
+  static const oceanoClorofila = 'base/oceano/clorofila';
 }
