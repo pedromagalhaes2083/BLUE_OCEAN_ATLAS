@@ -31,7 +31,6 @@ import '../domain/models/leitura_clorofila.dart';
 import '../domain/models/ponto_marcado.dart';
 import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
-import '../widgets/camadas_painel.dart';
 import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/download_regiao_dialog.dart';
 import '../widgets/legenda_clorofila.dart';
@@ -43,10 +42,11 @@ import '../widgets/street_map_tile_provider.dart';
 const _bundledAsset = 'assets/cartas/OUTPUT_FILE.mbtiles';
 const _pontosAsset = 'assets/json/posicoes/Routing3.json';
 
-/// Lado da grade de temperatura (5×5 = 25 pontos) e espaçamento entre eles
-/// em graus — ~28km no equador, próximo da resolução de 0.25° dos modelos
-/// meteorológicos que o app já usa em outros lugares (ver vento.json).
-const _gradeTemperaturaLado = 5;
+/// Lado da célula desenhada pra temperatura consultada, em graus — só um
+/// tamanho visual (a consulta em si é sempre de um ponto único, ver
+/// `MapaWidgetState._confirmarConsultaPonto`), próximo da resolução de
+/// 0.25° dos modelos meteorológicos que o app já usa em outros lugares
+/// (ver vento.json).
 const _gradeTemperaturaEspacamento = 0.25;
 
 /// Sobreposição opcional: um PNG georreferenciado (retângulo alinhado aos
@@ -61,6 +61,11 @@ const _overlaySudoesteFallback = LatLng(-3.0, -40.0);
 const _overlayNordesteFallback = LatLng(-2.8, -39.8);
 
 enum _MapMode { none, mbtiles, geotiff }
+
+/// Qual camada está usando o seletor de posição (mesmo reticulado de
+/// "Marcar um ponto") pra escolher onde consultar — ver
+/// `MapaWidgetState._consultaPontoAtiva`.
+enum _TipoConsultaPonto { temperatura, clorofila }
 
 /// Mapa interativo completo — carta offline (MBTiles/GeoTIFF), pontos,
 /// posição GPS e marcação manual de pontos.
@@ -147,12 +152,22 @@ class MapaWidgetState extends State<MapaWidget> {
 
   LatLng? _gpsPosition;
 
+  // ── Menu lateral (todas as funções antes espalhadas na barra de topo) ────
+  bool _menuLateralAberto = false;
+
   // ── Marcar ponto manualmente ─────────────────────────────────────────────
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   bool _modoMarcarPonto = false;
   LatLng _centroMira = const LatLng(-15.0, -50.0);
   List<PontoMarcado> _pontosMarcados = [];
   final TextEditingController _nomePontoController = TextEditingController();
+
+  // ── Consultar temperatura/clorofila num ponto escolhido ──────────────────
+  // Mesmo reticulado de "Marcar um ponto" (usa o mesmo _centroMira) — ver
+  // spec: "exibir o seletor de posição exatamente igual ao de criar uma
+  // posição, e a partir da posição selecionada buscar a informação".
+  _TipoConsultaPonto? _consultaPontoAtiva;
+  bool _consultandoPonto = false;
 
   // ── Planejar rota manualmente ────────────────────────────────────────────
   List<LatLng> _pontosRotaPlanejada = [];
@@ -166,7 +181,6 @@ class MapaWidgetState extends State<MapaWidget> {
 
   // ── Grade de temperatura da superfície do mar (SST) ──────────────────────
   bool _mostrarGradeTemperatura = false;
-  bool _carregandoGradeTemperatura = false;
   List<SstPonto> _gradeTemperatura = [];
   bool _gradeRotulosVisiveis = true;
 
@@ -185,18 +199,16 @@ class MapaWidgetState extends State<MapaWidget> {
   bool _mostrarProfundidade = false;
   bool _mostrarCurvasProfundidade = false;
 
-  // ── Clorofila-a (Copernicus Marine) ──────────────────────────────────────
+  // ── Clorofila-a (NOAA CoastWatch, ERDDAP) ────────────────────────────────
   // Indicador de produtividade biológica/oceanográfica — nunca tratado como
-  // biomassa de peixe (ver doc de `LeituraClorofila`). Endpoint ainda
-  // pendente no backend (ver Endpoints.oceanoClorofila); a UI trata "sem
-  // dado"/erro de rede da mesma forma que os outros dados oceânicos do
-  // mapa, sem inventar valor.
+  // biomassa de peixe (ver doc de `LeituraClorofilaPonto`). Consulta é
+  // sempre num ponto escolhido pelo mestre (ver _consultaPontoAtiva), não
+  // uma grade automática — a UI trata "sem dado"/erro de rede sem nunca
+  // inventar valor. Mais de um ponto pode ficar marcado ao mesmo tempo (ver
+  // botão "+" em [_buildAdicionarPontoClorofilaButton]); cada um pode ser
+  // removido individualmente pelo próprio diálogo (ver [_mostrarInfoClorofila]).
   bool _mostrarClorofila = false;
-  bool _carregandoClorofila = false;
-  ClorofilaResposta? _clorofila;
-  String? _erroClorofila;
-  LatLngBounds? _clorofilaBoundsConsultado;
-  DateTime? _clorofilaUltimaConsulta;
+  List<LeituraClorofilaPonto> _clorofilaPontos = [];
 
   // ── Sobreposição de imagem (PNG georreferenciado) ────────────────────────
   bool _overlayAtiva = false;
@@ -779,58 +791,28 @@ class MapaWidgetState extends State<MapaWidget> {
 
   // ── Grade de temperatura (SST) ───────────────────────────────────────────
 
-  /// Liga/desliga a grade. Como o calor de produção, busca uma vez só e
-  /// cacheia em memória (_gradeTemperatura) — reabrir só reexibe.
-  Future<void> _alternarGradeTemperatura() async {
-    if (_mostrarGradeTemperatura) {
-      setState(() => _mostrarGradeTemperatura = false);
+  /// Liga/desliga a grade. Ligar abre o seletor de posição (mesmo
+  /// reticulado de "Marcar um ponto" — ver [_buildOverlayConsultaPonto]);
+  /// a busca de verdade só acontece ao confirmar (ver
+  /// [_confirmarConsultaPonto]), centrada no ponto escolhido, não em
+  /// onde o mapa estava enquadrado no momento do toque.
+  void _alternarGradeTemperatura() {
+    if (_consultaPontoAtiva == _TipoConsultaPonto.temperatura) {
+      setState(() => _consultaPontoAtiva = null);
       return;
     }
-    setState(() {
-      _mostrarGradeTemperatura = true;
-      _carregandoGradeTemperatura = _gradeTemperatura.isEmpty;
-      _gradeRotulosVisiveis =
-          _mapController.camera.zoom >= _zoomMinimoRotuloGrade;
-    });
-    if (_gradeTemperatura.isNotEmpty) return;
-
-    try {
-      final centro = _mapController.camera.center;
-      final pontos = _gerarPontosGradeTemperatura(centro);
-      final grade = await WaveForecastRepository().buscarGrade(pontos);
-      if (!mounted) return;
-      setState(() {
-        _gradeTemperatura = grade;
-        _carregandoGradeTemperatura = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
+    if (_mostrarGradeTemperatura) {
       setState(() {
         _mostrarGradeTemperatura = false;
-        _carregandoGradeTemperatura = false;
+        _gradeTemperatura = [];
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao buscar grade de temperatura: $e')),
-      );
+      return;
     }
-  }
-
-  /// Grade quadrada de [_gradeTemperaturaLado]×[_gradeTemperaturaLado] pontos
-  /// centrada em [centro], espaçados [_gradeTemperaturaEspacamento]° entre
-  /// si — cobre a área visível do mapa numa única chamada à API (ver
-  /// [WaveForecastRepository.buscarGrade]).
-  List<LatLng> _gerarPontosGradeTemperatura(LatLng centro) {
-    const lado = _gradeTemperaturaLado;
-    const espacamento = _gradeTemperaturaEspacamento;
-    final metade = (lado - 1) / 2;
-    return [
-      for (var linha = 0; linha < lado; linha++)
-        for (var coluna = 0; coluna < lado; coluna++)
-          LatLng(
-            centro.latitude + (metade - linha) * espacamento,
-            centro.longitude + (coluna - metade) * espacamento,
-          ),
-    ];
+    _fecharMenuLateral();
+    setState(() {
+      _consultaPontoAtiva = _TipoConsultaPonto.temperatura;
+      _centroMira = _mapController.camera.center;
+    });
   }
 
   /// Zoom mínimo pra desenhar o valor em cima de cada célula — abaixo disso
@@ -918,117 +900,92 @@ class MapaWidgetState extends State<MapaWidget> {
     setState(() => _mostrarCurvasProfundidade = !_mostrarCurvasProfundidade);
   }
 
-  // ── Clorofila-a (Copernicus Marine) ──────────────────────────────────────
+  // ── Clorofila-a (NOAA CoastWatch, ERDDAP) ────────────────────────────────
 
-  /// Liga/desliga a camada. Ao ligar, busca a clorofila do viewport visível
-  /// agora (spec: "obter o bounding box visível... solicitar somente os
-  /// dados necessários pra essa área", nunca o oceano inteiro).
+  /// Liga/desliga a camada. Ligar abre o mesmo seletor de posição da
+  /// temperatura (ver [_buildOverlayConsultaPonto]) — a busca só acontece
+  /// ao confirmar (ver [_confirmarConsultaPonto]). Só entra direto no
+  /// seletor se ainda não há nenhum ponto marcado; se já houver, ligar só
+  /// reexibe os pontos já consultados (adicionar mais um é pelo botão "+",
+  /// ver [_buildAdicionarPontoClorofilaButton]).
   void _alternarClorofila() {
+    if (_consultaPontoAtiva == _TipoConsultaPonto.clorofila) {
+      setState(() => _consultaPontoAtiva = null);
+      return;
+    }
     if (_mostrarClorofila) {
       setState(() => _mostrarClorofila = false);
       return;
     }
-    setState(() => _mostrarClorofila = true);
-    _buscarClorofila(forcar: true);
+    if (_clorofilaPontos.isEmpty) {
+      _iniciarConsultaClorofila();
+    } else {
+      setState(() => _mostrarClorofila = true);
+    }
   }
 
-  /// Distância mínima (graus) de deslocamento do centro do mapa antes de
-  /// buscar de novo, e intervalo mínimo entre buscas — evita uma chamada
-  /// nova a cada pixel de pan/zoom (spec: "evitar chamadas repetidas").
-  static const _clorofilaDistanciaMinimaRebusca = 0.3;
-  static const _clorofilaIntervaloMinimoRebusca = Duration(seconds: 4);
-
-  /// Busca a clorofila do viewport atual — chamado ao ligar a camada e,
-  /// depois, de novo (debounced) quando o mapa se move o suficiente (ver
-  /// `onPositionChanged` em [_buildFlutterMap]). [forcar] pula o debounce
-  /// (usado ao ligar a camada e no botão de tentar de novo).
-  Future<void> _buscarClorofila({bool forcar = false}) async {
-    if (!_mostrarClorofila) return;
-    final bounds = _mapController.camera.visibleBounds;
-
-    if (!forcar) {
-      final ultima = _clorofilaUltimaConsulta;
-      if (ultima != null &&
-          DateTime.now().difference(ultima) < _clorofilaIntervaloMinimoRebusca) {
-        return;
-      }
-      final anterior = _clorofilaBoundsConsultado;
-      if (anterior != null) {
-        final deslocamento = (bounds.center.latitude - anterior.center.latitude)
-                .abs() +
-            (bounds.center.longitude - anterior.center.longitude).abs();
-        if (deslocamento < _clorofilaDistanciaMinimaRebusca) return;
-      }
-    }
-
+  /// Abre o seletor de posição pra adicionar mais um ponto de clorofila-a,
+  /// sem mexer nos que já estão marcados — chamado tanto pela primeira
+  /// consulta (via [_alternarClorofila]) quanto pelo botão "+" flutuante.
+  void _iniciarConsultaClorofila() {
+    _fecharMenuLateral();
     setState(() {
-      _carregandoClorofila = true;
-      _erroClorofila = null;
+      _consultaPontoAtiva = _TipoConsultaPonto.clorofila;
+      _centroMira = _mapController.camera.center;
     });
-    _clorofilaBoundsConsultado = bounds;
-    _clorofilaUltimaConsulta = DateTime.now();
-
-    try {
-      final resposta = await ClorofilaRepository().buscar(bounds: bounds);
-      if (!mounted) return;
-      setState(() => _clorofila = resposta);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _erroClorofila =
-          mensagemErroAmigavel(e, prefixo: 'Erro ao buscar clorofila-a'));
-    } finally {
-      if (mounted) setState(() => _carregandoClorofila = false);
-    }
   }
 
-  /// Um quadrado colorido por célula (`PolygonLayer`, escala fixa — ver
-  /// [corClorofila]) com uma camada invisível de `Marker`s por cima só pra
-  /// capturar o toque (`PolygonLayer` desta versão do flutter_map não tem
-  /// callback de toque próprio) e abrir o valor do ponto tocado.
-  List<Widget> _buildCamadaClorofila() {
-    final clorofila = _clorofila;
-    if (clorofila == null) return const [];
-    final comValor =
-        clorofila.pontos.where((p) => p.valorMgM3 != null).toList();
-    if (comValor.isEmpty) return const [];
-
-    // Metade do espaçamento típico do produto (~1km ≈ 0.009°) — só uma
-    // estimativa visual pra desenhar a célula; o valor em si nunca é
-    // inventado (ver doc de LeituraClorofila).
-    const meiaCelula = 0.009 / 2;
-
-    return [
-      PolygonLayer(
-        polygons: comValor
-            .map((p) => Polygon(
-                  points: [
-                    LatLng(p.latitude - meiaCelula, p.longitude - meiaCelula),
-                    LatLng(p.latitude - meiaCelula, p.longitude + meiaCelula),
-                    LatLng(p.latitude + meiaCelula, p.longitude + meiaCelula),
-                    LatLng(p.latitude + meiaCelula, p.longitude - meiaCelula),
-                  ],
-                  color: corClorofila(p.valorMgM3!).withValues(alpha: 0.6),
-                ))
-            .toList(),
+  /// Botão "+" flutuante pra marcar mais um ponto de clorofila-a, visível
+  /// só enquanto a camada está ligada — pedido explícito: permitir mais de
+  /// um ponto marcado ao mesmo tempo.
+  Widget _buildAdicionarPontoClorofilaButton() {
+    return Positioned(
+      right: 12,
+      bottom: 140,
+      child: FloatingActionButton(
+        heroTag: 'adicionarClorofilaFab',
+        onPressed: _iniciarConsultaClorofila,
+        tooltip: 'Marcar outro ponto de clorofila-a',
+        child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  /// Um marcador por ponto consultado (cor contínua — ver [corClorofila]),
+  /// cada um tocável pra reabrir seu valor/removê-lo individualmente.
+  List<Widget> _buildCamadaClorofila() {
+    if (_clorofilaPontos.isEmpty) return const [];
+    return [
       MarkerLayer(
-        markers: comValor
-            .map((p) => Marker(
-                  point: LatLng(p.latitude, p.longitude),
-                  width: 28,
-                  height: 28,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () => _mostrarInfoClorofila(p),
-                  ),
-                ))
-            .toList(),
+        markers: _clorofilaPontos.map((ponto) {
+          final valor = ponto.valorMgM3;
+          return Marker(
+            point: LatLng(ponto.latitude, ponto.longitude),
+            width: 32,
+            height: 32,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _mostrarInfoClorofila(ponto),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: valor != null
+                      ? corClorofila(valor)
+                      : Colors.grey.withValues(alpha: 0.7),
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Icon(Icons.eco, color: Colors.white, size: 16),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     ];
   }
 
-  void _mostrarInfoClorofila(LeituraClorofila ponto) {
-    final resposta = _clorofila;
+  void _mostrarInfoClorofila(LeituraClorofilaPonto ponto) {
+    final valor = ponto.valorMgM3;
+    final nivel = valor != null ? nivelClorofila(valor) : null;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -1037,17 +994,33 @@ class MapaWidgetState extends State<MapaWidget> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              ponto.valorMgM3 != null
-                  ? 'Valor: ${ponto.valorMgM3!.toStringAsFixed(2)} mg/m³'
-                  : 'Sem dado válido pra esse ponto',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            if (nivel != null)
+              Row(
+                children: [
+                  Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: corNivelClorofila(nivel),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(nivel.rotulo,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              )
+            else
+              const Text(
+                'Sem dado válido pra esse ponto (nuvem, terra próxima ou '
+                'falha do sensor no dia mais recente disponível)',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             const SizedBox(height: 8),
-            if (resposta != null)
-              Text('Data: ${DateFormat('dd/MM/yyyy').format(resposta.data)}'),
+            Text('Data: ${DateFormat('dd/MM/yyyy').format(ponto.data)}'),
             const SizedBox(height: 4),
-            Text('Fonte: ${resposta?.source ?? 'Copernicus Marine'}'),
+            Text('Fonte: ${ponto.source}'),
             const SizedBox(height: 12),
             const Text(
               'Indicador de produtividade biológica/oceanográfica — não '
@@ -1058,6 +1031,14 @@ class MapaWidgetState extends State<MapaWidget> {
         ),
         actions: [
           TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _clorofilaPontos =
+                  _clorofilaPontos.where((p) => p != ponto).toList());
+            },
+            child: const Text('Remover', style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Fechar'),
           ),
@@ -1066,31 +1047,335 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
-  // ── Painel de camadas ─────────────────────────────────────────────────────
+  // ── Seletor de posição pra consultar temperatura/clorofila ───────────────
+  // Mesmo reticulado/cartão de "Marcar um ponto" (ver
+  // [_buildOverlayMarcarPonto]) — pedido explícito: "exibir o seletor de
+  // posição exatamente igual ao de criar uma posição, e a partir da
+  // posição selecionada buscar a informação seja como clorofila ou
+  // temperatura".
 
-  void _abrirPainelCamadas() {
-    showModalBottomSheet(
-      context: context,
-      // Sem isso, o bottom sheet padrão trava numa altura fixa (~metade da
-      // tela) mesmo com o ConstrainedBox+SingleChildScrollView do
-      // CamadasPainel — visto no dispositivo, a lista cortava embaixo.
-      isScrollControlled: true,
-      builder: (_) => CamadasPainel(
-        mapaDeRuas: _camadaRuas,
-        onMapaDeRuasChanged: (v) => setState(() => _camadaRuas = v),
-        informacoesNauticas: _mostrarInfoNautica,
-        onInformacoesNauticasChanged: (_) => _alternarInfoNautica(),
-        profundidade: _mostrarProfundidade,
-        onProfundidadeChanged: (_) => _alternarProfundidade(),
-        curvasProfundidade: _mostrarCurvasProfundidade,
-        onCurvasProfundidadeChanged: (_) => _alternarCurvasProfundidade(),
-        temperatura: _mostrarGradeTemperatura,
-        onTemperaturaChanged: (_) => _alternarGradeTemperatura(),
-        clorofila: _mostrarClorofila,
-        onClorofilaChanged: (_) => _alternarClorofila(),
-        pontosDePesca: _mostrarProducao,
-        onPontosDePescaChanged: (_) => _alternarProducao(),
+  List<Widget> _buildOverlayConsultaPonto() {
+    final tipo = _consultaPontoAtiva;
+    if (tipo == null) return const [];
+    final titulo = tipo == _TipoConsultaPonto.temperatura
+        ? 'Temperatura da superfície do mar'
+        : 'Clorofila-a';
+
+    return [
+      const IgnorePointer(
+        child: Center(
+          child: Icon(
+            Icons.add,
+            size: 44,
+            color: Colors.red,
+            shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+          ),
+        ),
       ),
+      Positioned(
+        left: 12,
+        right: 12,
+        bottom: 12,
+        child: Card(
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Consultar $titulo — aponte o centro do mapa para o local desejado',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  formatarCoordenadasDMSCompacta(
+                      _centroMira.latitude, _centroMira.longitude),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _consultandoPonto
+                            ? null
+                            : () => setState(() => _consultaPontoAtiva = null),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            _consultandoPonto ? null : _confirmarConsultaPonto,
+                        icon: _consultandoPonto
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.check),
+                        label: const Text('Consultar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  Future<void> _confirmarConsultaPonto() async {
+    final tipo = _consultaPontoAtiva;
+    if (tipo == null) return;
+    final ponto = _centroMira;
+
+    setState(() => _consultandoPonto = true);
+    try {
+      if (tipo == _TipoConsultaPonto.temperatura) {
+        final resultado = await WaveForecastRepository().buscarGrade([ponto]);
+        if (!mounted) return;
+        setState(() {
+          _gradeTemperatura = resultado;
+          _mostrarGradeTemperatura = true;
+          _consultaPontoAtiva = null;
+        });
+        final valor = resultado.isNotEmpty ? resultado.first.temperaturaC : null;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(valor != null
+                ? 'Temperatura no ponto: ${valor.toStringAsFixed(1)} °C'
+                : 'Sem dado de temperatura pra esse ponto agora'),
+          ),
+        );
+      } else {
+        final resultado = await ClorofilaRepository().buscarPonto(
+          latitude: ponto.latitude,
+          longitude: ponto.longitude,
+        );
+        if (!mounted) return;
+        setState(() {
+          _clorofilaPontos = [..._clorofilaPontos, resultado];
+          _mostrarClorofila = true;
+          _consultaPontoAtiva = null;
+        });
+        _mostrarInfoClorofila(resultado);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _consultaPontoAtiva = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(mensagemErroAmigavel(e,
+              prefixo: tipo == _TipoConsultaPonto.temperatura
+                  ? 'Erro ao buscar temperatura'
+                  : 'Erro ao buscar clorofila-a')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _consultandoPonto = false);
+    }
+  }
+
+  // ── Menu lateral ──────────────────────────────────────────────────────────
+  // Um único lugar pra tudo que antes era um ícone solto na barra de topo
+  // (marcar ponto, baixar região, sobreposição) e o que já vivia no painel
+  // de camadas — pedido explícito: "colocar todas as opções dos toggle em
+  // um menu lateral específico", em vez de ícones espalhados.
+
+  void _abrirMenuLateral() => setState(() => _menuLateralAberto = true);
+  void _fecharMenuLateral() => setState(() => _menuLateralAberto = false);
+
+  /// Item de toggle padrão do menu — switch à direita, ícone à esquerda
+  /// colorido quando ativo, mesmo padrão visual pras ~10 opções abaixo.
+  Widget _itemMenuToggle({
+    required IconData icone,
+    required String titulo,
+    String? subtitulo,
+    required bool ativo,
+    required VoidCallback? onTap,
+    bool carregando = false,
+  }) {
+    return ListTile(
+      leading: carregando
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(icone, color: ativo ? Colors.lightBlueAccent : null),
+      title: Text(titulo),
+      subtitle: subtitulo == null ? null : Text(subtitulo),
+      trailing: Switch(value: ativo, onChanged: onTap == null ? null : (_) => onTap()),
+      onTap: onTap,
+      enabled: onTap != null,
+      dense: true,
+    );
+  }
+
+  Widget _buildMenuLateral() {
+    return Stack(
+      children: [
+        // Fundo escurecido — toca fora do menu pra fechar, mesmo gesto de
+        // um Drawer de verdade.
+        if (_menuLateralAberto)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _fecharMenuLateral,
+              child: Container(color: Colors.black.withValues(alpha: 0.4)),
+            ),
+          ),
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          top: 0,
+          bottom: 0,
+          right: _menuLateralAberto ? 0 : -320,
+          width: 300,
+          child: Material(
+            elevation: 8,
+            color: Theme.of(context).canvasColor,
+            child: SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 24),
+                children: [
+                  ListTile(
+                    title: const Text('MENU DO MAPA',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: _fecharMenuLateral,
+                    ),
+                  ),
+                  if (!widget.modoPlanejarRota) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: Icon(_modoMarcarPonto ? Icons.close : Icons.add_location_alt),
+                      title: Text(_modoMarcarPonto ? 'Cancelar marcação' : 'Marcar um ponto'),
+                      dense: true,
+                      onTap: () {
+                        _alternarModoMarcarPonto();
+                        _fecharMenuLateral();
+                      },
+                    ),
+                  ],
+                  const Divider(height: 1),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text('CAMADAS',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                  _itemMenuToggle(
+                    icone: _camadaRuas ? Icons.map : Icons.explore,
+                    titulo: 'Mapa de Ruas (OpenStreetMap)',
+                    subtitulo: _camadaRuas ? null : 'Desligado: mostra a carta náutica carregada',
+                    ativo: _camadaRuas,
+                    onTap: () => setState(() => _camadaRuas = !_camadaRuas),
+                  ),
+                  _itemMenuToggle(
+                    icone: Icons.anchor,
+                    titulo: 'Informações náuticas (OpenSeaMap)',
+                    subtitulo: 'Boias, marcas, faróis e portos — só sobre o Mapa de Ruas',
+                    ativo: _mostrarInfoNautica,
+                    onTap: !_camadaRuas ? null : _alternarInfoNautica,
+                  ),
+                  _itemMenuToggle(
+                    icone: Icons.layers,
+                    titulo: 'Profundidade',
+                    subtitulo: 'Sombreamento batimétrico (GEBCO) · OpenSeaMap',
+                    ativo: _mostrarProfundidade,
+                    onTap: !_camadaRuas ? null : _alternarProfundidade,
+                  ),
+                  _itemMenuToggle(
+                    icone: Icons.timeline,
+                    titulo: 'Curvas de profundidade',
+                    subtitulo: 'Isóbatas · OpenSeaMap',
+                    ativo: _mostrarCurvasProfundidade,
+                    onTap: !_camadaRuas ? null : _alternarCurvasProfundidade,
+                  ),
+                  _itemMenuToggle(
+                    icone: Icons.thermostat,
+                    titulo: 'Temperatura da superfície do mar',
+                    ativo: _mostrarGradeTemperatura,
+                    onTap: _alternarGradeTemperatura,
+                    carregando: _consultandoPonto &&
+                        _consultaPontoAtiva == _TipoConsultaPonto.temperatura,
+                  ),
+                  _itemMenuToggle(
+                    icone: Icons.water_drop,
+                    titulo: 'Clorofila-a',
+                    subtitulo: 'Indicador de produtividade · NOAA CoastWatch',
+                    ativo: _mostrarClorofila,
+                    onTap: _alternarClorofila,
+                    carregando:
+                        _consultandoPonto && _consultaPontoAtiva == _TipoConsultaPonto.clorofila,
+                  ),
+                  _itemMenuToggle(
+                    icone: Icons.local_fire_department,
+                    titulo: 'Pontos de pesca (calor de produção)',
+                    ativo: _mostrarProducao,
+                    onTap: _alternarProducao,
+                    carregando: _carregandoProducao,
+                  ),
+                  _itemMenuToggle(
+                    icone: Icons.image_outlined,
+                    titulo: 'Sobreposição de imagem',
+                    subtitulo: 'PNG georreferenciado — toque em "Escolher imagem" pra trocar',
+                    ativo: _overlayAtiva,
+                    onTap: _overlayCarregando
+                        ? null
+                        : () => _alternarOverlay(!_overlayAtiva),
+                    carregando: _overlayCarregando,
+                  ),
+                  if (_overlayAtiva || _overlayValidada)
+                    ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.only(left: 72, right: 16),
+                      title: const Text('Escolher imagem'),
+                      onTap: _overlayCarregando ? null : _abrirDialogoSelecionarOverlay,
+                    ),
+                  const Divider(height: 1),
+                  ListTile(
+                    enabled: false,
+                    title: const Text('Produtividade Blue Ocean'),
+                    subtitle: const Text('Em breve'),
+                    dense: true,
+                  ),
+                  if (_camadaRuas) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.download),
+                      title: const Text('Baixar região para uso offline'),
+                      dense: true,
+                      onTap: () {
+                        _abrirDownloadRegiao();
+                        _fecharMenuLateral();
+                      },
+                    ),
+                  ],
+                  const Divider(height: 1),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text(
+                      '© OpenStreetMap contributors · © OpenSeaMap contributors · '
+                      'Profundidade: GEBCO / OpenSeaMap depth project',
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1556,11 +1841,8 @@ class MapaWidgetState extends State<MapaWidget> {
               min: _gradeTemperaturaMinMax!.$1,
               max: _gradeTemperaturaMinMax!.$2,
             ),
-          if (_mostrarClorofila)
-            LegendaClorofila(dataDoDado: _clorofila?.data),
-          if (_mostrarClorofila && _erroClorofila != null)
-            _buildErroClorofila(),
           if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
+          if (_consultaPontoAtiva != null) ..._buildOverlayConsultaPonto(),
           if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
@@ -1571,6 +1853,13 @@ class MapaWidgetState extends State<MapaWidget> {
               _mode != _MapMode.none &&
               _gpsPosition != null)
             _buildGpsButton(),
+          if (!_modoMarcarPonto &&
+              !widget.modoPlanejarRota &&
+              _consultaPontoAtiva == null &&
+              _mostrarClorofila)
+            _buildAdicionarPontoClorofilaButton(),
+          // Por cima de tudo — inclusive do scrim que fecha ao tocar fora.
+          _buildMenuLateral(),
         ],
       ),
     );
@@ -1607,10 +1896,7 @@ class MapaWidgetState extends State<MapaWidget> {
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
-              if (_loading ||
-                  _carregandoProducao ||
-                  _carregandoGradeTemperatura ||
-                  _carregandoClorofila)
+              if (_loading || _carregandoProducao || _consultandoPonto)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: SizedBox(
@@ -1620,110 +1906,23 @@ class MapaWidgetState extends State<MapaWidget> {
                         strokeWidth: 2, color: Colors.white),
                   ),
                 ),
-              if (!widget.modoPlanejarRota)
+              // Enquanto marcando um ponto, um jeito rápido de cancelar sem
+              // abrir o menu lateral inteiro — todo o resto (inclusive
+              // iniciar a marcação) mora só lá agora (ver _buildMenuLateral).
+              if (!widget.modoPlanejarRota && _modoMarcarPonto)
                 IconButton(
-                  icon: Icon(
-                    _modoMarcarPonto ? Icons.close : Icons.add_location_alt,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                  tooltip: _modoMarcarPonto
-                      ? 'Cancelar marcação'
-                      : 'Marcar um ponto',
+                  icon: const Icon(Icons.close, color: Colors.white, size: 22),
+                  tooltip: 'Cancelar marcação',
                   onPressed: _alternarModoMarcarPonto,
                   padding: EdgeInsets.zero,
                   constraints:
                       const BoxConstraints(minWidth: 44, minHeight: 44),
                 ),
-              if (_camadaRuas)
-                IconButton(
-                  icon: const Icon(Icons.download,
-                      color: Colors.white, size: 22),
-                  tooltip: 'Baixar região para uso offline',
-                  onPressed: _abrirDownloadRegiao,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 44, minHeight: 44),
-                ),
-              IconButton(
-                icon: Icon(
-                  _camadaRuas ? Icons.map : Icons.explore,
-                  color: Colors.white,
-                  size: 22,
-                ),
-                tooltip: _camadaRuas ? 'Ver carta náutica' : 'Ver mapa de ruas',
-                onPressed: () => setState(() => _camadaRuas = !_camadaRuas),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-              ),
               if (!widget.modoPlanejarRota)
                 IconButton(
-                  icon: Icon(
-                    Icons.local_fire_department,
-                    color: _mostrarProducao ? Colors.orangeAccent : Colors.white,
-                    size: 22,
-                  ),
-                  tooltip: _mostrarProducao
-                      ? 'Esconder calor de produção'
-                      : 'Ver calor de produção',
-                  onPressed: _alternarProducao,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 44, minHeight: 44),
-                ),
-              if (!widget.modoPlanejarRota)
-                IconButton(
-                  icon: Icon(
-                    Icons.thermostat,
-                    color: _mostrarGradeTemperatura
-                        ? Colors.orangeAccent
-                        : Colors.white,
-                    size: 22,
-                  ),
-                  tooltip: _mostrarGradeTemperatura
-                      ? 'Esconder grade de temperatura'
-                      : 'Ver grade de temperatura (SST)',
-                  onPressed: _alternarGradeTemperatura,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 44, minHeight: 44),
-                ),
-              if (!widget.modoPlanejarRota)
-                GestureDetector(
-                  onLongPress:
-                      _overlayCarregando ? null : _abrirDialogoSelecionarOverlay,
-                  child: IconButton(
-                    icon: _overlayCarregando
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : Icon(
-                            Icons.layers,
-                            color: _overlayAtiva
-                                ? Colors.lightBlueAccent
-                                : Colors.white,
-                            size: 22,
-                          ),
-                    tooltip: _overlayAtiva
-                        ? 'Esconder sobreposição (segure para trocar a imagem)'
-                        : 'Ver sobreposição (segure para escolher a imagem)',
-                    onPressed: _overlayCarregando
-                        ? null
-                        : () => _alternarOverlay(!_overlayAtiva),
-                    padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints(minWidth: 44, minHeight: 44),
-                  ),
-                ),
-              if (!widget.modoPlanejarRota)
-                IconButton(
-                  icon: const Icon(Icons.layers_outlined,
-                      color: Colors.white, size: 22),
-                  tooltip: 'Camadas do mapa',
-                  onPressed: _abrirPainelCamadas,
+                  icon: const Icon(Icons.menu, color: Colors.white, size: 22),
+                  tooltip: 'Menu do mapa',
+                  onPressed: _abrirMenuLateral,
                   padding: EdgeInsets.zero,
                   constraints:
                       const BoxConstraints(minWidth: 44, minHeight: 44),
@@ -1808,41 +2007,6 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
-  /// Erro ao buscar clorofila (rede, backend, endpoint ainda não
-  /// implementado) — mesmo tratamento visual dos outros erros de dado
-  /// oceânico do app: mensagem amigável + botão de tentar de novo, nunca
-  /// um valor inventado no lugar (ver [CondicoesMarScreen] pro mesmo
-  /// padrão fora do mapa).
-  Widget _buildErroClorofila() {
-    return Positioned(
-      bottom: 90,
-      left: 8,
-      right: 8,
-      child: Material(
-        color: Colors.red.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(_erroClorofila!,
-                    style: const TextStyle(color: Colors.white, fontSize: 12)),
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
-                tooltip: 'Tentar de novo',
-                onPressed: () => _buscarClorofila(forcar: true),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildBody() {
     // Carregando carta bundled pela primeira vez
     if (_loading && _mode == _MapMode.none) {
@@ -1915,7 +2079,10 @@ class MapaWidgetState extends State<MapaWidget> {
             ? CameraConstraint.contain(bounds: _chartBounds!)
             : const CameraConstraint.unconstrained(),
         onPositionChanged: (camera, hasGesture) {
-          if (_modoMarcarPonto) {
+          // Move o reticulado tanto em "Marcar um ponto" quanto no seletor
+          // de consulta de temperatura/clorofila (mesmo widget, ver
+          // _buildOverlayConsultaPonto) — os dois usam _centroMira.
+          if (_modoMarcarPonto || _consultaPontoAtiva != null) {
             setState(() => _centroMira = camera.center);
           }
           if (_mostrarGradeTemperatura) {
@@ -1924,10 +2091,6 @@ class MapaWidgetState extends State<MapaWidget> {
               setState(() => _gradeRotulosVisiveis = rotulosVisiveis);
             }
           }
-          // Refaz a busca de clorofila quando o mapa se move o bastante —
-          // debounced dentro do próprio método (ver _buscarClorofila), pra
-          // não disparar uma chamada nova a cada frame do gesto de pan/zoom.
-          if (_mostrarClorofila) _buscarClorofila();
         },
         onTap: widget.modoPlanejarRota
             ? (_, ponto) => setState(
@@ -2028,9 +2191,10 @@ class MapaWidgetState extends State<MapaWidget> {
         // do mapa no momento em que foi ativada.
         if (_mostrarGradeTemperatura && _gradeTemperatura.isNotEmpty)
           ..._buildCamadaGradeTemperatura(),
-        // Clorofila-a (Copernicus Marine) — indicador de produtividade,
-        // nunca biomassa de peixe (ver doc de LeituraClorofila/legenda).
-        if (_mostrarClorofila && _clorofila != null)
+        // Clorofila-a (NOAA CoastWatch, ERDDAP) — indicador de
+        // produtividade, nunca biomassa de peixe (ver doc de
+        // LeituraClorofilaPonto). Pode ter mais de um ponto marcado.
+        if (_mostrarClorofila && _clorofilaPontos.isNotEmpty)
           ..._buildCamadaClorofila(),
         // Rota sendo planejada manualmente — cada toque no mapa adiciona um
         // ponto numerado em sequência.
