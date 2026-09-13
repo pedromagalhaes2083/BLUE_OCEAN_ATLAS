@@ -7,6 +7,7 @@ import 'package:atlas/core/services/contexto_viagem_service.dart';
 import 'package:atlas/core/services/location_tracking_service.dart';
 import 'package:atlas/core/services/sincronizacao_service.dart';
 import 'package:atlas/core/utils/erro_amigavel.dart';
+import 'package:atlas/l10n/gen/app_localizations.dart';
 import '../../../app_shell.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -99,12 +100,13 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on UnauthorisedException {
       if (!mounted) return;
-      setState(() => _erro = 'Usuário ou senha incorretos.');
+      setState(
+          () => _erro = AppLocalizations.of(context).loginErroCredenciaisInvalidas);
     } catch (e) {
       if (!mounted) return;
       setState(() => _erro = ehErroDeConexao(e)
           ? mensagemSemConexao
-          : 'Erro ao conectar. Tente novamente.');
+          : AppLocalizations.of(context).loginErroConexao);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -137,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (dialogContext) => PopScope(
         canPop: false,
         child: AlertDialog(
-          title: const Text('Escolha a organização'),
+          title: Text(AppLocalizations.of(context).loginEscolherOrganizacaoTitulo),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: organizacoes
@@ -164,6 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -189,30 +192,32 @@ class _LoginScreenState extends State<LoginScreen> {
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 40),
-                const Text(
-                  'Atlas Blue Ocean',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.appTitulo,
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text('Login do Mestre', style: TextStyle(fontSize: 18)),
+                Text(l10n.loginSubtitulo, style: const TextStyle(fontSize: 18)),
                 const SizedBox(height: 40),
                 TextFormField(
                   controller: _usuarioController,
-                  decoration: const InputDecoration(
-                    labelText: 'Usuário',
-                    prefixIcon: Icon(Icons.person),
+                  decoration: InputDecoration(
+                    labelText: l10n.loginUsuarioLabel,
+                    prefixIcon: const Icon(Icons.person),
                   ),
-                  validator: (v) => v?.isEmpty == true ? 'Informe o usuário' : null,
+                  validator: (v) =>
+                      v?.isEmpty == true ? l10n.loginUsuarioObrigatorio : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _senhaController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Senha',
-                    prefixIcon: Icon(Icons.lock),
+                  decoration: InputDecoration(
+                    labelText: l10n.loginSenhaLabel,
+                    prefixIcon: const Icon(Icons.lock),
                   ),
-                  validator: (v) => v?.isEmpty == true ? 'Informe a senha' : null,
+                  validator: (v) =>
+                      v?.isEmpty == true ? l10n.loginSenhaObrigatoria : null,
                 ),
                 CheckboxListTile(
                   value: _lembrarCredenciais,
@@ -221,10 +226,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                   dense: true,
-                  title: const Text('Lembrar minhas credenciais'),
-                  subtitle: const Text(
-                    'Entra automaticamente da próxima vez, até você sair da conta.',
-                  ),
+                  title: Text(l10n.loginLembrarCredenciais),
+                  subtitle: Text(l10n.loginLembrarCredenciaisSubtitulo),
                 ),
                 if (_erro != null) ...[
                   const SizedBox(height: 12),
@@ -242,7 +245,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _isLoading ? null : _fazerLogin,
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('ENTRAR', style: TextStyle(fontSize: 18)),
+                        : Text(l10n.loginBotaoEntrar,
+                            style: const TextStyle(fontSize: 18)),
                   ),
                 ),
               ],

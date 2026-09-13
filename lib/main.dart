@@ -3,11 +3,13 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/database/database_helper.dart';
+import 'core/services/locale_service.dart';
 import 'core/services/night_mode_service.dart';
 import 'core/services/recomendacao_notification_service.dart';
 import 'core/services/theme_mode_service.dart';
 import 'features/mapa/presentation/meus_pontos_screen.dart';
 import 'features/splash/splash_screen.dart';
+import 'l10n/gen/app_localizations.dart';
 
 /// Permite navegar a partir de fora da árvore de widgets — usado só pelo
 /// toque numa notificação de recomendação nova, que pode chegar com o app
@@ -30,6 +32,7 @@ void main() async {
   await Hive.openBox('api_responses');
   await NightModeService.carregar();
   await ThemeModeService.carregar();
+  await LocaleService.carregar();
   await RecomendacaoNotificationService.inicializar(
     aoTocarNotificacao: (_) {
       navigatorKey.currentState?.push(
@@ -126,20 +129,26 @@ class AtlasBlueOceanApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeModeService.modo,
-      builder: (context, temaModo, _) => MaterialApp(
-        navigatorKey: navigatorKey,
-        title: 'Atlas Blue Ocean',
-        theme: _buildTheme(Brightness.light),
-        darkTheme: _buildTheme(Brightness.dark),
-        themeMode: temaModo,
-        debugShowCheckedModeBanner: false,
-        builder: (context, child) => ValueListenableBuilder<bool>(
-          valueListenable: NightModeService.ativo,
-          builder: (context, modoNoturno, _) => modoNoturno
-              ? ColorFiltered(colorFilter: _filtroModoNoturno, child: child)
-              : child!,
+      builder: (context, temaModo, _) => ValueListenableBuilder<Locale?>(
+        valueListenable: LocaleService.locale,
+        builder: (context, locale, _) => MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'Atlas Blue Ocean',
+          theme: _buildTheme(Brightness.light),
+          darkTheme: _buildTheme(Brightness.dark),
+          themeMode: temaModo,
+          debugShowCheckedModeBanner: false,
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) => ValueListenableBuilder<bool>(
+            valueListenable: NightModeService.ativo,
+            builder: (context, modoNoturno, _) => modoNoturno
+                ? ColorFiltered(colorFilter: _filtroModoNoturno, child: child)
+                : child!,
+          ),
+          home: SplashScreen(dbHelper: dbHelper),
         ),
-        home: SplashScreen(dbHelper: dbHelper),
       ),
     );
   }

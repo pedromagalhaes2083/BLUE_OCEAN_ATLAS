@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../core/models/sst_ponto.dart';
 import '../../../core/models/wave_forecast.dart';
+import '../../../core/services/dados_ponto_cache_service.dart';
 
 /// Única classe que conhece a URL/parâmetros da API pública Open-Meteo
 /// Marine (ondas, swell, corrente oceânica e temperatura da superfície
@@ -11,7 +12,23 @@ import '../../../core/models/wave_forecast.dart';
 /// serviço externo, sem autenticação.
 class WaveForecastRepository {
   static const _baseUrl = 'https://marine-api.open-meteo.com/v1/marine';
+  static const _tipoCache = 'onda';
 
+  /// Se a última chamada de [buscar] veio da rede (`false`) ou do cache
+  /// local por falta de conexão (`true`) — mesmo padrão do
+  /// `RecomendacaoRepository`, checar logo depois de chamar `buscar()` na
+  /// mesma instância pra decidir se mostra um aviso de "dado desatualizado".
+  bool ultimoResultadoOffline = false;
+
+  /// Quando o cache foi salvo — só relevante quando [ultimoResultadoOffline]
+  /// é `true`.
+  DateTime? ultimaAtualizacaoCache;
+
+  /// Busca onda/swell/corrente/SST/maré num ponto. Se a chamada falhar
+  /// (sem rede, no mar) e já existir uma resposta cacheada desse ponto (ver
+  /// [DadosPontoCacheService]), cai pro cache em vez de propagar o erro —
+  /// só lança se nem a rede nem o cache tiverem nada (1ª consulta desse
+  /// ponto sem nunca ter tido conexão).
   Future<WaveForecast> buscar({
     required double latitude,
     required double longitude,
@@ -27,15 +44,34 @@ class WaveForecastRepository {
       'timezone': 'auto',
     });
 
-    final response =
-        await http.get(uri).timeout(const Duration(seconds: 15));
-    if (response.statusCode != 200) {
-      throw Exception(
-          'Erro ao buscar previsão de ondas: ${response.statusCode}');
+    try {
+      final response =
+          await http.get(uri).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Erro ao buscar previsão de ondas: ${response.statusCode}');
+      }
+      await DadosPontoCacheService.salvar(
+        tipo: _tipoCache,
+        latitude: latitude,
+        longitude: longitude,
+        corpo: response.body,
+      );
+      ultimoResultadoOffline = false;
+      return WaveForecast.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      final cache = await DadosPontoCacheService.ler(
+        tipo: _tipoCache,
+        latitude: latitude,
+        longitude: longitude,
+      );
+      if (cache == null) rethrow;
+      ultimoResultadoOffline = true;
+      ultimaAtualizacaoCache = cache.em;
+      return WaveForecast.fromJson(
+          jsonDecode(cache.corpo) as Map<String, dynamic>);
     }
-
-    return WaveForecast.fromJson(
-        jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   /// Busca a temperatura da superfície do mar (SST) atual em vários pontos

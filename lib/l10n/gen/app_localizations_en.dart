@@ -1,0 +1,468 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appTitulo => 'Atlas Blue Ocean';
+
+  @override
+  String get cancelar => 'Cancel';
+
+  @override
+  String get sair => 'Log out';
+
+  @override
+  String get salvar => 'Save';
+
+  @override
+  String get sincronizar => 'Sync';
+
+  @override
+  String get idiomaSistema => 'System language';
+
+  @override
+  String get idiomaPortugues => 'Português';
+
+  @override
+  String get idiomaIngles => 'English';
+
+  @override
+  String get idiomaEspanhol => 'Español';
+
+  @override
+  String get idiomaItaliano => 'Italiano';
+
+  @override
+  String get idiomaFrances => 'Français';
+
+  @override
+  String get loginSubtitulo => 'Master\'s Login';
+
+  @override
+  String get loginUsuarioLabel => 'Username';
+
+  @override
+  String get loginUsuarioObrigatorio => 'Enter your username';
+
+  @override
+  String get loginSenhaLabel => 'Password';
+
+  @override
+  String get loginSenhaObrigatoria => 'Enter your password';
+
+  @override
+  String get loginLembrarCredenciais => 'Remember my credentials';
+
+  @override
+  String get loginLembrarCredenciaisSubtitulo =>
+      'Signs you in automatically next time, until you log out.';
+
+  @override
+  String get loginBotaoEntrar => 'LOG IN';
+
+  @override
+  String get loginErroCredenciaisInvalidas => 'Incorrect username or password.';
+
+  @override
+  String get loginErroConexao => 'Connection error. Please try again.';
+
+  @override
+  String get loginEscolherOrganizacaoTitulo => 'Choose the organization';
+
+  @override
+  String get configuracoesTitulo => 'Settings';
+
+  @override
+  String get configIdentificacaoAparelho => 'Device Identification';
+
+  @override
+  String get configIdDispositivo => 'Device ID';
+
+  @override
+  String get configCopiar => 'Copy';
+
+  @override
+  String get configIdCopiado => 'ID copied to clipboard';
+
+  @override
+  String get configEmbarcacao => 'Vessel';
+
+  @override
+  String get configConfigurarEmbarcacao => 'Configure Vessel';
+
+  @override
+  String get configConfigurarEmbarcacaoSubtitulo =>
+      'Capacities, crew, master and location-reporting ID.';
+
+  @override
+  String get configRastreamentoLocalizacao => 'Location Tracking';
+
+  @override
+  String get configIntervaloCapturaEnvio => 'Capture and send interval';
+
+  @override
+  String get configIntervaloExplicacao =>
+      'At each interval, the app captures the position, saves it locally and sends it to the API. Without internet, it\'s kept and sent as soon as the connection is back.';
+
+  @override
+  String configMinutos(int min) {
+    return '$min minutes';
+  }
+
+  @override
+  String configIntervaloSalvo(int min) {
+    return 'Tracking interval: $min min';
+  }
+
+  @override
+  String get configOtimizacaoBateriaTitulo =>
+      'Battery optimization may interrupt tracking';
+
+  @override
+  String get configOtimizacaoBateriaTexto =>
+      'The device may stop recording the position every 15 minutes during a trip, without any warning, if Atlas isn\'t exempt from the system\'s battery optimization.';
+
+  @override
+  String get configIsentarApp => 'Exempt the app';
+
+  @override
+  String get configAparencia => 'Appearance';
+
+  @override
+  String get configTemaEscuro => 'Dark Theme';
+
+  @override
+  String get configTemaClaro => 'Light';
+
+  @override
+  String get configTemaSistema => 'System';
+
+  @override
+  String get configTemaEscuroSegmento => 'Dark';
+
+  @override
+  String get configModoNoturno => 'Night Mode';
+
+  @override
+  String get configModoNoturnoSubtitulo =>
+      'Red-tinted screen to preserve your night vision.';
+
+  @override
+  String get configRecomendacoes => 'Recommendations';
+
+  @override
+  String get configOcultarRecomendacoesExpiradas =>
+      'Hide expired recommendations';
+
+  @override
+  String get configOcultarRecomendacoesExpiradasSubtitulo =>
+      'Removes expired ones from the \"Nautical Charts\" list — they stay saved, they just don\'t show up.';
+
+  @override
+  String get configEmergencia => 'Emergency';
+
+  @override
+  String get configContatoEmergencia => 'Emergency contact (WhatsApp)';
+
+  @override
+  String get configContatoEmergenciaSubtitulo =>
+      'If filled in, the EMERGENCY button on the dashboard opens a conversation with this number directly. If empty, it lets you choose the app on the spot.';
+
+  @override
+  String get configNumeroLabel => 'Number with area and country code';
+
+  @override
+  String get configNumeroHint => 'e.g.: 5588999998888';
+
+  @override
+  String get configContatoSalvo => 'Emergency contact saved';
+
+  @override
+  String get configDadosBackup => 'Data and Backup';
+
+  @override
+  String get configBackupManual => 'Manual backup';
+
+  @override
+  String get configBackupExplicacao =>
+      'Planned routes, marked points, chart requests and production only exist on this device — none of it is sent to a server. Generate a backup every so often and keep it somewhere safe (email, cloud, another device).';
+
+  @override
+  String get configGerarBackup => 'Generate and share backup';
+
+  @override
+  String configBackupCompartilhado(String carimbo) {
+    return 'Atlas Blue Ocean backup — $carimbo';
+  }
+
+  @override
+  String configErroBackup(String erro) {
+    return 'Error generating backup: $erro';
+  }
+
+  @override
+  String get configDetalhesAparelho => 'Device Details';
+
+  @override
+  String get configModelo => 'Model';
+
+  @override
+  String get configFabricante => 'Manufacturer';
+
+  @override
+  String get configSistemaOperacional => 'Operating System';
+
+  @override
+  String get configTesteDispositivo => 'Test — Device & Recommendations';
+
+  @override
+  String get configIdioma => 'Language';
+
+  @override
+  String get configIdiomaSubtitulo => 'Language used throughout the app';
+
+  @override
+  String get dashboardAtivarModoNoturno => 'Turn on night mode';
+
+  @override
+  String get dashboardDesativarModoNoturno => 'Turn off night mode';
+
+  @override
+  String get dashboardBoasVindas => 'Welcome, Master!';
+
+  @override
+  String dashboardEmbarcacaoLabel(String nome) {
+    return 'Vessel: $nome';
+  }
+
+  @override
+  String get dashboardEmbarcacaoNaoDefinida => 'Not set';
+
+  @override
+  String get dashboardEmergenciaBotao => 'EMERGENCY — Send Position';
+
+  @override
+  String get dashboardRastreamentoAtivo => 'Tracking Active';
+
+  @override
+  String dashboardRastreamentoSubtitulo(int min) {
+    return 'Recording position every $min minutes';
+  }
+
+  @override
+  String dashboardPosicoesPendentes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count positions waiting to sync',
+      one: '1 position waiting to sync',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dashboardPosicoesPendentesSubtitulo =>
+      'Will be sent automatically as soon as there\'s a connection.';
+
+  @override
+  String get dashboardSincronizarAgora => 'Sync now';
+
+  @override
+  String dashboardBateriaBaixa(int percent) {
+    return 'Phone battery at $percent%';
+  }
+
+  @override
+  String get dashboardBateriaBaixaSubtitulo =>
+      'Tracking may stop if the battery runs out.';
+
+  @override
+  String get dashboardSemPosicaoRecente => 'No recent position recorded';
+
+  @override
+  String dashboardSemPosicaoRecenteSubtitulo(String tempo) {
+    return 'Last position $tempo ago. Check the GPS signal.';
+  }
+
+  @override
+  String dashboardTempoMinutos(int min) {
+    return '$min min';
+  }
+
+  @override
+  String dashboardTempoHoras(int h) {
+    return '$h h';
+  }
+
+  @override
+  String dashboardTempoDias(int d) {
+    String _temp0 = intl.Intl.pluralLogic(
+      d,
+      locale: localeName,
+      other: '$d days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dashboardBat => 'DEPTH';
+
+  @override
+  String get dashboardMetros => 'meters';
+
+  @override
+  String get dashboardSst => 'SST';
+
+  @override
+  String get dashboardMapa => 'Map';
+
+  @override
+  String get dashboardRodape =>
+      'All data is saved locally.\nSyncing with the server happens as soon as there\'s a connection.';
+
+  @override
+  String get dashboardErroCarregar => 'Couldn\'t load the dashboard data.';
+
+  @override
+  String get dashboardTentarNovamente => 'Try again';
+
+  @override
+  String dashboardPosicoesEnviadas(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count positions sent',
+      one: '1 position sent',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dashboardAindaPendentes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count still pending',
+      one: '1 still pending',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dashboardSincronizacaoFalhou =>
+      'Couldn\'t sync right now. Check your connection.';
+
+  @override
+  String dashboardErroSincronizar(String erro) {
+    return 'Error syncing: $erro';
+  }
+
+  @override
+  String get dashboardSosTitulo => 'Send emergency signal?';
+
+  @override
+  String get dashboardSosTexto =>
+      'This will open a messaging app with your current position and a request for help, for you to send to whoever can assist you.';
+
+  @override
+  String get dashboardSosConfirmar => 'EMERGENCY';
+
+  @override
+  String dashboardSosErroPosicao(String erro) {
+    return 'Couldn\'t get the position: $erro';
+  }
+
+  @override
+  String dashboardSosMensagem(
+      String embarcacao, String posicao, String horario, String url) {
+    return '🆘 EMERGENCY — I need help!\nVessel: $embarcacao\nPosition: $posicao\nTime: $horario\n$url';
+  }
+
+  @override
+  String get dashboardEmbarcacaoNaoInformada => 'not provided';
+
+  @override
+  String get drawerViagemAtual => 'Current Trip';
+
+  @override
+  String get drawerProducao => 'Production';
+
+  @override
+  String get drawerSolicitarCarta => 'Request Chart';
+
+  @override
+  String get drawerCartasNauticas => 'Nautical Charts';
+
+  @override
+  String get drawerMinhasRotas => 'My Routes';
+
+  @override
+  String get drawerEmbarcacao => 'Vessel';
+
+  @override
+  String get drawerCondicoesMar => 'Sea Conditions';
+
+  @override
+  String get drawerAlertaRota => 'Route Alert';
+
+  @override
+  String get drawerTabuaMare => 'Tide Table';
+
+  @override
+  String get drawerMareEPesca => 'Tide & Fishing';
+
+  @override
+  String get drawerFaseLua => 'Moon Phase';
+
+  @override
+  String get drawerAvisosNavegantes => 'Notices to Mariners';
+
+  @override
+  String get drawerConfiguracoes => 'Settings';
+
+  @override
+  String get drawerSair => 'Log out';
+
+  @override
+  String get dashboardCartaSolicitadaSucesso =>
+      'Chart request sent successfully!';
+
+  @override
+  String get dashboardNenhumaEmbarcacaoTitulo => 'No vessel linked';
+
+  @override
+  String dashboardNenhumaEmbarcacaoTexto(String motivo) {
+    return 'The vessel is linked automatically from your active trip on the platform. Sync before $motivo.';
+  }
+
+  @override
+  String get dashboardNenhumaViagemTitulo => 'No trip in progress';
+
+  @override
+  String dashboardNenhumaViagemTexto(String motivo) {
+    return 'Trips are now created on the platform. Sync before $motivo, or ask for the trip to be started there.';
+  }
+
+  @override
+  String get dashboardMotivoRegistrarProducao => 'recording production';
+
+  @override
+  String get dashboardViagemSincronizada => 'Active trip synced.';
+
+  @override
+  String get dashboardNenhumaViagemEncontrada =>
+      'No active trip found on the platform right now.';
+
+  @override
+  String get dashboardSairTitulo => 'Log Out';
+
+  @override
+  String get dashboardSairTexto => 'Are you sure you want to log out?';
+}

@@ -27,6 +27,7 @@ import '../../producao/domain/models/producao_registro.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_variavel_chip.dart';
 import '../data/clorofila_repository.dart';
+import '../domain/models/indice_produtividade_blue_ocean.dart';
 import '../domain/models/leitura_clorofila.dart';
 import '../domain/models/ponto_marcado.dart';
 import '../../rotas/domain/models/rota_planejada.dart';
@@ -65,7 +66,7 @@ enum _MapMode { none, mbtiles, geotiff }
 /// Qual camada está usando o seletor de posição (mesmo reticulado de
 /// "Marcar um ponto") pra escolher onde consultar — ver
 /// `MapaWidgetState._consultaPontoAtiva`.
-enum _TipoConsultaPonto { temperatura, clorofila }
+enum _TipoConsultaPonto { temperatura, clorofila, indiceProdutividade }
 
 /// Mapa interativo completo — carta offline (MBTiles/GeoTIFF), pontos,
 /// posição GPS e marcação manual de pontos.
@@ -209,6 +210,14 @@ class MapaWidgetState extends State<MapaWidget> {
   // removido individualmente pelo próprio diálogo (ver [_mostrarInfoClorofila]).
   bool _mostrarClorofila = false;
   List<LeituraClorofilaPonto> _clorofilaPontos = [];
+
+  // ── Índice de Produtividade Blue Ocean (clorofila-a + temperatura) ───────
+  // Combina as duas leituras já buscadas separadamente (clorofila, SST) num
+  // único indicador (ver `IndiceProdutividadeBlueOcean.calcular`) — sempre
+  // uma estimativa heurística, nunca uma garantia de cardume. Mesmo padrão
+  // de vários pontos + remoção individual da clorofila.
+  bool _mostrarIndiceProdutividade = false;
+  List<IndiceProdutividadeBlueOcean> _indicePontos = [];
 
   // ── Sobreposição de imagem (PNG georreferenciado) ────────────────────────
   bool _overlayAtiva = false;
@@ -951,8 +960,10 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
-  /// Um marcador por ponto consultado (cor contínua — ver [corClorofila]),
-  /// cada um tocável pra reabrir seu valor/removê-lo individualmente.
+  /// Um marcador por ponto consultado, com a cor da faixa da escala
+  /// (Ruim/Bom/Ótimo/Excelente — ver [corNivelProdutividade]), a mesma cor que
+  /// aparece no diálogo do ponto. Cada um é tocável pra reabrir seu
+  /// valor/removê-lo individualmente.
   List<Widget> _buildCamadaClorofila() {
     if (_clorofilaPontos.isEmpty) return const [];
     return [
@@ -970,7 +981,7 @@ class MapaWidgetState extends State<MapaWidget> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: valor != null
-                      ? corClorofila(valor)
+                      ? corNivelProdutividade(nivelClorofila(valor))
                       : Colors.grey.withValues(alpha: 0.7),
                   border: Border.all(color: Colors.white, width: 2),
                 ),
@@ -1002,7 +1013,7 @@ class MapaWidgetState extends State<MapaWidget> {
                     height: 14,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: corNivelClorofila(nivel),
+                      color: corNivelProdutividade(nivel),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1047,6 +1058,146 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
+  // ── Índice de Produtividade Blue Ocean (clorofila-a + temperatura) ───────
+
+  /// Liga/desliga a camada. Mesmo padrão de [_alternarClorofila]: primeira
+  /// vez abre o seletor de posição, com pontos já marcados só some/mostra.
+  void _alternarIndiceProdutividade() {
+    if (_consultaPontoAtiva == _TipoConsultaPonto.indiceProdutividade) {
+      setState(() => _consultaPontoAtiva = null);
+      return;
+    }
+    if (_mostrarIndiceProdutividade) {
+      setState(() => _mostrarIndiceProdutividade = false);
+      return;
+    }
+    if (_indicePontos.isEmpty) {
+      _iniciarConsultaIndiceProdutividade();
+    } else {
+      setState(() => _mostrarIndiceProdutividade = true);
+    }
+  }
+
+  /// Abre o seletor de posição pra adicionar mais um ponto de índice, sem
+  /// mexer nos que já estão marcados — mesmo papel de
+  /// [_iniciarConsultaClorofila] pra essa camada.
+  void _iniciarConsultaIndiceProdutividade() {
+    _fecharMenuLateral();
+    setState(() {
+      _consultaPontoAtiva = _TipoConsultaPonto.indiceProdutividade;
+      _centroMira = _mapController.camera.center;
+    });
+  }
+
+  /// Botão "+" flutuante pra marcar mais um ponto de índice, visível só
+  /// enquanto a camada está ligada — mesmo papel de
+  /// [_buildAdicionarPontoClorofilaButton].
+  Widget _buildAdicionarPontoIndiceButton() {
+    return Positioned(
+      right: 12,
+      // 64px acima do de clorofila — dá pra ter os dois ligados ao mesmo
+      // tempo sem um FAB cobrir o outro.
+      bottom: _mostrarClorofila ? 204 : 140,
+      child: FloatingActionButton(
+        heroTag: 'adicionarIndiceFab',
+        onPressed: _iniciarConsultaIndiceProdutividade,
+        tooltip: 'Marcar outro ponto de índice de produtividade',
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  /// Um marcador por ponto consultado, cor da faixa do índice combinado
+  /// (ver [corNivelProdutividade]) — ícone de estrela pra diferenciar
+  /// visualmente do marcador de clorofila isolada (folha).
+  List<Widget> _buildCamadaIndiceProdutividade() {
+    if (_indicePontos.isEmpty) return const [];
+    return [
+      MarkerLayer(
+        markers: _indicePontos.map((indice) {
+          return Marker(
+            point: LatLng(indice.latitude, indice.longitude),
+            width: 32,
+            height: 32,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _mostrarInfoIndiceProdutividade(indice),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: corNivelProdutividade(indice.nivel),
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    ];
+  }
+
+  void _mostrarInfoIndiceProdutividade(IndiceProdutividadeBlueOcean indice) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Índice de Produtividade Blue Ocean'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: corNivelProdutividade(indice.nivel),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(indice.nivel.rotulo,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(indice.explicacao, style: const TextStyle(fontSize: 13)),
+            if (indice.clorofilaData != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                  'Dados de clorofila-a de ${DateFormat('dd/MM/yyyy').format(indice.clorofilaData!)}'),
+            ],
+            const SizedBox(height: 4),
+            const Text('Fontes: NOAA CoastWatch (ERDDAP) · Open-Meteo Marine'),
+            const SizedBox(height: 12),
+            const Text(
+              'Estimativa combinando clorofila-a e temperatura da '
+              'superfície do mar — não representa diretamente quantidade '
+              'de peixe, só um indicador indireto de produtividade.',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _indicePontos =
+                  _indicePontos.where((p) => p != indice).toList());
+            },
+            child: const Text('Remover', style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Seletor de posição pra consultar temperatura/clorofila ───────────────
   // Mesmo reticulado/cartão de "Marcar um ponto" (ver
   // [_buildOverlayMarcarPonto]) — pedido explícito: "exibir o seletor de
@@ -1057,9 +1208,12 @@ class MapaWidgetState extends State<MapaWidget> {
   List<Widget> _buildOverlayConsultaPonto() {
     final tipo = _consultaPontoAtiva;
     if (tipo == null) return const [];
-    final titulo = tipo == _TipoConsultaPonto.temperatura
-        ? 'Temperatura da superfície do mar'
-        : 'Clorofila-a';
+    final titulo = switch (tipo) {
+      _TipoConsultaPonto.temperatura => 'Temperatura da superfície do mar',
+      _TipoConsultaPonto.clorofila => 'Clorofila-a',
+      _TipoConsultaPonto.indiceProdutividade =>
+        'Índice de Produtividade Blue Ocean',
+    };
 
     return [
       const IgnorePointer(
@@ -1156,7 +1310,7 @@ class MapaWidgetState extends State<MapaWidget> {
                 : 'Sem dado de temperatura pra esse ponto agora'),
           ),
         );
-      } else {
+      } else if (tipo == _TipoConsultaPonto.clorofila) {
         final resultado = await ClorofilaRepository().buscarPonto(
           latitude: ponto.latitude,
           longitude: ponto.longitude,
@@ -1168,6 +1322,54 @@ class MapaWidgetState extends State<MapaWidget> {
           _consultaPontoAtiva = null;
         });
         _mostrarInfoClorofila(resultado);
+      } else {
+        // Índice de Produtividade Blue Ocean — busca clorofila e
+        // temperatura em paralelo e tolera falha de uma das duas (ex: SST
+        // fora de cobertura marinha, clorofila sem dado por nuvem): o
+        // índice sai só com o que conseguiu, nunca inventa o que faltou.
+        // Só propaga erro (pro catch de baixo) se as duas falharem.
+        double? clorofilaValor;
+        DateTime? clorofilaData;
+        double? temperaturaValor;
+        Object? erro;
+        var algumSucesso = false;
+
+        await Future.wait([
+          ClorofilaRepository()
+              .buscarPonto(
+                  latitude: ponto.latitude, longitude: ponto.longitude)
+              .then((r) {
+            clorofilaValor = r.valorMgM3;
+            clorofilaData = r.data;
+            algumSucesso = true;
+          }).catchError((e) => erro = e),
+          WaveForecastRepository()
+              .buscar(latitude: ponto.latitude, longitude: ponto.longitude)
+              .then((r) {
+            temperaturaValor = r.current?.seaSurfaceTemperature;
+            algumSucesso = true;
+          }).catchError((e) => erro = e),
+        ]);
+
+        if (!algumSucesso) {
+          throw erro ??
+              Exception('Erro ao calcular índice de produtividade');
+        }
+
+        final indice = IndiceProdutividadeBlueOcean.calcular(
+          latitude: ponto.latitude,
+          longitude: ponto.longitude,
+          clorofilaMgM3: clorofilaValor,
+          clorofilaData: clorofilaData,
+          temperaturaC: temperaturaValor,
+        );
+        if (!mounted) return;
+        setState(() {
+          _indicePontos = [..._indicePontos, indice];
+          _mostrarIndiceProdutividade = true;
+          _consultaPontoAtiva = null;
+        });
+        _mostrarInfoIndiceProdutividade(indice);
       }
     } catch (e) {
       if (!mounted) return;
@@ -1175,9 +1377,12 @@ class MapaWidgetState extends State<MapaWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mensagemErroAmigavel(e,
-              prefixo: tipo == _TipoConsultaPonto.temperatura
-                  ? 'Erro ao buscar temperatura'
-                  : 'Erro ao buscar clorofila-a')),
+              prefixo: switch (tipo) {
+                _TipoConsultaPonto.temperatura => 'Erro ao buscar temperatura',
+                _TipoConsultaPonto.clorofila => 'Erro ao buscar clorofila-a',
+                _TipoConsultaPonto.indiceProdutividade =>
+                  'Erro ao calcular índice de produtividade',
+              })),
         ),
       );
     } finally {
@@ -1343,11 +1548,15 @@ class MapaWidgetState extends State<MapaWidget> {
                       onTap: _overlayCarregando ? null : _abrirDialogoSelecionarOverlay,
                     ),
                   const Divider(height: 1),
-                  ListTile(
-                    enabled: false,
-                    title: const Text('Produtividade Blue Ocean'),
-                    subtitle: const Text('Em breve'),
-                    dense: true,
+                  _itemMenuToggle(
+                    icone: Icons.auto_awesome,
+                    titulo: 'Índice de Produtividade Blue Ocean',
+                    subtitulo: 'Combina clorofila-a e temperatura — estimativa, não garantia de cardume',
+                    ativo: _mostrarIndiceProdutividade,
+                    onTap: _alternarIndiceProdutividade,
+                    carregando: _consultandoPonto &&
+                        _consultaPontoAtiva ==
+                            _TipoConsultaPonto.indiceProdutividade,
                   ),
                   if (_camadaRuas) ...[
                     const Divider(height: 1),
@@ -1858,6 +2067,11 @@ class MapaWidgetState extends State<MapaWidget> {
               _consultaPontoAtiva == null &&
               _mostrarClorofila)
             _buildAdicionarPontoClorofilaButton(),
+          if (!_modoMarcarPonto &&
+              !widget.modoPlanejarRota &&
+              _consultaPontoAtiva == null &&
+              _mostrarIndiceProdutividade)
+            _buildAdicionarPontoIndiceButton(),
           // Por cima de tudo — inclusive do scrim que fecha ao tocar fora.
           _buildMenuLateral(),
         ],
@@ -2196,6 +2410,11 @@ class MapaWidgetState extends State<MapaWidget> {
         // LeituraClorofilaPonto). Pode ter mais de um ponto marcado.
         if (_mostrarClorofila && _clorofilaPontos.isNotEmpty)
           ..._buildCamadaClorofila(),
+        // Índice de Produtividade Blue Ocean — combina clorofila-a e
+        // temperatura num único indicador por ponto (ver
+        // IndiceProdutividadeBlueOcean). Também aceita mais de um ponto.
+        if (_mostrarIndiceProdutividade && _indicePontos.isNotEmpty)
+          ..._buildCamadaIndiceProdutividade(),
         // Rota sendo planejada manualmente — cada toque no mapa adiciona um
         // ponto numerado em sequência.
         if (widget.modoPlanejarRota && _pontosRotaPlanejada.length > 1)

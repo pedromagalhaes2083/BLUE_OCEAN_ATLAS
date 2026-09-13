@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/erro_amigavel.dart';
+import '../../widgets/offline_dados_banner.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
 import '../../widgets/wave_forecast/wave_forecast_widgets.dart';
@@ -40,6 +41,11 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
   bool _carregando = true;
   String? _erro;
 
+  /// `true` quando pelo menos um dos três dados acima veio do cache local
+  /// (sem rede agora) em vez da API ao vivo — ver `DadosPontoCacheService`.
+  bool _dadosOffline = false;
+  DateTime? _dadosOfflineEm;
+
   @override
   void initState() {
     super.initState();
@@ -52,18 +58,38 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
       _erro = null;
     });
     try {
-      final wave = await WaveForecastRepository()
-          .buscar(latitude: widget.latitude, longitude: widget.longitude);
-      final tempo = await PrevisaoTempoRepository()
-          .buscar(latitude: widget.latitude, longitude: widget.longitude);
-      final profundidade = await ProfundidadeRepository().buscarPonto(
+      final waveRepo = WaveForecastRepository();
+      final tempoRepo = PrevisaoTempoRepository();
+      final profundidadeRepo = ProfundidadeRepository();
+
+      final wave = await waveRepo.buscar(
+          latitude: widget.latitude, longitude: widget.longitude);
+      final tempo = await tempoRepo.buscar(
+          latitude: widget.latitude, longitude: widget.longitude);
+      final profundidade = await profundidadeRepo.buscarPonto(
           latitude: widget.latitude, longitude: widget.longitude);
 
       if (!mounted) return;
+      final offlines = [
+        if (waveRepo.ultimoResultadoOffline) waveRepo.ultimaAtualizacaoCache,
+        if (tempoRepo.ultimoResultadoOffline) tempoRepo.ultimaAtualizacaoCache,
+        if (profundidadeRepo.ultimoResultadoOffline)
+          profundidadeRepo.ultimaAtualizacaoCache,
+      ];
       setState(() {
         _waveForecast = wave;
         _previsaoTempo = tempo;
         _profundidade = profundidade;
+        _dadosOffline = offlines.isNotEmpty;
+        _dadosOfflineEm = offlines.isEmpty
+            ? null
+            : offlines.whereType<DateTime>().fold<DateTime?>(
+                null,
+                (maisAntigo, em) =>
+                    maisAntigo == null || em.isBefore(maisAntigo)
+                        ? em
+                        : maisAntigo,
+              );
       });
     } catch (e) {
       if (!mounted) return;
@@ -148,6 +174,10 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
               ),
             )
           else ...[
+            if (_dadosOffline) ...[
+              OfflineDadosBanner(em: _dadosOfflineEm),
+              const SizedBox(height: 16),
+            ],
             if (_profundidade != null || _waveForecast != null) ...[
               IntrinsicHeight(
                 child: Row(

@@ -33,6 +33,7 @@ import '../../embarcacao/data/embarcacao_local_lookup.dart';
 import '../../embarcacao/domain/models/embarcacao.dart';
 import 'package:atlas/features/widgets/posicao_atual_widget.dart';
 import 'package:atlas/features/widgets/web_view_screen.dart';
+import 'package:atlas/l10n/gen/app_localizations.dart';
 import '../../configuracoes/presentation/configuracoes_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -85,11 +86,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return DateTime.now().difference(_ultimaPosicaoHora!) > limite;
   }
 
-  String _formatarTempoDecorrido(DateTime data) {
+  String _formatarTempoDecorrido(AppLocalizations l10n, DateTime data) {
     final decorrido = DateTime.now().difference(data);
-    if (decorrido.inMinutes < 60) return '${decorrido.inMinutes} min';
-    if (decorrido.inHours < 24) return '${decorrido.inHours} h';
-    return '${decorrido.inDays} dia${decorrido.inDays == 1 ? '' : 's'}';
+    if (decorrido.inMinutes < 60) {
+      return l10n.dashboardTempoMinutos(decorrido.inMinutes);
+    }
+    if (decorrido.inHours < 24) return l10n.dashboardTempoHoras(decorrido.inHours);
+    return l10n.dashboardTempoDias(decorrido.inDays);
   }
 
   @override
@@ -213,11 +216,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
       setState(() => isLoading = false);
       debugPrint('Erro ao carregar dashboard: $e');
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Não foi possível carregar os dados do painel.'),
+          content: Text(l10n.dashboardErroCarregar),
           action: SnackBarAction(
-            label: 'Tentar novamente',
+            label: l10n.dashboardTentarNovamente,
             onPressed: _carregarDados,
           ),
         ),
@@ -237,19 +241,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
       final enviadas = _posicoesPendentes - pendentes.length;
       setState(() => _posicoesPendentes = pendentes.length);
+      final l10n = AppLocalizations.of(context);
+      final mensagem = enviadas > 0
+          ? '${l10n.dashboardPosicoesEnviadas(enviadas)}'
+              '${pendentes.isNotEmpty ? ' — ${l10n.dashboardAindaPendentes(pendentes.length)}' : ''}.'
+          : l10n.dashboardSincronizacaoFalhou;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            enviadas > 0
-                ? '$enviadas posiç${enviadas == 1 ? 'ão enviada' : 'ões enviadas'}${pendentes.isNotEmpty ? ' — ${pendentes.length} ainda pendente${pendentes.length == 1 ? '' : 's'}' : ''}.'
-                : 'Não foi possível sincronizar agora. Verifique a conexão.',
-          ),
-        ),
+        SnackBar(content: Text(mensagem)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao sincronizar: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).dashboardErroSincronizar('$e'))),
       );
     } finally {
       if (mounted) setState(() => _sincronizando = false);
@@ -259,23 +262,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ==================== SOS ====================
 
   Future<void> _acionarSOS() async {
+    final l10n = AppLocalizations.of(context);
     final confirmou = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Enviar sinal de emergência?'),
-        content: const Text(
-          'Isso vai abrir um app de mensagem com sua posição atual e um '
-          'pedido de ajuda, pra você enviar a quem puder socorrer.',
-        ),
+        title: Text(l10n.dashboardSosTitulo),
+        content: Text(l10n.dashboardSosTexto),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelar),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('EMERGÊNCIA',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(l10n.dashboardSosConfirmar,
+                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -294,11 +295,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           '${agora.day.toString().padLeft(2, '0')}/${agora.month.toString().padLeft(2, '0')}/${agora.year} '
           '${agora.hour.toString().padLeft(2, '0')}:${agora.minute.toString().padLeft(2, '0')}';
 
-      final mensagem = '🆘 EMERGÊNCIA — preciso de ajuda!\n'
-          'Embarcação: ${embarcacaoAtual?.nome ?? "não informada"}\n'
-          'Posição: ${formatarCoordenadasDMSCompacta(posicao.latitude, posicao.longitude)}\n'
-          'Horário: $horario\n'
-          'https://maps.google.com/?q=${posicao.latitude},${posicao.longitude}';
+      final mensagem = l10n.dashboardSosMensagem(
+        embarcacaoAtual?.nome ?? l10n.dashboardEmbarcacaoNaoInformada,
+        formatarCoordenadasDMSCompacta(posicao.latitude, posicao.longitude),
+        horario,
+        'https://maps.google.com/?q=${posicao.latitude},${posicao.longitude}',
+      );
 
       final contato =
           await Config.obtem(Constantes.contatoEmergenciaWhatsapp, '');
@@ -313,13 +315,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível obter a posição: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).dashboardSosErroPosicao('$e'))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
@@ -327,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           icon: const Icon(Icons.menu),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
-        title: const Text('Atlas Blue Ocean'),
+        title: Text(l10n.appTitulo),
         centerTitle: true,
         actions: [
           if (isTracking)
@@ -339,7 +342,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             valueListenable: NightModeService.ativo,
             builder: (context, ativo, _) => IconButton(
               icon: Icon(ativo ? Icons.nightlight_round : Icons.nightlight_outlined),
-              tooltip: ativo ? 'Desativar modo noturno' : 'Ativar modo noturno',
+              tooltip: ativo
+                  ? l10n.dashboardDesativarModoNoturno
+                  : l10n.dashboardAtivarModoNoturno,
               onPressed: () => NightModeService.alternar(!ativo),
             ),
           ),
@@ -357,12 +362,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Bem-vindo, Mestre!',
-                        style: TextStyle(
+                    Text(l10n.dashboardBoasVindas,
+                        style: const TextStyle(
                             fontSize: 28, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Text(
-                      'Embarcação: ${embarcacaoAtual?.nome ?? "Não definida"}',
+                      l10n.dashboardEmbarcacaoLabel(
+                          embarcacaoAtual?.nome ?? l10n.dashboardEmbarcacaoNaoDefinida),
                       style: const TextStyle(fontSize: 18, color: Colors.grey),
                     ),
                     const SizedBox(height: 16),
@@ -372,7 +378,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _acionarSOS,
                         icon: const Icon(Icons.sos),
-                        label: const Text('EMERGÊNCIA — Enviar Posição'),
+                        label: Text(l10n.dashboardEmergenciaBotao),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red[700],
                           foregroundColor: Colors.white,
@@ -404,12 +410,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: corFundo,
                           child: ListTile(
                             leading: Icon(Icons.location_on, color: corDestaque),
-                            title: Text('Rastreamento Ativo',
+                            title: Text(l10n.dashboardRastreamentoAtivo,
                                 style: escuro
                                     ? TextStyle(color: corDestaque)
                                     : null),
                             subtitle: Text(
-                              'Registrando posição a cada $_intervaloRastreamentoMinutos minutos',
+                              l10n.dashboardRastreamentoSubtitulo(
+                                  _intervaloRastreamentoMinutos),
                               style: escuro
                                   ? TextStyle(
                                       color: corDestaque.withValues(alpha: 0.75))
@@ -439,13 +446,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: ListTile(
                             leading: Icon(Icons.cloud_off, color: corDestaque),
                             title: Text(
-                              '$_posicoesPendentes posiç${_posicoesPendentes == 1 ? 'ão' : 'ões'} aguardando sincronização',
+                              l10n.dashboardPosicoesPendentes(_posicoesPendentes),
                               style: escuro
                                   ? TextStyle(color: corDestaque)
                                   : null,
                             ),
                             subtitle: Text(
-                              'Serão enviadas automaticamente assim que houver conexão.',
+                              l10n.dashboardPosicoesPendentesSubtitulo,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: escuro
@@ -462,7 +469,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   )
                                 : IconButton(
                                     icon: Icon(Icons.sync, color: corDestaque),
-                                    tooltip: 'Sincronizar agora',
+                                    tooltip: l10n.dashboardSincronizarAgora,
                                     onPressed: _sincronizarAgora,
                                   ),
                           ),
@@ -477,10 +484,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: ListTile(
                           leading:
                               const Icon(Icons.battery_alert, color: Colors.red),
-                          title: Text('Bateria do celular em $_ultimaBateria%'),
-                          subtitle: const Text(
-                            'O rastreamento pode parar se a bateria acabar.',
-                            style: TextStyle(fontSize: 12),
+                          title: Text(l10n.dashboardBateriaBaixa(_ultimaBateria!)),
+                          subtitle: Text(
+                            l10n.dashboardBateriaBaixaSubtitulo,
+                            style: const TextStyle(fontSize: 12),
                           ),
                         ),
                       ),
@@ -492,9 +499,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: Colors.red.withValues(alpha: 0.15),
                         child: ListTile(
                           leading: const Icon(Icons.gps_off, color: Colors.red),
-                          title: const Text('Sem posição recente registrada'),
+                          title: Text(l10n.dashboardSemPosicaoRecente),
                           subtitle: Text(
-                            'Última posição há ${_formatarTempoDecorrido(_ultimaPosicaoHora!)}. Verifique o sinal de GPS.',
+                            l10n.dashboardSemPosicaoRecenteSubtitulo(
+                                _formatarTempoDecorrido(l10n, _ultimaPosicaoHora!)),
                             style: const TextStyle(fontSize: 12),
                           ),
                         ),
@@ -508,20 +516,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Expanded(
                             child: _buildStatCard(
                                 icon: Icons.terrain,
-                                title: 'BAT',
+                                title: l10n.dashboardBat,
                                 value: _profundidadeAtual == null
                                     ? '--'
                                     : (_profundidadeAtual!.emAgua
                                         ? _profundidadeAtual!.profundidadeMetros
                                             .toStringAsFixed(0)
                                         : '--'),
-                                subtitle: 'metros',
+                                subtitle: l10n.dashboardMetros,
                                 color: Colors.indigo)),
                         const SizedBox(width: 12),
                         Expanded(
                             child: _buildStatCard(
                                 icon: Icons.thermostat,
-                                title: 'SST',
+                                title: l10n.dashboardSst,
                                 value: _sstAtual == null
                                     ? '--'
                                     : _sstAtual!.toStringAsFixed(1),
@@ -531,8 +539,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     const SizedBox(height: 32),
-                    const Text('Mapa',
-                        style: TextStyle(
+                    Text(l10n.dashboardMapa,
+                        style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -542,12 +550,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     const SizedBox(height: 40),
-                    const Center(
+                    Center(
                       child: Text(
-                        'Todos os dados são salvos localmente.\n'
-                        'A sincronização com o servidor será feita quando houver conexão.',
+                        l10n.dashboardRodape,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                        style: const TextStyle(color: Colors.grey, fontSize: 13),
                       ),
                     ),
                   ],
@@ -562,18 +569,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
+            DrawerHeader(
+              decoration: const BoxDecoration(
                 color: Color(0xFF0A2A4A),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.anchor, size: 60, color: Colors.white),
-                  SizedBox(height: 12),
+                  const Icon(Icons.anchor, size: 60, color: Colors.white),
+                  const SizedBox(height: 12),
                   Text(
-                    'Atlas Blue Ocean',
-                    style: TextStyle(
+                    l10n.appTitulo,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -584,19 +591,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.sailing),
-              title: const Text('Viagem Atual'),
+              title: Text(l10n.drawerViagemAtual),
               onTap: () => _abrirHistoricoPosicoes(context),
             ),
             ListTile(
               leading: const Icon(Icons.add_circle_outline),
-              title: const Text('Produção'),
+              title: Text(l10n.drawerProducao),
               onTap: () async {
                 Navigator.pop(context);
                 final temEmbarcacao = await _exigirEmbarcacaoCadastrada(
-                    motivo: 'registrar produção');
+                    motivo: l10n.dashboardMotivoRegistrarProducao);
                 if (!temEmbarcacao || !context.mounted) return;
-                final temViagem =
-                    await _exigirViagemAtiva(motivo: 'registrar produção');
+                final temViagem = await _exigirViagemAtiva(
+                    motivo: l10n.dashboardMotivoRegistrarProducao);
                 if (!temViagem || !context.mounted) return;
                 Navigator.push(
                   context,
@@ -608,17 +615,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.add_link_rounded),
-              title: const Text('Solicitar Carta'),
+              title: Text(l10n.drawerSolicitarCarta),
               onTap: () => _abrirSolicitarCarta(context),
             ),
             ListTile(
               leading: const Icon(Icons.layers_outlined),
-              title: const Text('Cartas Náuticas'),
+              title: Text(l10n.drawerCartasNauticas),
               onTap: () => _abrirCartasNauticas(context),
             ),
             ListTile(
               leading: const Icon(Icons.route),
-              title: const Text('Minhas Rotas'),
+              title: Text(l10n.drawerMinhasRotas),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -632,17 +639,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.navigation),
-              title: const Text('Embarcação'),
+              title: Text(l10n.drawerEmbarcacao),
               onTap: () => _abrirCadastroEmbarcacao(context),
             ),
             ListTile(
               leading: const Icon(Icons.water_drop_outlined),
-              title: const Text('Condições do Mar'),
+              title: Text(l10n.drawerCondicoesMar),
               onTap: () => _abrirCondicoesMar(context),
             ),
             ListTile(
               leading: const Icon(Icons.warning_amber_outlined),
-              title: const Text('Alerta de Rota'),
+              title: Text(l10n.drawerAlertaRota),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -653,7 +660,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.calendar_month_outlined),
-              title: const Text('Tábua de Maré'),
+              title: Text(l10n.drawerTabuaMare),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -664,7 +671,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.phishing),
-              title: const Text('Maré e Pesca'),
+              title: Text(l10n.drawerMareEPesca),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -675,7 +682,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.nightlight_round),
-              title: const Text('Fase da Lua'),
+              title: Text(l10n.drawerFaseLua),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -686,16 +693,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.campaign_outlined),
-              title: const Text('Avisos aos Navegantes'),
+              title: Text(l10n.drawerAvisosNavegantes),
               onTap: () {
                 Navigator.pop(context);
-                _abrirAvisosAosNavegantes(context);
+                _abrirAvisosAosNavegantes(context, l10n);
               },
             ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text('Configurações'),
+              title: Text(l10n.drawerConfiguracoes),
               onTap: () async {
                 Navigator.pop(context);
                 await Navigator.push(
@@ -710,7 +717,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Sair', style: TextStyle(color: Colors.red)),
+              title: Text(l10n.drawerSair, style: const TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _logout();
@@ -760,23 +767,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// existe uma embarcação e a tela que chamou pode prosseguir.
   Future<bool> _exigirEmbarcacaoCadastrada({required String motivo}) async {
     if (embarcacaoAtual != null) return true;
+    final l10n = AppLocalizations.of(context);
 
     final sincronizar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nenhuma embarcação vinculada'),
-        content: Text(
-          'A embarcação é vinculada automaticamente pela sua viagem ativa '
-          'na plataforma. Sincronize antes de $motivo.',
-        ),
+        title: Text(l10n.dashboardNenhumaEmbarcacaoTitulo),
+        content: Text(l10n.dashboardNenhumaEmbarcacaoTexto(motivo)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelar),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sincronizar'),
+            child: Text(l10n.sincronizar),
           ),
         ],
       ),
@@ -791,23 +796,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// sincronizar. Retorna true só quando já existe uma viagem ativa.
   Future<bool> _exigirViagemAtiva({required String motivo}) async {
     if (viagemAtual != null) return true;
+    final l10n = AppLocalizations.of(context);
 
     final sincronizar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nenhuma viagem em andamento'),
-        content: Text(
-          'As viagens agora são criadas na plataforma. Sincronize antes de '
-          '$motivo, ou peça pra iniciar a viagem por lá.',
-        ),
+        title: Text(l10n.dashboardNenhumaViagemTitulo),
+        content: Text(l10n.dashboardNenhumaViagemTexto(motivo)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelar),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sincronizar'),
+            child: Text(l10n.sincronizar),
           ),
         ],
       ),
@@ -826,12 +829,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final encontrou = await ContextoViagemService.sincronizar(widget.dbHelper);
     if (!mounted) return;
     _carregarDados();
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           encontrou
-              ? 'Viagem ativa sincronizada.'
-              : 'Nenhuma viagem ativa encontrada na plataforma agora.',
+              ? l10n.dashboardViagemSincronizada
+              : l10n.dashboardNenhumaViagemEncontrada,
         ),
         duration: const Duration(seconds: 4),
       ),
@@ -839,19 +843,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _logout() async {
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sair do Sistema'),
-        content: const Text('Deseja realmente sair?'),
+        title: Text(l10n.dashboardSairTitulo),
+        content: Text(l10n.dashboardSairTexto),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelar),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sair', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.sair, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -885,17 +890,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // Recarrega a lista de cartas ou atualiza a tela
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Carta solicitada com sucesso!')),
+        SnackBar(content: Text(AppLocalizations.of(context).dashboardCartaSolicitadaSucesso)),
       );
     }
   }
 
-  void _abrirAvisosAosNavegantes(BuildContext context) {
+  void _abrirAvisosAosNavegantes(BuildContext context, AppLocalizations l10n) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const WebViewScreen(
-          titulo: 'Avisos aos Navegantes',
+        builder: (_) => WebViewScreen(
+          titulo: l10n.drawerAvisosNavegantes,
           url:
               'https://www.marinha.mil.br/chm/dados-do-segnav-aviso-aos-navegantes-tela',
         ),

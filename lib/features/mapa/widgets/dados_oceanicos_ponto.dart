@@ -52,6 +52,13 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
   /// previsão enganosa.
   static const _raioPortoOfflineNm = 60.0;
 
+  /// `true` quando profundidade e/ou onda/corrente/maré vieram do cache
+  /// local (ver `DadosPontoCacheService`) em vez da API ao vivo — não
+  /// aparece se a maré caiu pro modelo harmônico offline (esse já deixa
+  /// isso claro no próprio rótulo, `"Maré (offline: <porto>)"`).
+  bool _dadosOffline = false;
+  DateTime? _dadosOfflineEm;
+
   @override
   void initState() {
     super.initState();
@@ -60,8 +67,9 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
   }
 
   Future<void> _carregarProfundidade() async {
+    final repo = ProfundidadeRepository();
     try {
-      final resultado = await ProfundidadeRepository().buscarPonto(
+      final resultado = await repo.buscarPonto(
         latitude: widget.latitude,
         longitude: widget.longitude,
       );
@@ -69,16 +77,24 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
       setState(() {
         _profundidade = resultado;
         _carregandoProfundidade = false;
+        if (repo.ultimoResultadoOffline) {
+          _dadosOffline = true;
+          _dadosOfflineEm = _maisAntiga(_dadosOfflineEm, repo.ultimaAtualizacaoCache);
+        }
       });
     } catch (_) {
+      // Nem rede nem cache tinham profundidade desse ponto — sem
+      // alternativa aqui (diferente de maré, não há um modelo offline de
+      // profundidade), a linha continua mostrando "—".
       if (!mounted) return;
       setState(() => _carregandoProfundidade = false);
     }
   }
 
   Future<void> _carregarTemperatura() async {
+    final repo = WaveForecastRepository();
     try {
-      final forecast = await WaveForecastRepository().buscar(
+      final forecast = await repo.buscar(
         latitude: widget.latitude,
         longitude: widget.longitude,
       );
@@ -93,8 +109,17 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
         final eventos = forecast.eventosMare;
         _proximoEventoMare = eventos.isNotEmpty ? eventos.first : null;
         _carregandoTemperatura = false;
+        if (repo.ultimoResultadoOffline) {
+          _dadosOffline = true;
+          _dadosOfflineEm =
+              _maisAntiga(_dadosOfflineEm, repo.ultimaAtualizacaoCache);
+        }
       });
     } catch (_) {
+      // buscar() já tentou o cache local sozinho — só chega aqui se nem
+      // rede nem cache tiverem nada desse ponto. Ainda vale tentar o
+      // modelo de maré harmônico (mais confiável pra "agora" que um
+      // cache muito antigo seria, se existisse).
       final portoOffline = await _buscarPortoOfflineProximo();
       if (!mounted) return;
       if (portoOffline != null) {
@@ -115,6 +140,15 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
         setState(() => _carregandoTemperatura = false);
       }
     }
+  }
+
+  /// A mais antiga entre duas datas de cache, ignorando nulos — usada pra
+  /// que [_dadosOfflineEm] sempre mostre o dado mais desatualizado entre
+  /// profundidade e onda/corrente/maré, quando os dois vierem do cache.
+  DateTime? _maisAntiga(DateTime? a, DateTime? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a.isBefore(b) ? a : b;
   }
 
   /// Busca, entre os portos salvos em "Tábua de Maré" com modelo offline já
@@ -188,6 +222,29 @@ class _DadosOceanicosPontoState extends State<DadosOceanicosPonto> {
           valor: _valorMare(),
           carregando: _carregandoTemperatura,
         ),
+        if (_dadosOffline) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.cloud_off_outlined,
+                  size: 14, color: Colors.amber.shade800),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _dadosOfflineEm != null
+                      ? 'Sem conexão — dado de '
+                          '${_dadosOfflineEm!.day.toString().padLeft(2, '0')}/'
+                          '${_dadosOfflineEm!.month.toString().padLeft(2, '0')} '
+                          '${_dadosOfflineEm!.hour.toString().padLeft(2, '0')}:'
+                          '${_dadosOfflineEm!.minute.toString().padLeft(2, '0')}'
+                      : 'Sem conexão — mostrando o último dado sincronizado',
+                  style: TextStyle(
+                      fontSize: 11, color: Colors.amber.shade900),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

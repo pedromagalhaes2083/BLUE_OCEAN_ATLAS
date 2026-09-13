@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/fase_lua.dart';
 import '../../../core/utils/tabela_solunar.dart';
+import '../../widgets/offline_dados_banner.dart';
 import '../../widgets/posicao_atual_widget.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
@@ -43,6 +44,11 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
   bool _carregandoOceano = false;
   String? _erroOceano;
 
+  /// `true` quando pelo menos um dos três dados acima veio do cache local
+  /// (sem rede agora) em vez da API ao vivo — ver `DadosPontoCacheService`.
+  bool _dadosOffline = false;
+  DateTime? _dadosOfflineEm;
+
   // Dias lunares (nascer/pôr) usados só pra montar a tabela solunar de hoje
   // (ver [_periodosSolunaresHoje]) — busca à parte, best-effort: uma falha
   // aqui não deve derrubar o resto da tela (ver [_buscarDiasLunares]).
@@ -56,18 +62,41 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
       _erroOceano = null;
     });
     try {
-      final wave = await WaveForecastRepository()
-          .buscar(latitude: _lat!, longitude: _lon!);
-      final tempo = await PrevisaoTempoRepository()
-          .buscar(latitude: _lat!, longitude: _lon!);
-      final profundidade = await ProfundidadeRepository()
-          .buscarPonto(latitude: _lat!, longitude: _lon!);
+      final waveRepo = WaveForecastRepository();
+      final tempoRepo = PrevisaoTempoRepository();
+      final profundidadeRepo = ProfundidadeRepository();
+
+      final wave =
+          await waveRepo.buscar(latitude: _lat!, longitude: _lon!);
+      final tempo =
+          await tempoRepo.buscar(latitude: _lat!, longitude: _lon!);
+      final profundidade = await profundidadeRepo.buscarPonto(
+          latitude: _lat!, longitude: _lon!);
 
       if (!mounted) return;
+      // Se qualquer um dos três veio do cache (sem rede agora), mostra o
+      // aviso com o horário mais antigo entre eles — o dado mais
+      // desatualizado da tela é o que importa avisar.
+      final offlines = [
+        if (waveRepo.ultimoResultadoOffline) waveRepo.ultimaAtualizacaoCache,
+        if (tempoRepo.ultimoResultadoOffline) tempoRepo.ultimaAtualizacaoCache,
+        if (profundidadeRepo.ultimoResultadoOffline)
+          profundidadeRepo.ultimaAtualizacaoCache,
+      ];
       setState(() {
         _waveForecast = wave;
         _previsaoTempo = tempo;
         _profundidade = profundidade;
+        _dadosOffline = offlines.isNotEmpty;
+        _dadosOfflineEm = offlines.isEmpty
+            ? null
+            : offlines.whereType<DateTime>().fold<DateTime?>(
+                null,
+                (maisAntigo, em) =>
+                    maisAntigo == null || em.isBefore(maisAntigo)
+                        ? em
+                        : maisAntigo,
+              );
       });
     } catch (e) {
       if (!mounted) return;
@@ -190,6 +219,10 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
               ),
             )
           else ...[
+            if (_dadosOffline) ...[
+              OfflineDadosBanner(em: _dadosOfflineEm),
+              const SizedBox(height: 16),
+            ],
             if (_profundidade != null || _waveForecast != null) ...[
               IntrinsicHeight(
                 child: Row(

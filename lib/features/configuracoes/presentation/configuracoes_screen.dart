@@ -11,9 +11,11 @@ import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/battery_optimization_service.dart';
 import '../../../core/services/device_id_service.dart';
+import '../../../core/services/locale_service.dart';
 import '../../../core/services/location_tracking_service.dart';
 import '../../../core/services/night_mode_service.dart';
 import '../../../core/services/theme_mode_service.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../dispositivo/presentation/dispositivo_teste_screen.dart';
 import '../../embarcacao/presentation/embarcacao_configuracao_screen.dart';
 
@@ -128,12 +130,13 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       if (!mounted) return;
       await Share.shareXFiles(
         [XFile(copia.path)],
-        text: 'Backup do Atlas Blue Ocean — $carimbo',
+        text: AppLocalizations.of(context).configBackupCompartilhado(carimbo),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao gerar backup: $e')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context).configErroBackup('$e'))),
       );
     } finally {
       if (mounted) setState(() => _fazendoBackup = false);
@@ -147,7 +150,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Contato de emergência salvo')),
+      SnackBar(content: Text(AppLocalizations.of(context).configContatoSalvo)),
     );
   }
 
@@ -174,7 +177,8 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Intervalo de rastreamento: $novoValor min')),
+      SnackBar(
+          content: Text(AppLocalizations.of(context).configIntervaloSalvo(novoValor))),
     );
   }
 
@@ -183,14 +187,15 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
     await Clipboard.setData(ClipboardData(text: _deviceId!));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ID copiado para a área de transferência')),
+      SnackBar(content: Text(AppLocalizations.of(context).configIdCopiado)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurações')),
+      appBar: AppBar(title: Text(l10n.configuracoesTitulo)),
       body: _deviceId == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -198,9 +203,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Identificação do Aparelho',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.configIdentificacaoAparelho,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Card(
@@ -212,13 +217,13 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.smartphone, color: Colors.blue),
-                              SizedBox(width: 10),
+                              const Icon(Icons.smartphone, color: Colors.blue),
+                              const SizedBox(width: 10),
                               Text(
-                                'ID do Dispositivo',
-                                style: TextStyle(
+                                l10n.configIdDispositivo,
+                                style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                             ],
@@ -237,7 +242,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             child: TextButton.icon(
                               onPressed: _copiarId,
                               icon: const Icon(Icons.copy, size: 18),
-                              label: const Text('Copiar'),
+                              label: Text(l10n.configCopiar),
                             ),
                           ),
                         ],
@@ -245,9 +250,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Embarcação',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.configEmbarcacao,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Card(
@@ -257,22 +262,22 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(16),
                       leading: const Icon(Icons.directions_boat, color: Colors.blue),
-                      title: const Text(
-                        'Configurar Embarcação',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      title: Text(
+                        l10n.configConfigurarEmbarcacao,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
-                      subtitle: const Text(
-                        'Capacidades, tripulação, mestre e ID de envio de localização.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      subtitle: Text(
+                        l10n.configConfigurarEmbarcacaoSubtitulo,
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _abrirConfiguracaoEmbarcacao,
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Rastreamento de Localização',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.configRastreamentoLocalizacao,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Card(
@@ -284,23 +289,21 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.schedule, color: Colors.blue),
-                              SizedBox(width: 10),
+                              const Icon(Icons.schedule, color: Colors.blue),
+                              const SizedBox(width: 10),
                               Text(
-                                'Intervalo de captura e envio',
-                                style: TextStyle(
+                                l10n.configIntervaloCapturaEnvio,
+                                style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'A cada intervalo, o app captura a posição, grava '
-                            'localmente e envia pra API. Sem internet, fica '
-                            'guardado e é enviado assim que a conexão voltar.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          Text(
+                            l10n.configIntervaloExplicacao,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<int>(
@@ -308,7 +311,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             items: _opcoesIntervalo
                                 .map((min) => DropdownMenuItem(
                                       value: min,
-                                      child: Text('$min minutos'),
+                                      child: Text(l10n.configMinutos(min)),
                                     ))
                                 .toList(),
                             onChanged: _alterarIntervalo,
@@ -339,7 +342,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    'Otimização de bateria pode interromper o rastreamento',
+                                    l10n.configOtimizacaoBateriaTitulo,
                                     style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
@@ -350,10 +353,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'O aparelho pode parar de registrar a posição a cada '
-                              '15 minutos durante uma viagem, sem nenhum aviso, se o '
-                              'Atlas não estiver isento da otimização de bateria do '
-                              'sistema.',
+                              l10n.configOtimizacaoBateriaTexto,
                               style: TextStyle(
                                   fontSize: 12, color: Colors.orange[900]),
                             ),
@@ -372,7 +372,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                             strokeWidth: 2),
                                       )
                                     : const Icon(Icons.battery_charging_full),
-                                label: const Text('Isentar o app'),
+                                label: Text(l10n.configIsentarApp),
                               ),
                             ),
                           ],
@@ -381,9 +381,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  const Text(
-                    'Aparência',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.configAparencia,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Card(
@@ -399,10 +399,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                               const Icon(Icons.dark_mode_outlined,
                                   color: Colors.blue),
                               const SizedBox(width: 10),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'Tema Escuro',
-                                  style: TextStyle(
+                                  l10n.configTemaEscuro,
+                                  style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600),
                                 ),
@@ -418,22 +418,22 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                               valueListenable: ThemeModeService.modo,
                               builder: (context, modo, _) =>
                                   SegmentedButton<ThemeMode>(
-                                segments: const [
+                                segments: [
                                   ButtonSegment(
                                     value: ThemeMode.light,
-                                    label: Text('Claro'),
-                                    icon: Icon(Icons.light_mode_outlined),
+                                    label: Text(l10n.configTemaClaro),
+                                    icon: const Icon(Icons.light_mode_outlined),
                                   ),
                                   ButtonSegment(
                                     value: ThemeMode.system,
-                                    label: Text('Sistema'),
-                                    icon: Icon(
+                                    label: Text(l10n.configTemaSistema),
+                                    icon: const Icon(
                                         Icons.brightness_auto_outlined),
                                   ),
                                   ButtonSegment(
                                     value: ThemeMode.dark,
-                                    label: Text('Escuro'),
-                                    icon: Icon(Icons.dark_mode_outlined),
+                                    label: Text(l10n.configTemaEscuroSegmento),
+                                    icon: const Icon(Icons.dark_mode_outlined),
                                   ),
                                 ],
                                 selected: {modo},
@@ -454,27 +454,75 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                               Icons.nightlight_round,
                               color: ativo ? Colors.red[700] : Colors.blue,
                             ),
-                            title: const Text(
-                              'Modo Noturno',
-                              style: TextStyle(
+                            title: Text(
+                              l10n.configModoNoturno,
+                              style: const TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w600),
                             ),
-                            subtitle: const Text(
-                              'Tela em vermelho para preservar a visão no '
-                              'escuro.',
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            subtitle: Text(
+                              l10n.configModoNoturnoSubtitulo,
+                              style: const TextStyle(fontSize: 12, color: Colors.grey),
                             ),
                             value: ativo,
                             onChanged: NightModeService.alternar,
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.language, color: Colors.blue),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  l10n.configIdioma,
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                          child: Text(
+                            l10n.configIdiomaSubtitulo,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                          child: ValueListenableBuilder<Locale?>(
+                            valueListenable: LocaleService.locale,
+                            builder: (context, localeAtual, _) =>
+                                DropdownButtonFormField<Locale?>(
+                              initialValue: localeAtual,
+                              isExpanded: true,
+                              items: [
+                                DropdownMenuItem<Locale?>(
+                                  value: null,
+                                  child: Text(l10n.idiomaSistema),
+                                ),
+                                for (final locale
+                                    in LocaleService.idiomasSuportados)
+                                  DropdownMenuItem<Locale?>(
+                                    value: locale,
+                                    child: Text(_rotuloIdioma(l10n, locale)),
+                                  ),
+                              ],
+                              onChanged: LocaleService.alternar,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Recomendações',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.configRecomendacoes,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Card(
@@ -484,23 +532,22 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     child: SwitchListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                       secondary: const Icon(Icons.event_busy, color: Colors.blue),
-                      title: const Text(
-                        'Ocultar recomendações expiradas',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      title: Text(
+                        l10n.configOcultarRecomendacoesExpiradas,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
-                      subtitle: const Text(
-                        'Some da lista em "Cartas Náuticas" quem já passou '
-                        'da validade — continuam salvas, só não aparecem.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      subtitle: Text(
+                        l10n.configOcultarRecomendacoesExpiradasSubtitulo,
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       value: _ocultarRecomendacoesExpiradas,
                       onChanged: _alternarOcultarRecomendacoesExpiradas,
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Emergência',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.configEmergencia,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Card(
@@ -512,31 +559,29 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.sos, color: Colors.red),
-                              SizedBox(width: 10),
+                              const Icon(Icons.sos, color: Colors.red),
+                              const SizedBox(width: 10),
                               Text(
-                                'Contato de emergência (WhatsApp)',
-                                style: TextStyle(
+                                l10n.configContatoEmergencia,
+                                style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Se preenchido, o botão de EMERGÊNCIA no painel '
-                            'abre direto uma conversa com esse número. Vazio, '
-                            'ele deixa você escolher o app na hora.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          Text(
+                            l10n.configContatoEmergenciaSubtitulo,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           const SizedBox(height: 12),
                           TextField(
                             controller: _contatoEmergenciaController,
                             keyboardType: TextInputType.phone,
-                            decoration: const InputDecoration(
-                              labelText: 'Número com DDD e país',
-                              hintText: 'Ex: 5588999998888',
+                            decoration: InputDecoration(
+                              labelText: l10n.configNumeroLabel,
+                              hintText: l10n.configNumeroHint,
                               isDense: true,
                             ),
                           ),
@@ -546,7 +591,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                             child: TextButton.icon(
                               onPressed: _salvarContatoEmergencia,
                               icon: const Icon(Icons.save, size: 18),
-                              label: const Text('Salvar'),
+                              label: Text(l10n.salvar),
                             ),
                           ),
                         ],
@@ -554,9 +599,9 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Dados e Backup',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.configDadosBackup,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Card(
@@ -568,25 +613,21 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.backup_outlined, color: Colors.blue),
-                              SizedBox(width: 10),
+                              const Icon(Icons.backup_outlined, color: Colors.blue),
+                              const SizedBox(width: 10),
                               Text(
-                                'Backup manual',
-                                style: TextStyle(
+                                l10n.configBackupManual,
+                                style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Rotas planejadas, pontos marcados, pedidos de '
-                            'carta e produção só existem neste aparelho — '
-                            'nada disso é enviado a um servidor. Gere um '
-                            'backup de vez em quando e guarde num lugar '
-                            'seguro (e-mail, nuvem, outro aparelho).',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          Text(
+                            l10n.configBackupExplicacao,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
@@ -601,7 +642,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                           strokeWidth: 2),
                                     )
                                   : const Icon(Icons.ios_share),
-                              label: const Text('Gerar e compartilhar backup'),
+                              label: Text(l10n.configGerarBackup),
                             ),
                           ),
                         ],
@@ -610,10 +651,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                   ),
                   const SizedBox(height: 24),
                   if (_deviceInfo != null) ...[
-                    const Text(
-                      'Detalhes do Aparelho',
+                    Text(
+                      l10n.configDetalhesAparelho,
                       style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     Card(
@@ -622,12 +663,12 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                           borderRadius: BorderRadius.circular(16)),
                       child: Column(
                         children: [
-                          _linha('Modelo', _deviceInfo!.modelo),
+                          _linha(l10n.configModelo, _deviceInfo!.modelo),
                           const Divider(height: 1),
-                          _linha('Fabricante', _deviceInfo!.fabricante),
+                          _linha(l10n.configFabricante, _deviceInfo!.fabricante),
                           const Divider(height: 1),
                           _linha(
-                            'Sistema Operacional',
+                            l10n.configSistemaOperacional,
                             '${_deviceInfo!.sistemaOperacional} ${_deviceInfo!.versaoSO}',
                           ),
                         ],
@@ -643,7 +684,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       ),
                     ),
                     icon: const Icon(Icons.bug_report_outlined),
-                    label: const Text('Teste — Dispositivo & Recomendações'),
+                    label: Text(l10n.configTesteDispositivo),
                   ),
                 ],
               ),
@@ -656,5 +697,25 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       title: Text(label),
       trailing: Text(valor, style: const TextStyle(color: Colors.grey)),
     );
+  }
+
+  /// Rótulo de cada idioma suportado no próprio idioma dele (ex: "English"
+  /// mesmo quando o app está em português) — assim quem trocou de idioma
+  /// sem querer ainda reconhece o nome do idioma certo pra voltar.
+  String _rotuloIdioma(AppLocalizations l10n, Locale locale) {
+    switch (locale.languageCode) {
+      case 'pt':
+        return l10n.idiomaPortugues;
+      case 'en':
+        return l10n.idiomaIngles;
+      case 'es':
+        return l10n.idiomaEspanhol;
+      case 'it':
+        return l10n.idiomaItaliano;
+      case 'fr':
+        return l10n.idiomaFrances;
+      default:
+        return locale.languageCode;
+    }
   }
 }
