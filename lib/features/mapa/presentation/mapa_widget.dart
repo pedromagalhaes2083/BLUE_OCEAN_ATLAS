@@ -39,6 +39,7 @@ import '../widgets/legenda_grade_temperatura.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
 import '../widgets/street_map_tile_provider.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 const _bundledAsset = 'assets/cartas/OUTPUT_FILE.mbtiles';
 const _pontosAsset = 'assets/json/posicoes/Routing3.json';
@@ -326,9 +327,9 @@ class MapaWidgetState extends State<MapaWidget> {
       if (response.statusCode == 403 || response.statusCode == 404) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
               content: Text(
-                  'Carta da recomendação não disponível (o link pode ter expirado)')),
+                  AppLocalizations.of(context).mapaCartaRecomendacaoIndisponivel)),
         );
         return;
       }
@@ -349,7 +350,7 @@ class MapaWidgetState extends State<MapaWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(mensagemErroAmigavel(e,
-                prefixo: 'Não foi possível carregar a carta da recomendação'))),
+                prefixo: AppLocalizations.of(context).mapaErroCarregarCartaRecomendacao))),
       );
     }
   }
@@ -448,12 +449,13 @@ class MapaWidgetState extends State<MapaWidget> {
       if (!mounted) return;
       setState(() => _salvandoRota = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao salvar rota: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).mapaErroSalvarRota('$e'))),
       );
     }
   }
 
   void _mostrarInfoRegistroProducao(ProducaoRegistro registro) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -481,7 +483,7 @@ class MapaWidgetState extends State<MapaWidget> {
             const Divider(height: 20),
             LinhaInfoPonto(
               icon: Icons.event_outlined,
-              label: 'Data',
+              label: l10n.mapaLabelData,
               valor: _formatarDataHora(registro.dataHora),
             ),
             if (registro.classificacao != null &&
@@ -489,7 +491,7 @@ class MapaWidgetState extends State<MapaWidget> {
               const SizedBox(height: 8),
               LinhaInfoPonto(
                 icon: Icons.straighten_outlined,
-                label: 'Classificação',
+                label: l10n.mapaLabelClassificacaoCurto,
                 valor:
                     '${registro.classificacao!.label} kg · ${registro.quantidadeUnidades} un.',
               ),
@@ -497,7 +499,7 @@ class MapaWidgetState extends State<MapaWidget> {
             const SizedBox(height: 8),
             LinhaInfoPonto(
               icon: Icons.scale_outlined,
-              label: 'Peso',
+              label: l10n.mapaLabelPeso,
               valor: '${registro.quantidadeKg.toStringAsFixed(1)} kg',
             ),
           ],
@@ -505,7 +507,7 @@ class MapaWidgetState extends State<MapaWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
+            child: Text(l10n.fechar),
           ),
         ],
       ),
@@ -543,7 +545,7 @@ class MapaWidgetState extends State<MapaWidget> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Erro ao carregar carta: $e';
+        _error = AppLocalizations.of(context).mapaErroCarregarCarta('$e');
         _loading = false;
       });
     }
@@ -675,6 +677,8 @@ class MapaWidgetState extends State<MapaWidget> {
       'producao_registro',
       where: 'latitude IS NOT NULL AND longitude IS NOT NULL',
     );
+    if (!mounted) return;
+    final especieNaoInformada = AppLocalizations.of(context).mapaEspecieNaoInformada;
 
     // Agrupa registros próximos (~100m) somando o total em kg, pra não
     // sobrepor um marcador em cima do outro quando há vários registros na
@@ -687,7 +691,7 @@ class MapaWidgetState extends State<MapaWidget> {
       final especieNormalizada =
           normalizarEspecie(r['especie'] as String? ?? '');
       final especie =
-          especieNormalizada.isEmpty ? 'Não informado' : especieNormalizada;
+          especieNormalizada.isEmpty ? especieNaoInformada : especieNormalizada;
       final chave =
           '${lat.toStringAsFixed(3)},${lon.toStringAsFixed(3)}';
 
@@ -743,6 +747,7 @@ class MapaWidgetState extends State<MapaWidget> {
   }
 
   void _mostrarInfoProducao(_ClusterProducao cluster) {
+    final l10n = AppLocalizations.of(context);
     final especies = cluster.porEspecie.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -756,7 +761,7 @@ class MapaWidgetState extends State<MapaWidget> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '${cluster.totalKg.toStringAsFixed(1)} kg no total',
+                l10n.mapaProducaoTotal(cluster.totalKg.toStringAsFixed(1)),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -791,7 +796,7 @@ class MapaWidgetState extends State<MapaWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
+            child: Text(l10n.fechar),
           ),
         ],
       ),
@@ -954,7 +959,7 @@ class MapaWidgetState extends State<MapaWidget> {
       child: FloatingActionButton(
         heroTag: 'adicionarClorofilaFab',
         onPressed: _iniciarConsultaClorofila,
-        tooltip: 'Marcar outro ponto de clorofila-a',
+        tooltip: AppLocalizations.of(context).mapaAdicionarPontoClorofila,
         child: const Icon(Icons.add),
       ),
     );
@@ -995,12 +1000,13 @@ class MapaWidgetState extends State<MapaWidget> {
   }
 
   void _mostrarInfoClorofila(LeituraClorofilaPonto ponto) {
+    final l10n = AppLocalizations.of(context);
     final valor = ponto.valorMgM3;
     final nivel = valor != null ? nivelClorofila(valor) : null;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Clorofila-a'),
+        title: Text(l10n.mapaClorofilaTitulo),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1023,20 +1029,18 @@ class MapaWidgetState extends State<MapaWidget> {
                 ],
               )
             else
-              const Text(
-                'Sem dado válido pra esse ponto (nuvem, terra próxima ou '
-                'falha do sensor no dia mais recente disponível)',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                l10n.mapaClorofilaSemDado,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             const SizedBox(height: 8),
-            Text('Data: ${DateFormat('dd/MM/yyyy').format(ponto.data)}'),
+            Text(l10n.mapaClorofilaData(DateFormat('dd/MM/yyyy').format(ponto.data))),
             const SizedBox(height: 4),
-            Text('Fonte: ${ponto.source}'),
+            Text(l10n.mapaClorofilaFonte(ponto.source)),
             const SizedBox(height: 12),
-            const Text(
-              'Indicador de produtividade biológica/oceanográfica — não '
-              'representa diretamente quantidade de peixe.',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
+            Text(
+              l10n.mapaClorofilaDisclaimer,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ],
         ),
@@ -1047,11 +1051,11 @@ class MapaWidgetState extends State<MapaWidget> {
               setState(() => _clorofilaPontos =
                   _clorofilaPontos.where((p) => p != ponto).toList());
             },
-            child: const Text('Remover', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
+            child: Text(l10n.fechar),
           ),
         ],
       ),
@@ -1101,7 +1105,7 @@ class MapaWidgetState extends State<MapaWidget> {
       child: FloatingActionButton(
         heroTag: 'adicionarIndiceFab',
         onPressed: _iniciarConsultaIndiceProdutividade,
-        tooltip: 'Marcar outro ponto de índice de produtividade',
+        tooltip: AppLocalizations.of(context).mapaAdicionarPontoIndice,
         child: const Icon(Icons.add),
       ),
     );
@@ -1138,10 +1142,11 @@ class MapaWidgetState extends State<MapaWidget> {
   }
 
   void _mostrarInfoIndiceProdutividade(IndiceProdutividadeBlueOcean indice) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Índice de Produtividade Blue Ocean'),
+        title: Text(l10n.mapaIndiceProdutividadeTitulo),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1166,17 +1171,15 @@ class MapaWidgetState extends State<MapaWidget> {
             Text(indice.explicacao, style: const TextStyle(fontSize: 13)),
             if (indice.clorofilaData != null) ...[
               const SizedBox(height: 8),
-              Text(
-                  'Dados de clorofila-a de ${DateFormat('dd/MM/yyyy').format(indice.clorofilaData!)}'),
+              Text(l10n.mapaIndiceDadosClorofilaData(
+                  DateFormat('dd/MM/yyyy').format(indice.clorofilaData!))),
             ],
             const SizedBox(height: 4),
-            const Text('Fontes: NOAA CoastWatch (ERDDAP) · Open-Meteo Marine'),
+            Text(l10n.mapaIndiceFontes),
             const SizedBox(height: 12),
-            const Text(
-              'Estimativa combinando clorofila-a e temperatura da '
-              'superfície do mar — não representa diretamente quantidade '
-              'de peixe, só um indicador indireto de produtividade.',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
+            Text(
+              l10n.mapaIndiceDisclaimer,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ],
         ),
@@ -1187,11 +1190,11 @@ class MapaWidgetState extends State<MapaWidget> {
               setState(() => _indicePontos =
                   _indicePontos.where((p) => p != indice).toList());
             },
-            child: const Text('Remover', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
+            child: Text(l10n.fechar),
           ),
         ],
       ),
@@ -1208,11 +1211,12 @@ class MapaWidgetState extends State<MapaWidget> {
   List<Widget> _buildOverlayConsultaPonto() {
     final tipo = _consultaPontoAtiva;
     if (tipo == null) return const [];
+    final l10n = AppLocalizations.of(context);
     final titulo = switch (tipo) {
-      _TipoConsultaPonto.temperatura => 'Temperatura da superfície do mar',
-      _TipoConsultaPonto.clorofila => 'Clorofila-a',
+      _TipoConsultaPonto.temperatura => l10n.mapaTemperaturaTitulo,
+      _TipoConsultaPonto.clorofila => l10n.mapaClorofilaTitulo,
       _TipoConsultaPonto.indiceProdutividade =>
-        'Índice de Produtividade Blue Ocean',
+        l10n.mapaIndiceProdutividadeTitulo,
     };
 
     return [
@@ -1239,7 +1243,7 @@ class MapaWidgetState extends State<MapaWidget> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Consultar $titulo — aponte o centro do mapa para o local desejado',
+                  l10n.mapaConsultarPontoInstrucao(titulo),
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
@@ -1259,7 +1263,7 @@ class MapaWidgetState extends State<MapaWidget> {
                         onPressed: _consultandoPonto
                             ? null
                             : () => setState(() => _consultaPontoAtiva = null),
-                        child: const Text('Cancelar'),
+                        child: Text(l10n.cancelar),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1274,7 +1278,7 @@ class MapaWidgetState extends State<MapaWidget> {
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.check),
-                        label: const Text('Consultar'),
+                        label: Text(l10n.mapaConsultarBotao),
                       ),
                     ),
                   ],
@@ -1303,11 +1307,12 @@ class MapaWidgetState extends State<MapaWidget> {
           _consultaPontoAtiva = null;
         });
         final valor = resultado.isNotEmpty ? resultado.first.temperaturaC : null;
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(valor != null
-                ? 'Temperatura no ponto: ${valor.toStringAsFixed(1)} °C'
-                : 'Sem dado de temperatura pra esse ponto agora'),
+                ? l10n.mapaTemperaturaResultado(valor.toStringAsFixed(1))
+                : l10n.mapaTemperaturaSemDado),
           ),
         );
       } else if (tipo == _TipoConsultaPonto.clorofila) {
@@ -1351,9 +1356,10 @@ class MapaWidgetState extends State<MapaWidget> {
           }).catchError((e) => erro = e),
         ]);
 
+        if (!mounted) return;
         if (!algumSucesso) {
           throw erro ??
-              Exception('Erro ao calcular índice de produtividade');
+              Exception(AppLocalizations.of(context).mapaErroCalcularIndice);
         }
 
         final indice = IndiceProdutividadeBlueOcean.calcular(
@@ -1374,14 +1380,15 @@ class MapaWidgetState extends State<MapaWidget> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _consultaPontoAtiva = null);
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mensagemErroAmigavel(e,
               prefixo: switch (tipo) {
-                _TipoConsultaPonto.temperatura => 'Erro ao buscar temperatura',
-                _TipoConsultaPonto.clorofila => 'Erro ao buscar clorofila-a',
+                _TipoConsultaPonto.temperatura => l10n.mapaErroBuscarTemperatura,
+                _TipoConsultaPonto.clorofila => l10n.mapaErroBuscarClorofila,
                 _TipoConsultaPonto.indiceProdutividade =>
-                  'Erro ao calcular índice de produtividade',
+                  l10n.mapaErroCalcularIndice,
               })),
         ),
       );
@@ -1427,6 +1434,7 @@ class MapaWidgetState extends State<MapaWidget> {
   }
 
   Widget _buildMenuLateral() {
+    final l10n = AppLocalizations.of(context);
     return Stack(
       children: [
         // Fundo escurecido — toca fora do menu pra fechar, mesmo gesto de
@@ -1453,8 +1461,8 @@ class MapaWidgetState extends State<MapaWidget> {
                 padding: const EdgeInsets.only(bottom: 24),
                 children: [
                   ListTile(
-                    title: const Text('MENU DO MAPA',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    title: Text(l10n.mapaMenuTitulo,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     trailing: IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: _fecharMenuLateral,
@@ -1464,7 +1472,9 @@ class MapaWidgetState extends State<MapaWidget> {
                     const Divider(height: 1),
                     ListTile(
                       leading: Icon(_modoMarcarPonto ? Icons.close : Icons.add_location_alt),
-                      title: Text(_modoMarcarPonto ? 'Cancelar marcação' : 'Marcar um ponto'),
+                      title: Text(_modoMarcarPonto
+                          ? l10n.mapaCancelarMarcacao
+                          : l10n.mapaMarcarPonto),
                       dense: true,
                       onTap: () {
                         _alternarModoMarcarPonto();
@@ -1473,42 +1483,42 @@ class MapaWidgetState extends State<MapaWidget> {
                     ),
                   ],
                   const Divider(height: 1),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text('CAMADAS',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text(l10n.mapaCamadasTitulo,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                   _itemMenuToggle(
                     icone: _camadaRuas ? Icons.map : Icons.explore,
-                    titulo: 'Mapa de Ruas (OpenStreetMap)',
-                    subtitulo: _camadaRuas ? null : 'Desligado: mostra a carta náutica carregada',
+                    titulo: l10n.mapaCamadaRuasTitulo,
+                    subtitulo: _camadaRuas ? null : l10n.mapaCamadaRuasSubtitulo,
                     ativo: _camadaRuas,
                     onTap: () => setState(() => _camadaRuas = !_camadaRuas),
                   ),
                   _itemMenuToggle(
                     icone: Icons.anchor,
-                    titulo: 'Informações náuticas (OpenSeaMap)',
-                    subtitulo: 'Boias, marcas, faróis e portos — só sobre o Mapa de Ruas',
+                    titulo: l10n.mapaCamadaNauticaTitulo,
+                    subtitulo: l10n.mapaCamadaNauticaSubtitulo,
                     ativo: _mostrarInfoNautica,
                     onTap: !_camadaRuas ? null : _alternarInfoNautica,
                   ),
                   _itemMenuToggle(
                     icone: Icons.layers,
-                    titulo: 'Profundidade',
-                    subtitulo: 'Sombreamento batimétrico (GEBCO) · OpenSeaMap',
+                    titulo: l10n.mapaCamadaProfundidadeTitulo,
+                    subtitulo: l10n.mapaCamadaProfundidadeSubtitulo,
                     ativo: _mostrarProfundidade,
                     onTap: !_camadaRuas ? null : _alternarProfundidade,
                   ),
                   _itemMenuToggle(
                     icone: Icons.timeline,
-                    titulo: 'Curvas de profundidade',
-                    subtitulo: 'Isóbatas · OpenSeaMap',
+                    titulo: l10n.mapaCamadaCurvasTitulo,
+                    subtitulo: l10n.mapaCamadaCurvasSubtitulo,
                     ativo: _mostrarCurvasProfundidade,
                     onTap: !_camadaRuas ? null : _alternarCurvasProfundidade,
                   ),
                   _itemMenuToggle(
                     icone: Icons.thermostat,
-                    titulo: 'Temperatura da superfície do mar',
+                    titulo: l10n.mapaTemperaturaTitulo,
                     ativo: _mostrarGradeTemperatura,
                     onTap: _alternarGradeTemperatura,
                     carregando: _consultandoPonto &&
@@ -1516,8 +1526,8 @@ class MapaWidgetState extends State<MapaWidget> {
                   ),
                   _itemMenuToggle(
                     icone: Icons.water_drop,
-                    titulo: 'Clorofila-a',
-                    subtitulo: 'Indicador de produtividade · NOAA CoastWatch',
+                    titulo: l10n.mapaClorofilaTitulo,
+                    subtitulo: l10n.mapaClorofilaSubtitulo,
                     ativo: _mostrarClorofila,
                     onTap: _alternarClorofila,
                     carregando:
@@ -1525,15 +1535,15 @@ class MapaWidgetState extends State<MapaWidget> {
                   ),
                   _itemMenuToggle(
                     icone: Icons.local_fire_department,
-                    titulo: 'Pontos de pesca (calor de produção)',
+                    titulo: l10n.mapaCamadaProducaoTitulo,
                     ativo: _mostrarProducao,
                     onTap: _alternarProducao,
                     carregando: _carregandoProducao,
                   ),
                   _itemMenuToggle(
                     icone: Icons.image_outlined,
-                    titulo: 'Sobreposição de imagem',
-                    subtitulo: 'PNG georreferenciado — toque em "Escolher imagem" pra trocar',
+                    titulo: l10n.mapaCamadaOverlayTitulo,
+                    subtitulo: l10n.mapaCamadaOverlaySubtitulo,
                     ativo: _overlayAtiva,
                     onTap: _overlayCarregando
                         ? null
@@ -1544,14 +1554,14 @@ class MapaWidgetState extends State<MapaWidget> {
                     ListTile(
                       dense: true,
                       contentPadding: const EdgeInsets.only(left: 72, right: 16),
-                      title: const Text('Escolher imagem'),
+                      title: Text(l10n.mapaEscolherImagem),
                       onTap: _overlayCarregando ? null : _abrirDialogoSelecionarOverlay,
                     ),
                   const Divider(height: 1),
                   _itemMenuToggle(
                     icone: Icons.auto_awesome,
-                    titulo: 'Índice de Produtividade Blue Ocean',
-                    subtitulo: 'Combina clorofila-a e temperatura — estimativa, não garantia de cardume',
+                    titulo: l10n.mapaIndiceProdutividadeTitulo,
+                    subtitulo: l10n.mapaIndiceProdutividadeSubtitulo,
                     ativo: _mostrarIndiceProdutividade,
                     onTap: _alternarIndiceProdutividade,
                     carregando: _consultandoPonto &&
@@ -1562,7 +1572,7 @@ class MapaWidgetState extends State<MapaWidget> {
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.download),
-                      title: const Text('Baixar região para uso offline'),
+                      title: Text(l10n.mapaBaixarRegiao),
                       dense: true,
                       onTap: () {
                         _abrirDownloadRegiao();
@@ -1571,12 +1581,11 @@ class MapaWidgetState extends State<MapaWidget> {
                     ),
                   ],
                   const Divider(height: 1),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                     child: Text(
-                      '© OpenStreetMap contributors · © OpenSeaMap contributors · '
-                      'Profundidade: GEBCO / OpenSeaMap depth project',
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                      l10n.mapaAtribuicao,
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
                     ),
                   ),
                 ],
@@ -1608,30 +1617,27 @@ class MapaWidgetState extends State<MapaWidget> {
   /// Explica o que vai acontecer e, se confirmado, abre o seletor de
   /// arquivos para escolher o PNG georreferenciado.
   Future<void> _abrirDialogoSelecionarOverlay() async {
+    final l10n = AppLocalizations.of(context);
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.layers, color: Colors.lightBlue),
-            SizedBox(width: 8),
-            Expanded(child: Text('Sobreposição PNG')),
+            const Icon(Icons.layers, color: Colors.lightBlue),
+            const SizedBox(width: 8),
+            Expanded(child: Text(l10n.mapaOverlayDialogTitulo)),
           ],
         ),
-        content: const Text(
-          'Escolha, na galeria de fotos do dispositivo, um PNG '
-          'georreferenciado (com o metadado "geo_bounds" embutido) para '
-          'exibir sobre a carta.',
-        ),
+        content: Text(l10n.mapaOverlayDialogTexto),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelar),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Selecionar imagem'),
+            child: Text(l10n.mapaSelecionarImagem),
           ),
         ],
       ),
@@ -1668,7 +1674,7 @@ class MapaWidgetState extends State<MapaWidget> {
             _overlaySudoesteFallback, _overlayNordesteFallback);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$e Usando área padrão do app.')),
+            SnackBar(content: Text(AppLocalizations.of(context).mapaOverlayFallback('$e'))),
           );
         }
       }
@@ -1685,7 +1691,7 @@ class MapaWidgetState extends State<MapaWidget> {
       if (!mounted) return;
       setState(() => _overlayCarregando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao selecionar imagem: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).mapaErroSelecionarImagem('$e'))),
       );
     }
   }
@@ -1729,16 +1735,18 @@ class MapaWidgetState extends State<MapaWidget> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          novoPonto.nome != null
-              ? 'Ponto marcado: ${novoPonto.nome}'
-              : 'Ponto marcado: '
-                  '${formatarCoordenadasDMSCompacta(novoPonto.latitude, novoPonto.longitude)}',
+          AppLocalizations.of(context).mapaPontoMarcadoConfirmacao(
+            novoPonto.nome ??
+                formatarCoordenadasDMSCompacta(
+                    novoPonto.latitude, novoPonto.longitude),
+          ),
         ),
       ),
     );
   }
 
   void _mostrarInfoPontoMarcado(PontoMarcado ponto) {
+    final l10n = AppLocalizations.of(context);
     double? distanciaNm;
     double? rumoGraus;
     final gps = _gpsPosition;
@@ -1768,7 +1776,9 @@ class MapaWidgetState extends State<MapaWidget> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                ponto.nome?.isNotEmpty == true ? ponto.nome! : 'Ponto marcado',
+                ponto.nome?.isNotEmpty == true
+                    ? ponto.nome!
+                    : l10n.mapaPontoMarcadoTitulo,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -1780,27 +1790,27 @@ class MapaWidgetState extends State<MapaWidget> {
             children: [
               LinhaInfoPonto(
                 icon: Icons.explore_outlined,
-                label: 'Coordenadas',
+                label: l10n.mapaLabelCoordenadas,
                 valor:
                     formatarCoordenadasDMS(ponto.latitude, ponto.longitude),
               ),
               const Divider(height: 20),
               LinhaInfoPonto(
                 icon: Icons.event_outlined,
-                label: 'Marcado em',
+                label: l10n.mapaLabelMarcadoEm,
                 valor: _formatarDataHora(ponto.dataCriacao),
               ),
               if (distanciaNm != null && rumoGraus != null) ...[
                 const Divider(height: 20),
                 LinhaInfoPonto(
                   icon: Icons.social_distance_outlined,
-                  label: 'Distância',
+                  label: l10n.mapaLabelDistancia,
                   valor: '${distanciaNm.toStringAsFixed(1)} mn',
                 ),
                 const SizedBox(height: 8),
                 LinhaInfoPonto(
                   icon: Icons.navigation_outlined,
-                  label: 'Rumo',
+                  label: l10n.mapaLabelRumo,
                   valor: '${rumoGraus.toStringAsFixed(0)}°',
                 ),
               ],
@@ -1815,7 +1825,7 @@ class MapaWidgetState extends State<MapaWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
+            child: Text(l10n.fechar),
           ),
           TextButton(
             onPressed: () {
@@ -1831,7 +1841,7 @@ class MapaWidgetState extends State<MapaWidget> {
                 ),
               );
             },
-            child: const Text('Solicitar Carta'),
+            child: Text(l10n.drawerSolicitarCarta),
           ),
           TextButton(
             onPressed: () {
@@ -1847,7 +1857,7 @@ class MapaWidgetState extends State<MapaWidget> {
                 ),
               );
             },
-            child: const Text('Consultar aqui'),
+            child: Text(l10n.mapaConsultarAqui),
           ),
           TextButton(
             onPressed: () async {
@@ -1858,7 +1868,7 @@ class MapaWidgetState extends State<MapaWidget> {
               if (!mounted) return;
               setState(() => _pontosMarcados.remove(ponto));
             },
-            child: const Text('Remover', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -1871,6 +1881,7 @@ class MapaWidgetState extends State<MapaWidget> {
   /// ponto que veio pronto da API) pelas variáveis ambientais amostradas
   /// ali (vento, corrente, temperatura etc.).
   void _mostrarInfoPontoRecomendacao(PontoRecomendacao ponto) {
+    final l10n = AppLocalizations.of(context);
     double? distanciaNm;
     double? rumoGraus;
     final gps = _gpsPosition;
@@ -1896,11 +1907,11 @@ class MapaWidgetState extends State<MapaWidget> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.location_on, color: Colors.deepOrange),
-            SizedBox(width: 8),
-            Expanded(child: Text('Ponto da recomendação')),
+            const Icon(Icons.location_on, color: Colors.deepOrange),
+            const SizedBox(width: 8),
+            Expanded(child: Text(l10n.mapaPontoRecomendacaoTitulo)),
           ],
         ),
         content: SingleChildScrollView(
@@ -1909,7 +1920,7 @@ class MapaWidgetState extends State<MapaWidget> {
             children: [
               LinhaInfoPonto(
                 icon: Icons.explore_outlined,
-                label: 'Coordenadas',
+                label: l10n.mapaLabelCoordenadas,
                 valor:
                     formatarCoordenadasDMS(ponto.latitude, ponto.longitude),
               ),
@@ -1917,7 +1928,7 @@ class MapaWidgetState extends State<MapaWidget> {
                 const Divider(height: 20),
                 LinhaInfoPonto(
                   icon: Icons.event_outlined,
-                  label: 'Recebido em',
+                  label: l10n.mapaLabelRecebidoEm,
                   valor: _formatarDataHora(criadoEm),
                 ),
               ],
@@ -1925,13 +1936,13 @@ class MapaWidgetState extends State<MapaWidget> {
                 const Divider(height: 20),
                 LinhaInfoPonto(
                   icon: Icons.social_distance_outlined,
-                  label: 'Distância',
+                  label: l10n.mapaLabelDistancia,
                   valor: '${distanciaNm.toStringAsFixed(1)} mn',
                 ),
                 const SizedBox(height: 8),
                 LinhaInfoPonto(
                   icon: Icons.navigation_outlined,
-                  label: 'Rumo',
+                  label: l10n.mapaLabelRumo,
                   valor: '${rumoGraus.toStringAsFixed(0)}°',
                 ),
               ],
@@ -1959,7 +1970,7 @@ class MapaWidgetState extends State<MapaWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
+            child: Text(l10n.fechar),
           ),
           TextButton(
             onPressed: () {
@@ -1975,7 +1986,7 @@ class MapaWidgetState extends State<MapaWidget> {
                 ),
               );
             },
-            child: const Text('Solicitar Carta'),
+            child: Text(l10n.drawerSolicitarCarta),
           ),
           TextButton(
             onPressed: () {
@@ -1990,7 +2001,7 @@ class MapaWidgetState extends State<MapaWidget> {
                 ),
               );
             },
-            child: const Text('Consultar aqui'),
+            child: Text(l10n.mapaConsultarAqui),
           ),
         ],
       ),
@@ -2080,6 +2091,7 @@ class MapaWidgetState extends State<MapaWidget> {
   }
 
   Widget _buildTopBar() {
+    final l10n = AppLocalizations.of(context);
     return Positioned(
       top: 8,
       left: 8,
@@ -2095,17 +2107,17 @@ class MapaWidgetState extends State<MapaWidget> {
                 child: Text(
                   widget.modoPlanejarRota
                       ? (widget.rotaParaEditar != null
-                          ? 'Editar Rota'
-                          : 'Nova Rota Planejada')
+                          ? l10n.mapaEditarRota
+                          : l10n.mapaNovaRotaPlanejada)
                       : widget.recomendacao != null
                           ? widget.recomendacao!.titulo.isEmpty
-                              ? 'Recomendação'
+                              ? l10n.mapaRecomendacaoFallback
                               : widget.recomendacao!.titulo
                           : widget.rota != null
-                              ? 'Rota do histórico'
+                              ? l10n.mapaRotaHistorico
                               : _camadaRuas
-                                  ? 'Mapa de Ruas (OpenStreetMap)'
-                                  : _fileName ?? 'Mapa',
+                                  ? l10n.mapaCamadaRuasTitulo
+                                  : _fileName ?? l10n.dashboardMapa,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
@@ -2126,7 +2138,7 @@ class MapaWidgetState extends State<MapaWidget> {
               if (!widget.modoPlanejarRota && _modoMarcarPonto)
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.white, size: 22),
-                  tooltip: 'Cancelar marcação',
+                  tooltip: l10n.mapaCancelarMarcacao,
                   onPressed: _alternarModoMarcarPonto,
                   padding: EdgeInsets.zero,
                   constraints:
@@ -2135,7 +2147,7 @@ class MapaWidgetState extends State<MapaWidget> {
               if (!widget.modoPlanejarRota)
                 IconButton(
                   icon: const Icon(Icons.menu, color: Colors.white, size: 22),
-                  tooltip: 'Menu do mapa',
+                  tooltip: l10n.mapaMenuDoMapaTooltip,
                   onPressed: _abrirMenuLateral,
                   padding: EdgeInsets.zero,
                   constraints:
@@ -2183,7 +2195,7 @@ class MapaWidgetState extends State<MapaWidget> {
           context,
           MaterialPageRoute(builder: (_) => const MeusPontosScreen()),
         ),
-        tooltip: 'Meus Pontos',
+        tooltip: AppLocalizations.of(context).mapaMeusPontosTooltip,
         child: const Icon(Icons.pin_drop),
       ),
     );
@@ -2224,13 +2236,13 @@ class MapaWidgetState extends State<MapaWidget> {
   Widget _buildBody() {
     // Carregando carta bundled pela primeira vez
     if (_loading && _mode == _MapMode.none) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Carregando carta náutica...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(AppLocalizations.of(context).mapaCarregandoCarta),
           ],
         ),
       );
@@ -2263,7 +2275,7 @@ class MapaWidgetState extends State<MapaWidget> {
               ElevatedButton.icon(
                 onPressed: _loadBundledChart,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Tentar novamente'),
+                label: Text(AppLocalizations.of(context).dashboardTentarNovamente),
               ),
             ],
           ),
@@ -2623,6 +2635,7 @@ class MapaWidgetState extends State<MapaWidget> {
   // ── Overlay do modo "marcar ponto" ───────────────────────────────────────
 
   List<Widget> _buildOverlayMarcarPonto() {
+    final l10n = AppLocalizations.of(context);
     return [
       // Retículo fixo no centro do mapa — não se move com o mapa.
       const IgnorePointer(
@@ -2647,9 +2660,9 @@ class MapaWidgetState extends State<MapaWidget> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Aponte o centro do mapa para o local desejado',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                Text(
+                  l10n.mapaApontarCentro,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -2664,9 +2677,9 @@ class MapaWidgetState extends State<MapaWidget> {
                 TextField(
                   controller: _nomePontoController,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome do local (opcional)',
-                    hintText: 'Ex: Poço do Camurupim',
+                  decoration: InputDecoration(
+                    labelText: l10n.mapaNomeLocalLabel,
+                    hintText: l10n.mapaNomeLocalHint,
                     isDense: true,
                   ),
                 ),
@@ -2676,7 +2689,7 @@ class MapaWidgetState extends State<MapaWidget> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: _alternarModoMarcarPonto,
-                        child: const Text('Cancelar'),
+                        child: Text(l10n.cancelar),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -2684,7 +2697,7 @@ class MapaWidgetState extends State<MapaWidget> {
                       child: ElevatedButton.icon(
                         onPressed: _confirmarPontoMarcado,
                         icon: const Icon(Icons.check),
-                        label: const Text('Marcar ponto'),
+                        label: Text(l10n.mapaMarcarPontoBotao),
                       ),
                     ),
                   ],
@@ -2700,6 +2713,7 @@ class MapaWidgetState extends State<MapaWidget> {
   // ── Overlay do modo "planejar rota" ──────────────────────────────────────
 
   Widget _buildOverlayPlanejarRota() {
+    final l10n = AppLocalizations.of(context);
     final pontos = _pontosRotaPlanejada.length;
     final podeSalvar =
         pontos >= 2 && _nomeRotaController.text.trim().isNotEmpty;
@@ -2718,8 +2732,8 @@ class MapaWidgetState extends State<MapaWidget> {
             children: [
               Text(
                 pontos == 0
-                    ? 'Toque no mapa ou num ponto marcado para adicionar o primeiro ponto'
-                    : '$pontos ponto${pontos == 1 ? '' : 's'} adicionado${pontos == 1 ? '' : 's'} — toque para continuar',
+                    ? l10n.mapaRotaTocarPrimeiroPonto
+                    : l10n.mapaRotaPontosAdicionados(pontos),
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 12),
@@ -2727,9 +2741,9 @@ class MapaWidgetState extends State<MapaWidget> {
                 controller: _nomeRotaController,
                 textCapitalization: TextCapitalization.sentences,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  labelText: 'Nome da rota',
-                  hintText: 'Ex: Pesqueiro do Camurupim',
+                decoration: InputDecoration(
+                  labelText: l10n.mapaNomeRotaLabel,
+                  hintText: l10n.mapaNomeRotaHint,
                   isDense: true,
                 ),
               ),
@@ -2739,7 +2753,7 @@ class MapaWidgetState extends State<MapaWidget> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: pontos == 0 ? null : _desfazerUltimoPontoRota,
-                      child: const Text('Desfazer último'),
+                      child: Text(l10n.mapaDesfazerUltimo),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -2756,8 +2770,8 @@ class MapaWidgetState extends State<MapaWidget> {
                             )
                           : const Icon(Icons.check),
                       label: Text(widget.rotaParaEditar != null
-                          ? 'Salvar alterações'
-                          : 'Salvar rota'),
+                          ? l10n.mapaSalvarAlteracoes
+                          : l10n.mapaSalvarRota),
                     ),
                   ),
                 ],

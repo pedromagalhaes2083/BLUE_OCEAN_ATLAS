@@ -465,4 +465,377 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dashboardSairTexto => 'Deseja realmente sair?';
+
+  @override
+  String get producaoTitulo => 'Registro de Produção';
+
+  @override
+  String get producaoVerHistorico => 'Ver histórico e totais';
+
+  @override
+  String producaoDataLabel(String data) {
+    return 'Data: $data';
+  }
+
+  @override
+  String get producaoSemViagemAviso =>
+      'Sem viagem em andamento — registro não será associado a uma viagem.';
+
+  @override
+  String get producaoClassificacaoLabel => 'Classificação *';
+
+  @override
+  String get producaoSelecioneClassificacao => 'Selecione a classificação';
+
+  @override
+  String get producaoQuantidadeLabel => 'Quantidade (unidades) *';
+
+  @override
+  String get producaoInformeQuantidade => 'Informe a quantidade';
+
+  @override
+  String get producaoQuantidadeInvalida =>
+      'Informe um número inteiro maior que zero';
+
+  @override
+  String get producaoObservacaoLabel => 'Observação (opcional)';
+
+  @override
+  String get producaoCapturandoLocalizacao => 'Capturando localização...';
+
+  @override
+  String get producaoSalvando => 'Salvando...';
+
+  @override
+  String get producaoSalvarBotao => 'SALVAR PRODUÇÃO';
+
+  @override
+  String get producaoTipoPeixeLabel => 'Tipo do peixe *';
+
+  @override
+  String get producaoSelecioneTipoPeixe => 'Selecione o tipo do peixe';
+
+  @override
+  String get producaoPesoEstimadoLabel => 'Peso estimado';
+
+  @override
+  String get producaoSemEmbarcacaoVinculada =>
+      'Nenhuma embarcação vinculada — configure em Configurações → Embarcação antes de registrar produção.';
+
+  @override
+  String producaoErroGps(String erro) {
+    return 'Não foi possível obter o GPS agora ($erro). Registro será salvo sem coordenada.';
+  }
+
+  @override
+  String get producaoSalvaSucesso => '✅ Produção salva com sucesso!';
+
+  @override
+  String producaoErroSalvar(String erro) {
+    return 'Erro ao salvar: $erro';
+  }
+
+  @override
+  String producaoKgPorUnidade(String min, String max) {
+    return '$min–$max kg/un.';
+  }
+
+  @override
+  String get producaoEmbarcacaoNaoDefinida => 'Não definida';
+
+  @override
+  String get fechar => 'Fechar';
+
+  @override
+  String get remover => 'Remover';
+
+  @override
+  String get mapaCartaRecomendacaoIndisponivel =>
+      'Carta da recomendação não disponível (o link pode ter expirado)';
+
+  @override
+  String get mapaErroCarregarCartaRecomendacao =>
+      'Não foi possível carregar a carta da recomendação';
+
+  @override
+  String mapaErroSalvarRota(String erro) {
+    return 'Erro ao salvar rota: $erro';
+  }
+
+  @override
+  String get mapaLabelData => 'Data';
+
+  @override
+  String get mapaLabelClassificacaoCurto => 'Classificação';
+
+  @override
+  String get mapaLabelPeso => 'Peso';
+
+  @override
+  String mapaProducaoTotal(String kg) {
+    return '$kg kg no total';
+  }
+
+  @override
+  String get mapaEspecieNaoInformada => 'Não informado';
+
+  @override
+  String get mapaClorofilaTitulo => 'Clorofila-a';
+
+  @override
+  String get mapaClorofilaSemDado =>
+      'Sem dado válido pra esse ponto (nuvem, terra próxima ou falha do sensor no dia mais recente disponível)';
+
+  @override
+  String mapaClorofilaData(String data) {
+    return 'Data: $data';
+  }
+
+  @override
+  String mapaClorofilaFonte(String fonte) {
+    return 'Fonte: $fonte';
+  }
+
+  @override
+  String get mapaClorofilaDisclaimer =>
+      'Indicador de produtividade biológica/oceanográfica — não representa diretamente quantidade de peixe.';
+
+  @override
+  String get mapaAdicionarPontoClorofila => 'Marcar outro ponto de clorofila-a';
+
+  @override
+  String get mapaIndiceProdutividadeTitulo =>
+      'Índice de Produtividade Blue Ocean';
+
+  @override
+  String get mapaAdicionarPontoIndice =>
+      'Marcar outro ponto de índice de produtividade';
+
+  @override
+  String mapaIndiceDadosClorofilaData(String data) {
+    return 'Dados de clorofila-a de $data';
+  }
+
+  @override
+  String get mapaIndiceFontes =>
+      'Fontes: NOAA CoastWatch (ERDDAP) · Open-Meteo Marine';
+
+  @override
+  String get mapaIndiceDisclaimer =>
+      'Estimativa combinando clorofila-a e temperatura da superfície do mar — não representa diretamente quantidade de peixe, só um indicador indireto de produtividade.';
+
+  @override
+  String get mapaTemperaturaTitulo => 'Temperatura da superfície do mar';
+
+  @override
+  String mapaConsultarPontoInstrucao(String titulo) {
+    return 'Consultar $titulo — aponte o centro do mapa para o local desejado';
+  }
+
+  @override
+  String get mapaConsultarBotao => 'Consultar';
+
+  @override
+  String mapaTemperaturaResultado(String valor) {
+    return 'Temperatura no ponto: $valor °C';
+  }
+
+  @override
+  String get mapaTemperaturaSemDado =>
+      'Sem dado de temperatura pra esse ponto agora';
+
+  @override
+  String get mapaErroBuscarTemperatura => 'Erro ao buscar temperatura';
+
+  @override
+  String get mapaErroBuscarClorofila => 'Erro ao buscar clorofila-a';
+
+  @override
+  String get mapaErroCalcularIndice =>
+      'Erro ao calcular índice de produtividade';
+
+  @override
+  String get mapaMenuTitulo => 'MENU DO MAPA';
+
+  @override
+  String get mapaCancelarMarcacao => 'Cancelar marcação';
+
+  @override
+  String get mapaMarcarPonto => 'Marcar um ponto';
+
+  @override
+  String get mapaCamadasTitulo => 'CAMADAS';
+
+  @override
+  String get mapaCamadaRuasTitulo => 'Mapa de Ruas (OpenStreetMap)';
+
+  @override
+  String get mapaCamadaRuasSubtitulo =>
+      'Desligado: mostra a carta náutica carregada';
+
+  @override
+  String get mapaCamadaNauticaTitulo => 'Informações náuticas (OpenSeaMap)';
+
+  @override
+  String get mapaCamadaNauticaSubtitulo =>
+      'Boias, marcas, faróis e portos — só sobre o Mapa de Ruas';
+
+  @override
+  String get mapaCamadaProfundidadeTitulo => 'Profundidade';
+
+  @override
+  String get mapaCamadaProfundidadeSubtitulo =>
+      'Sombreamento batimétrico (GEBCO) · OpenSeaMap';
+
+  @override
+  String get mapaCamadaCurvasTitulo => 'Curvas de profundidade';
+
+  @override
+  String get mapaCamadaCurvasSubtitulo => 'Isóbatas · OpenSeaMap';
+
+  @override
+  String get mapaClorofilaSubtitulo =>
+      'Indicador de produtividade · NOAA CoastWatch';
+
+  @override
+  String get mapaCamadaProducaoTitulo => 'Pontos de pesca (calor de produção)';
+
+  @override
+  String get mapaCamadaOverlayTitulo => 'Sobreposição de imagem';
+
+  @override
+  String get mapaCamadaOverlaySubtitulo =>
+      'PNG georreferenciado — toque em \"Escolher imagem\" pra trocar';
+
+  @override
+  String get mapaEscolherImagem => 'Escolher imagem';
+
+  @override
+  String get mapaIndiceProdutividadeSubtitulo =>
+      'Combina clorofila-a e temperatura — estimativa, não garantia de cardume';
+
+  @override
+  String get mapaBaixarRegiao => 'Baixar região para uso offline';
+
+  @override
+  String get mapaAtribuicao =>
+      '© OpenStreetMap contributors · © OpenSeaMap contributors · Profundidade: GEBCO / OpenSeaMap depth project';
+
+  @override
+  String get mapaOverlayDialogTitulo => 'Sobreposição PNG';
+
+  @override
+  String get mapaOverlayDialogTexto =>
+      'Escolha, na galeria de fotos do dispositivo, um PNG georreferenciado (com o metadado \"geo_bounds\" embutido) para exibir sobre a carta.';
+
+  @override
+  String get mapaSelecionarImagem => 'Selecionar imagem';
+
+  @override
+  String mapaOverlayFallback(String erro) {
+    return '$erro Usando área padrão do app.';
+  }
+
+  @override
+  String mapaErroSelecionarImagem(String erro) {
+    return 'Erro ao selecionar imagem: $erro';
+  }
+
+  @override
+  String mapaPontoMarcadoConfirmacao(String valor) {
+    return 'Ponto marcado: $valor';
+  }
+
+  @override
+  String get mapaPontoMarcadoTitulo => 'Ponto marcado';
+
+  @override
+  String get mapaLabelCoordenadas => 'Coordenadas';
+
+  @override
+  String get mapaLabelMarcadoEm => 'Marcado em';
+
+  @override
+  String get mapaLabelDistancia => 'Distância';
+
+  @override
+  String get mapaLabelRumo => 'Rumo';
+
+  @override
+  String get mapaConsultarAqui => 'Consultar aqui';
+
+  @override
+  String get mapaPontoRecomendacaoTitulo => 'Ponto da recomendação';
+
+  @override
+  String get mapaLabelRecebidoEm => 'Recebido em';
+
+  @override
+  String get mapaEditarRota => 'Editar Rota';
+
+  @override
+  String get mapaNovaRotaPlanejada => 'Nova Rota Planejada';
+
+  @override
+  String get mapaRecomendacaoFallback => 'Recomendação';
+
+  @override
+  String get mapaRotaHistorico => 'Rota do histórico';
+
+  @override
+  String get mapaMenuDoMapaTooltip => 'Menu do mapa';
+
+  @override
+  String get mapaMeusPontosTooltip => 'Meus Pontos';
+
+  @override
+  String get mapaCarregandoCarta => 'Carregando carta náutica...';
+
+  @override
+  String mapaErroCarregarCarta(String erro) {
+    return 'Erro ao carregar carta: $erro';
+  }
+
+  @override
+  String get mapaApontarCentro =>
+      'Aponte o centro do mapa para o local desejado';
+
+  @override
+  String get mapaNomeLocalLabel => 'Nome do local (opcional)';
+
+  @override
+  String get mapaNomeLocalHint => 'Ex: Poço do Camurupim';
+
+  @override
+  String get mapaMarcarPontoBotao => 'Marcar ponto';
+
+  @override
+  String get mapaRotaTocarPrimeiroPonto =>
+      'Toque no mapa ou num ponto marcado para adicionar o primeiro ponto';
+
+  @override
+  String mapaRotaPontosAdicionados(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n pontos adicionados',
+      one: '1 ponto adicionado',
+    );
+    return '$_temp0 — toque para continuar';
+  }
+
+  @override
+  String get mapaNomeRotaLabel => 'Nome da rota';
+
+  @override
+  String get mapaNomeRotaHint => 'Ex: Pesqueiro do Camurupim';
+
+  @override
+  String get mapaDesfazerUltimo => 'Desfazer último';
+
+  @override
+  String get mapaSalvarAlteracoes => 'Salvar alterações';
+
+  @override
+  String get mapaSalvarRota => 'Salvar rota';
 }

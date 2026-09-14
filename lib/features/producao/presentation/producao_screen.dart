@@ -8,6 +8,7 @@ import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/producao_reporter_service.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../embarcacao/data/embarcacao_local_lookup.dart';
 import '../domain/classificacao_peso.dart';
 import '../domain/models/producao_registro.dart';
@@ -39,7 +40,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
   final _quantidadeController = TextEditingController();
   final _observacaoController = TextEditingController();
 
-  String _embarcacaoNome = 'Não definida';
+  String? _embarcacaoNome;
 
   /// ID real da embarcação (UUID do catálogo remoto, configurado em
   /// Configurações → Embarcação) — nunca o nome/registro exibido em
@@ -84,7 +85,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
         _embarcacaoNome =
             (embarcacao['registro'] as String?)?.isNotEmpty == true
                 ? embarcacao['registro'] as String
-                : (embarcacao['nome'] as String? ?? 'Não definida');
+                : embarcacao['nome'] as String?;
       }
       _embarcacaoId = embarcacaoId.trim().isEmpty ? null : embarcacaoId.trim();
       if (viagens.isNotEmpty) {
@@ -127,10 +128,8 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
     final embarcacaoId = _embarcacaoId;
     if (embarcacaoId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Nenhuma embarcação vinculada — configure em Configurações → Embarcação antes de registrar produção.',
-          ),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).producaoSemEmbarcacaoVinculada),
         ),
       );
       return;
@@ -148,10 +147,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Não foi possível obter o GPS agora ($e). '
-              'Registro será salvo sem coordenada.',
-            ),
+            content: Text(AppLocalizations.of(context).producaoErroGps('$e')),
           ),
         );
       }
@@ -199,8 +195,8 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('✅ Produção salva com sucesso!'),
+        SnackBar(
+            content: Text(AppLocalizations.of(context).producaoSalvaSucesso),
             backgroundColor: Colors.green),
       );
 
@@ -215,7 +211,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao salvar: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).producaoErroSalvar('$e'))),
       );
     } finally {
       if (mounted) setState(() => _isSalvando = false);
@@ -233,13 +229,14 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Registro de Produção'),
+        title: Text(l10n.producaoTitulo),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
-            tooltip: 'Ver histórico e totais',
+            tooltip: l10n.producaoVerHistorico,
             onPressed: _abrirHistorico,
           ),
         ],
@@ -257,14 +254,15 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Embarcação: $_embarcacaoNome'),
-                      Text(
-                          'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}'),
+                      Text(l10n.dashboardEmbarcacaoLabel(
+                          _embarcacaoNome ?? l10n.producaoEmbarcacaoNaoDefinida)),
+                      Text(l10n.producaoDataLabel(
+                          DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now()))),
                       if (_viagemAtivaId == null)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            'Sem viagem em andamento — registro não será associado a uma viagem.',
+                            l10n.producaoSemViagemAviso,
                             style:
                                 TextStyle(fontSize: 12, color: Colors.orange[800]),
                           ),
@@ -274,13 +272,13 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              _buildSeletorTipoPeixe(),
+              _buildSeletorTipoPeixe(l10n),
               const SizedBox(height: 16),
               DropdownButtonFormField<Classificacao>(
                 initialValue: _classificacao,
                 isExpanded: true,
                 decoration: _decoracaoCampo(
-                  label: 'Classificação *',
+                  label: l10n.producaoClassificacaoLabel,
                   icone: Icons.straighten_outlined,
                 ),
                 items: Classificacao.values
@@ -295,7 +293,8 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                           child: Text('${c.label} kg'),
                         ))
                     .toList(),
-                validator: (v) => v == null ? 'Selecione a classificação' : null,
+                validator: (v) =>
+                    v == null ? l10n.producaoSelecioneClassificacao : null,
                 onChanged: (v) {
                   setState(() => _classificacao = v);
                   _atualizarPesoEstimado();
@@ -306,27 +305,27 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                 controller: _quantidadeController,
                 keyboardType: TextInputType.number,
                 decoration: _decoracaoCampo(
-                  label: 'Quantidade (unidades) *',
+                  label: l10n.producaoQuantidadeLabel,
                   icone: Icons.tag_outlined,
                 ),
                 validator: (v) {
                   final texto = v?.trim() ?? '';
-                  if (texto.isEmpty) return 'Informe a quantidade';
+                  if (texto.isEmpty) return l10n.producaoInformeQuantidade;
                   final unidades = int.tryParse(texto);
                   if (unidades == null || unidades <= 0) {
-                    return 'Informe um número inteiro maior que zero';
+                    return l10n.producaoQuantidadeInvalida;
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-              _buildPesoEstimadoCard(),
+              _buildPesoEstimadoCard(l10n),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _observacaoController,
                 maxLines: 3,
                 decoration: _decoracaoCampo(
-                  label: 'Observação (opcional)',
+                  label: l10n.producaoObservacaoLabel,
                   icone: Icons.notes_outlined,
                 ),
               ),
@@ -347,12 +346,12 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
                             ),
                             const SizedBox(width: 12),
                             Text(_capturandoLocalizacao
-                                ? 'Capturando localização...'
-                                : 'Salvando...'),
+                                ? l10n.producaoCapturandoLocalizacao
+                                : l10n.producaoSalvando),
                           ],
                         )
-                      : const Text('SALVAR PRODUÇÃO',
-                          style: TextStyle(fontSize: 16)),
+                      : Text(l10n.producaoSalvarBotao,
+                          style: const TextStyle(fontSize: 16)),
                 ),
               ),
             ],
@@ -365,16 +364,16 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
   /// Seletor de chave (toggle de 2 botões) para o tipo do peixe — só duas
   /// opções mutuamente exclusivas, então um combo é overhead: o usuário vê
   /// as duas de uma vez e escolhe com um toque, sem abrir menu.
-  Widget _buildSeletorTipoPeixe() {
+  Widget _buildSeletorTipoPeixe(AppLocalizations l10n) {
     return FormField<TipoPeixe>(
       initialValue: _tipoPeixe,
-      validator: (v) => v == null ? 'Selecione o tipo do peixe' : null,
+      validator: (v) => v == null ? l10n.producaoSelecioneTipoPeixe : null,
       builder: (state) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tipo do peixe *',
+              l10n.producaoTipoPeixeLabel,
               style: TextStyle(
                 fontSize: 12,
                 color: state.hasError
@@ -423,7 +422,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
 
   /// Card com o resultado do cálculo automático — quantidade × intervalo de
   /// peso da classificação escolhida (ver [_atualizarPesoEstimado]).
-  Widget _buildPesoEstimadoCard() {
+  Widget _buildPesoEstimadoCard(AppLocalizations l10n) {
     final min = _pesoEstimadoMin;
     final max = _pesoEstimadoMax;
     final temEstimativa = min != null && max != null;
@@ -447,7 +446,7 @@ class _ProducaoScreenState extends State<ProducaoScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Peso estimado',
+                  Text(l10n.producaoPesoEstimadoLabel,
                       style: TextStyle(
                           fontSize: 13, color: colorScheme.onSurfaceVariant)),
                   Text(
@@ -495,7 +494,8 @@ class _ItemClassificacao extends StatelessWidget {
       children: [
         Text('${classificacao.label} kg'),
         Text(
-          '${faixa.min.toStringAsFixed(0)}–${faixa.max.toStringAsFixed(0)} kg/un.',
+          AppLocalizations.of(context).producaoKgPorUnidade(
+              faixa.min.toStringAsFixed(0), faixa.max.toStringAsFixed(0)),
           style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.onSurfaceVariant),

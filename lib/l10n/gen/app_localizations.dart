@@ -860,6 +860,630 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Deseja realmente sair?'**
   String get dashboardSairTexto;
+
+  /// No description provided for @producaoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registro de Produção'**
+  String get producaoTitulo;
+
+  /// No description provided for @producaoVerHistorico.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver histórico e totais'**
+  String get producaoVerHistorico;
+
+  /// No description provided for @producaoDataLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data: {data}'**
+  String producaoDataLabel(String data);
+
+  /// No description provided for @producaoSemViagemAviso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem viagem em andamento — registro não será associado a uma viagem.'**
+  String get producaoSemViagemAviso;
+
+  /// No description provided for @producaoClassificacaoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Classificação *'**
+  String get producaoClassificacaoLabel;
+
+  /// No description provided for @producaoSelecioneClassificacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione a classificação'**
+  String get producaoSelecioneClassificacao;
+
+  /// No description provided for @producaoQuantidadeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quantidade (unidades) *'**
+  String get producaoQuantidadeLabel;
+
+  /// No description provided for @producaoInformeQuantidade.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe a quantidade'**
+  String get producaoInformeQuantidade;
+
+  /// No description provided for @producaoQuantidadeInvalida.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe um número inteiro maior que zero'**
+  String get producaoQuantidadeInvalida;
+
+  /// No description provided for @producaoObservacaoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Observação (opcional)'**
+  String get producaoObservacaoLabel;
+
+  /// No description provided for @producaoCapturandoLocalizacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Capturando localização...'**
+  String get producaoCapturandoLocalizacao;
+
+  /// No description provided for @producaoSalvando.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvando...'**
+  String get producaoSalvando;
+
+  /// No description provided for @producaoSalvarBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'SALVAR PRODUÇÃO'**
+  String get producaoSalvarBotao;
+
+  /// No description provided for @producaoTipoPeixeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo do peixe *'**
+  String get producaoTipoPeixeLabel;
+
+  /// No description provided for @producaoSelecioneTipoPeixe.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione o tipo do peixe'**
+  String get producaoSelecioneTipoPeixe;
+
+  /// No description provided for @producaoPesoEstimadoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Peso estimado'**
+  String get producaoPesoEstimadoLabel;
+
+  /// No description provided for @producaoSemEmbarcacaoVinculada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma embarcação vinculada — configure em Configurações → Embarcação antes de registrar produção.'**
+  String get producaoSemEmbarcacaoVinculada;
+
+  /// No description provided for @producaoErroGps.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível obter o GPS agora ({erro}). Registro será salvo sem coordenada.'**
+  String producaoErroGps(String erro);
+
+  /// No description provided for @producaoSalvaSucesso.
+  ///
+  /// In pt, this message translates to:
+  /// **'✅ Produção salva com sucesso!'**
+  String get producaoSalvaSucesso;
+
+  /// No description provided for @producaoErroSalvar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao salvar: {erro}'**
+  String producaoErroSalvar(String erro);
+
+  /// No description provided for @producaoKgPorUnidade.
+  ///
+  /// In pt, this message translates to:
+  /// **'{min}–{max} kg/un.'**
+  String producaoKgPorUnidade(String min, String max);
+
+  /// No description provided for @producaoEmbarcacaoNaoDefinida.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não definida'**
+  String get producaoEmbarcacaoNaoDefinida;
+
+  /// No description provided for @fechar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar'**
+  String get fechar;
+
+  /// No description provided for @remover.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover'**
+  String get remover;
+
+  /// No description provided for @mapaCartaRecomendacaoIndisponivel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carta da recomendação não disponível (o link pode ter expirado)'**
+  String get mapaCartaRecomendacaoIndisponivel;
+
+  /// No description provided for @mapaErroCarregarCartaRecomendacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar a carta da recomendação'**
+  String get mapaErroCarregarCartaRecomendacao;
+
+  /// No description provided for @mapaErroSalvarRota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao salvar rota: {erro}'**
+  String mapaErroSalvarRota(String erro);
+
+  /// No description provided for @mapaLabelData.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data'**
+  String get mapaLabelData;
+
+  /// No description provided for @mapaLabelClassificacaoCurto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Classificação'**
+  String get mapaLabelClassificacaoCurto;
+
+  /// No description provided for @mapaLabelPeso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Peso'**
+  String get mapaLabelPeso;
+
+  /// No description provided for @mapaProducaoTotal.
+  ///
+  /// In pt, this message translates to:
+  /// **'{kg} kg no total'**
+  String mapaProducaoTotal(String kg);
+
+  /// No description provided for @mapaEspecieNaoInformada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não informado'**
+  String get mapaEspecieNaoInformada;
+
+  /// No description provided for @mapaClorofilaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Clorofila-a'**
+  String get mapaClorofilaTitulo;
+
+  /// No description provided for @mapaClorofilaSemDado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem dado válido pra esse ponto (nuvem, terra próxima ou falha do sensor no dia mais recente disponível)'**
+  String get mapaClorofilaSemDado;
+
+  /// No description provided for @mapaClorofilaData.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data: {data}'**
+  String mapaClorofilaData(String data);
+
+  /// No description provided for @mapaClorofilaFonte.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fonte: {fonte}'**
+  String mapaClorofilaFonte(String fonte);
+
+  /// No description provided for @mapaClorofilaDisclaimer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Indicador de produtividade biológica/oceanográfica — não representa diretamente quantidade de peixe.'**
+  String get mapaClorofilaDisclaimer;
+
+  /// No description provided for @mapaAdicionarPontoClorofila.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar outro ponto de clorofila-a'**
+  String get mapaAdicionarPontoClorofila;
+
+  /// No description provided for @mapaIndiceProdutividadeTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Índice de Produtividade Blue Ocean'**
+  String get mapaIndiceProdutividadeTitulo;
+
+  /// No description provided for @mapaAdicionarPontoIndice.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar outro ponto de índice de produtividade'**
+  String get mapaAdicionarPontoIndice;
+
+  /// No description provided for @mapaIndiceDadosClorofilaData.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dados de clorofila-a de {data}'**
+  String mapaIndiceDadosClorofilaData(String data);
+
+  /// No description provided for @mapaIndiceFontes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fontes: NOAA CoastWatch (ERDDAP) · Open-Meteo Marine'**
+  String get mapaIndiceFontes;
+
+  /// No description provided for @mapaIndiceDisclaimer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estimativa combinando clorofila-a e temperatura da superfície do mar — não representa diretamente quantidade de peixe, só um indicador indireto de produtividade.'**
+  String get mapaIndiceDisclaimer;
+
+  /// No description provided for @mapaTemperaturaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Temperatura da superfície do mar'**
+  String get mapaTemperaturaTitulo;
+
+  /// No description provided for @mapaConsultarPontoInstrucao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consultar {titulo} — aponte o centro do mapa para o local desejado'**
+  String mapaConsultarPontoInstrucao(String titulo);
+
+  /// No description provided for @mapaConsultarBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consultar'**
+  String get mapaConsultarBotao;
+
+  /// No description provided for @mapaTemperaturaResultado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Temperatura no ponto: {valor} °C'**
+  String mapaTemperaturaResultado(String valor);
+
+  /// No description provided for @mapaTemperaturaSemDado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem dado de temperatura pra esse ponto agora'**
+  String get mapaTemperaturaSemDado;
+
+  /// No description provided for @mapaErroBuscarTemperatura.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao buscar temperatura'**
+  String get mapaErroBuscarTemperatura;
+
+  /// No description provided for @mapaErroBuscarClorofila.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao buscar clorofila-a'**
+  String get mapaErroBuscarClorofila;
+
+  /// No description provided for @mapaErroCalcularIndice.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao calcular índice de produtividade'**
+  String get mapaErroCalcularIndice;
+
+  /// No description provided for @mapaMenuTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'MENU DO MAPA'**
+  String get mapaMenuTitulo;
+
+  /// No description provided for @mapaCancelarMarcacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar marcação'**
+  String get mapaCancelarMarcacao;
+
+  /// No description provided for @mapaMarcarPonto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar um ponto'**
+  String get mapaMarcarPonto;
+
+  /// No description provided for @mapaCamadasTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'CAMADAS'**
+  String get mapaCamadasTitulo;
+
+  /// No description provided for @mapaCamadaRuasTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mapa de Ruas (OpenStreetMap)'**
+  String get mapaCamadaRuasTitulo;
+
+  /// No description provided for @mapaCamadaRuasSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligado: mostra a carta náutica carregada'**
+  String get mapaCamadaRuasSubtitulo;
+
+  /// No description provided for @mapaCamadaNauticaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informações náuticas (OpenSeaMap)'**
+  String get mapaCamadaNauticaTitulo;
+
+  /// No description provided for @mapaCamadaNauticaSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Boias, marcas, faróis e portos — só sobre o Mapa de Ruas'**
+  String get mapaCamadaNauticaSubtitulo;
+
+  /// No description provided for @mapaCamadaProfundidadeTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Profundidade'**
+  String get mapaCamadaProfundidadeTitulo;
+
+  /// No description provided for @mapaCamadaProfundidadeSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sombreamento batimétrico (GEBCO) · OpenSeaMap'**
+  String get mapaCamadaProfundidadeSubtitulo;
+
+  /// No description provided for @mapaCamadaCurvasTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Curvas de profundidade'**
+  String get mapaCamadaCurvasTitulo;
+
+  /// No description provided for @mapaCamadaCurvasSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Isóbatas · OpenSeaMap'**
+  String get mapaCamadaCurvasSubtitulo;
+
+  /// No description provided for @mapaClorofilaSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Indicador de produtividade · NOAA CoastWatch'**
+  String get mapaClorofilaSubtitulo;
+
+  /// No description provided for @mapaCamadaProducaoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pontos de pesca (calor de produção)'**
+  String get mapaCamadaProducaoTitulo;
+
+  /// No description provided for @mapaCamadaOverlayTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sobreposição de imagem'**
+  String get mapaCamadaOverlayTitulo;
+
+  /// No description provided for @mapaCamadaOverlaySubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'PNG georreferenciado — toque em \"Escolher imagem\" pra trocar'**
+  String get mapaCamadaOverlaySubtitulo;
+
+  /// No description provided for @mapaEscolherImagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolher imagem'**
+  String get mapaEscolherImagem;
+
+  /// No description provided for @mapaIndiceProdutividadeSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Combina clorofila-a e temperatura — estimativa, não garantia de cardume'**
+  String get mapaIndiceProdutividadeSubtitulo;
+
+  /// No description provided for @mapaBaixarRegiao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar região para uso offline'**
+  String get mapaBaixarRegiao;
+
+  /// No description provided for @mapaAtribuicao.
+  ///
+  /// In pt, this message translates to:
+  /// **'© OpenStreetMap contributors · © OpenSeaMap contributors · Profundidade: GEBCO / OpenSeaMap depth project'**
+  String get mapaAtribuicao;
+
+  /// No description provided for @mapaOverlayDialogTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sobreposição PNG'**
+  String get mapaOverlayDialogTitulo;
+
+  /// No description provided for @mapaOverlayDialogTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha, na galeria de fotos do dispositivo, um PNG georreferenciado (com o metadado \"geo_bounds\" embutido) para exibir sobre a carta.'**
+  String get mapaOverlayDialogTexto;
+
+  /// No description provided for @mapaSelecionarImagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecionar imagem'**
+  String get mapaSelecionarImagem;
+
+  /// No description provided for @mapaOverlayFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'{erro} Usando área padrão do app.'**
+  String mapaOverlayFallback(String erro);
+
+  /// No description provided for @mapaErroSelecionarImagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao selecionar imagem: {erro}'**
+  String mapaErroSelecionarImagem(String erro);
+
+  /// No description provided for @mapaPontoMarcadoConfirmacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ponto marcado: {valor}'**
+  String mapaPontoMarcadoConfirmacao(String valor);
+
+  /// No description provided for @mapaPontoMarcadoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ponto marcado'**
+  String get mapaPontoMarcadoTitulo;
+
+  /// No description provided for @mapaLabelCoordenadas.
+  ///
+  /// In pt, this message translates to:
+  /// **'Coordenadas'**
+  String get mapaLabelCoordenadas;
+
+  /// No description provided for @mapaLabelMarcadoEm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcado em'**
+  String get mapaLabelMarcadoEm;
+
+  /// No description provided for @mapaLabelDistancia.
+  ///
+  /// In pt, this message translates to:
+  /// **'Distância'**
+  String get mapaLabelDistancia;
+
+  /// No description provided for @mapaLabelRumo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rumo'**
+  String get mapaLabelRumo;
+
+  /// No description provided for @mapaConsultarAqui.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consultar aqui'**
+  String get mapaConsultarAqui;
+
+  /// No description provided for @mapaPontoRecomendacaoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ponto da recomendação'**
+  String get mapaPontoRecomendacaoTitulo;
+
+  /// No description provided for @mapaLabelRecebidoEm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebido em'**
+  String get mapaLabelRecebidoEm;
+
+  /// No description provided for @mapaEditarRota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar Rota'**
+  String get mapaEditarRota;
+
+  /// No description provided for @mapaNovaRotaPlanejada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova Rota Planejada'**
+  String get mapaNovaRotaPlanejada;
+
+  /// No description provided for @mapaRecomendacaoFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recomendação'**
+  String get mapaRecomendacaoFallback;
+
+  /// No description provided for @mapaRotaHistorico.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rota do histórico'**
+  String get mapaRotaHistorico;
+
+  /// No description provided for @mapaMenuDoMapaTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Menu do mapa'**
+  String get mapaMenuDoMapaTooltip;
+
+  /// No description provided for @mapaMeusPontosTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meus Pontos'**
+  String get mapaMeusPontosTooltip;
+
+  /// No description provided for @mapaCarregandoCarta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando carta náutica...'**
+  String get mapaCarregandoCarta;
+
+  /// No description provided for @mapaErroCarregarCarta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar carta: {erro}'**
+  String mapaErroCarregarCarta(String erro);
+
+  /// No description provided for @mapaApontarCentro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aponte o centro do mapa para o local desejado'**
+  String get mapaApontarCentro;
+
+  /// No description provided for @mapaNomeLocalLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome do local (opcional)'**
+  String get mapaNomeLocalLabel;
+
+  /// No description provided for @mapaNomeLocalHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ex: Poço do Camurupim'**
+  String get mapaNomeLocalHint;
+
+  /// No description provided for @mapaMarcarPontoBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar ponto'**
+  String get mapaMarcarPontoBotao;
+
+  /// No description provided for @mapaRotaTocarPrimeiroPonto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no mapa ou num ponto marcado para adicionar o primeiro ponto'**
+  String get mapaRotaTocarPrimeiroPonto;
+
+  /// No description provided for @mapaRotaPontosAdicionados.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n, plural, =1{1 ponto adicionado} other{{n} pontos adicionados}} — toque para continuar'**
+  String mapaRotaPontosAdicionados(int n);
+
+  /// No description provided for @mapaNomeRotaLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome da rota'**
+  String get mapaNomeRotaLabel;
+
+  /// No description provided for @mapaNomeRotaHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ex: Pesqueiro do Camurupim'**
+  String get mapaNomeRotaHint;
+
+  /// No description provided for @mapaDesfazerUltimo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desfazer último'**
+  String get mapaDesfazerUltimo;
+
+  /// No description provided for @mapaSalvarAlteracoes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar alterações'**
+  String get mapaSalvarAlteracoes;
+
+  /// No description provided for @mapaSalvarRota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar rota'**
+  String get mapaSalvarRota;
 }
 
 class _AppLocalizationsDelegate
