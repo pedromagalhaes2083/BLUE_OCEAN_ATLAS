@@ -1742,6 +1742,144 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Testar envio de localização'**
   String get embarcacaoConfigTestarEnvio;
+
+  /// No description provided for @viagemErroCarregarHistorico.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar histórico: {erro}'**
+  String viagemErroCarregarHistorico(String erro);
+
+  /// No description provided for @viagemResumoDaViagemFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Resumo da viagem'**
+  String get viagemResumoDaViagemFallback;
+
+  /// No description provided for @viagemCompartilharInicio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Início: {data}'**
+  String viagemCompartilharInicio(String data);
+
+  /// No description provided for @viagemCompartilharDistancia.
+  ///
+  /// In pt, this message translates to:
+  /// **'Distância: {mn} mn'**
+  String viagemCompartilharDistancia(String mn);
+
+  /// No description provided for @viagemCompartilharDuracao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Duração: {valor}'**
+  String viagemCompartilharDuracao(String valor);
+
+  /// No description provided for @viagemCompartilharVelMedia.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vel. média: {valor} km/h'**
+  String viagemCompartilharVelMedia(String valor);
+
+  /// No description provided for @viagemCompartilharVelMaxima.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vel. máxima: {valor} km/h'**
+  String viagemCompartilharVelMaxima(String valor);
+
+  /// No description provided for @viagemCompartilharProducaoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'🐟 Produção:'**
+  String get viagemCompartilharProducaoTitulo;
+
+  /// No description provided for @viagemFinalizarTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Finalizar viagem'**
+  String get viagemFinalizarTitulo;
+
+  /// No description provided for @viagemFinalizarTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tem certeza que deseja encerrar esta viagem? O rastreamento de posição em segundo plano para junto — o app só volta a enviar a posição quando outra viagem for iniciada.'**
+  String get viagemFinalizarTexto;
+
+  /// No description provided for @viagemFinalizarBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Finalizar'**
+  String get viagemFinalizarBotao;
+
+  /// No description provided for @viagemErroFinalizar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao finalizar viagem: {erro}'**
+  String viagemErroFinalizar(String erro);
+
+  /// No description provided for @viagemVerRotaTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver rota na carta'**
+  String get viagemVerRotaTooltip;
+
+  /// No description provided for @viagemCompartilharTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar resumo da viagem'**
+  String get viagemCompartilharTooltip;
+
+  /// No description provided for @viagemAtualizarTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar'**
+  String get viagemAtualizarTooltip;
+
+  /// No description provided for @viagemNenhumRegistro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum registro encontrado'**
+  String get viagemNenhumRegistro;
+
+  /// No description provided for @viagemCriadasNaPlataforma.
+  ///
+  /// In pt, this message translates to:
+  /// **'As viagens agora são criadas na plataforma. Toque em sincronizar para buscar a viagem ativa.'**
+  String get viagemCriadasNaPlataforma;
+
+  /// No description provided for @viagemEmAndamentoFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Viagem em andamento'**
+  String get viagemEmAndamentoFallback;
+
+  /// No description provided for @viagemIniciadaEm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Iniciada em {data}'**
+  String viagemIniciadaEm(String data);
+
+  /// No description provided for @viagemDuracaoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Duração'**
+  String get viagemDuracaoLabel;
+
+  /// No description provided for @viagemVelMediaLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vel. média'**
+  String get viagemVelMediaLabel;
+
+  /// No description provided for @viagemVelMaximaLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vel. máxima'**
+  String get viagemVelMaximaLabel;
+
+  /// No description provided for @viagemPrecLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Prec: {m}m'**
+  String viagemPrecLabel(String m);
 }
 
 class _AppLocalizationsDelegate

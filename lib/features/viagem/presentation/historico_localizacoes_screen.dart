@@ -6,6 +6,7 @@ import '../../../core/database/database_helper.dart';
 import '../../../core/services/contexto_viagem_service.dart';
 import '../../../core/services/location_tracking_service.dart';
 import '../../../core/utils/proximidade.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/models/viagem.dart';
 
@@ -80,12 +81,13 @@ class _HistoricoLocalizacoesScreenState
     }
 
     setState(() => _sincronizando = false);
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           encontrou
-              ? 'Viagem ativa sincronizada.'
-              : 'Nenhuma viagem ativa encontrada na plataforma agora.',
+              ? l10n.dashboardViagemSincronizada
+              : l10n.dashboardNenhumaViagemEncontrada,
         ),
         duration: const Duration(seconds: 4),
       ),
@@ -112,7 +114,7 @@ class _HistoricoLocalizacoesScreenState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar histórico: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).viagemErroCarregarHistorico('$e'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -180,6 +182,8 @@ class _HistoricoLocalizacoesScreenState
   }
 
   Future<void> _compartilharResumo() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final viagem = _viagemAtiva;
 
     var producaoTexto = '';
@@ -193,14 +197,14 @@ class _HistoricoLocalizacoesScreenState
       if (registros.isNotEmpty) {
         final porEspecie = <String, double>{};
         for (final r in registros) {
-          final especie = r['especie'] as String? ?? 'Não informado';
+          final especie = r['especie'] as String? ?? l10n.mapaEspecieNaoInformada;
           final kg = (r['quantidade_kg'] as num).toDouble();
           porEspecie.update(especie, (v) => v + kg, ifAbsent: () => kg);
         }
         final linhas = porEspecie.entries
             .map((e) => '  ${e.key}: ${e.value.toStringAsFixed(1)} kg')
             .join('\n');
-        producaoTexto = '\n\n🐟 Produção:\n$linhas';
+        producaoTexto = '\n\n${l10n.viagemCompartilharProducaoTitulo}\n$linhas';
       }
     }
 
@@ -208,12 +212,12 @@ class _HistoricoLocalizacoesScreenState
         ? '--'
         : '${_duracao!.inHours}h ${_duracao!.inMinutes.remainder(60)}min';
 
-    final mensagem = '⛵ ${viagem?.nome?.isNotEmpty == true ? viagem!.nome : "Resumo da viagem"}\n'
-        '${viagem != null ? "Início: ${DateFormat('dd/MM/yyyy HH:mm').format(viagem.dataInicio)}\n" : ""}'
-        'Distância: ${_distanciaMn!.toStringAsFixed(1)} mn\n'
-        'Duração: $duracaoTexto\n'
-        '${_velMediaKmh != null ? "Vel. média: ${_velMediaKmh!.toStringAsFixed(1)} km/h\n" : ""}'
-        '${_velMaxKmh != null ? "Vel. máxima: ${_velMaxKmh!.toStringAsFixed(1)} km/h" : ""}'
+    final mensagem = '⛵ ${viagem?.nome?.isNotEmpty == true ? viagem!.nome : l10n.viagemResumoDaViagemFallback}\n'
+        '${viagem != null ? "${l10n.viagemCompartilharInicio(DateFormat('dd/MM/yyyy HH:mm').format(viagem.dataInicio))}\n" : ""}'
+        '${l10n.viagemCompartilharDistancia(_distanciaMn!.toStringAsFixed(1))}\n'
+        '${l10n.viagemCompartilharDuracao(duracaoTexto)}\n'
+        '${_velMediaKmh != null ? "${l10n.viagemCompartilharVelMedia(_velMediaKmh!.toStringAsFixed(1))}\n" : ""}'
+        '${_velMaxKmh != null ? l10n.viagemCompartilharVelMaxima(_velMaxKmh!.toStringAsFixed(1)) : ""}'
         '$producaoTexto';
 
     await Share.share(mensagem.trim());
@@ -223,23 +227,20 @@ class _HistoricoLocalizacoesScreenState
     final viagem = _viagemAtiva;
     if (viagem == null) return;
 
+    final l10n = AppLocalizations.of(context);
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Finalizar viagem'),
-        content: const Text(
-          'Tem certeza que deseja encerrar esta viagem? '
-          'O rastreamento de posição em segundo plano para junto — o app '
-          'só volta a enviar a posição quando outra viagem for iniciada.',
-        ),
+        title: Text(l10n.viagemFinalizarTitulo),
+        content: Text(l10n.viagemFinalizarTexto),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelar),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Finalizar'),
+            child: Text(l10n.viagemFinalizarBotao),
           ),
         ],
       ),
@@ -272,7 +273,7 @@ class _HistoricoLocalizacoesScreenState
       if (!mounted) return;
       setState(() => _finalizando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao finalizar viagem: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).viagemErroFinalizar('$e'))),
       );
     }
   }
@@ -345,6 +346,7 @@ class _HistoricoLocalizacoesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final viagemEmAndamento =
         _viagemAtiva != null && !_viagemFinalizada;
 
@@ -357,18 +359,18 @@ class _HistoricoLocalizacoesScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Viagem Atual'),
+        title: Text(l10n.drawerViagemAtual),
         actions: [
           if (!semViagemAtiva && _historico.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.route),
-              tooltip: 'Ver rota na carta',
+              tooltip: l10n.viagemVerRotaTooltip,
               onPressed: _verRotaNaCarta,
             ),
           if (!semViagemAtiva && _distanciaMn != null)
             IconButton(
               icon: const Icon(Icons.share),
-              tooltip: 'Compartilhar resumo da viagem',
+              tooltip: l10n.viagemCompartilharTooltip,
               onPressed: _compartilharResumo,
             ),
           IconButton(
@@ -380,8 +382,8 @@ class _HistoricoLocalizacoesScreenState
                   )
                 : const Icon(Icons.refresh),
             tooltip: semViagemAtiva
-                ? 'Sincronizar com a viagem ativa'
-                : 'Atualizar',
+                ? l10n.embarcacaoConfigTooltipSincronizar
+                : l10n.viagemAtualizarTooltip,
             onPressed: _sincronizando
                 ? null
                 : (semViagemAtiva ? _sincronizar : _carregarHistorico),
@@ -398,14 +400,14 @@ class _HistoricoLocalizacoesScreenState
                 if (_distanciaMn != null) _buildCardEstatisticas(),
                 Expanded(
                   child: _historico.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.location_off,
+                              const Icon(Icons.location_off,
                                   size: 80, color: Colors.grey),
-                              SizedBox(height: 16),
-                              Text('Nenhum registro encontrado'),
+                              const SizedBox(height: 16),
+                              Text(l10n.viagemNenhumRegistro),
                             ],
                           ),
                         )
@@ -448,7 +450,8 @@ class _HistoricoLocalizacoesScreenState
                                               fontWeight: FontWeight.w500),
                                         ),
                                       Text(
-                                        'Prec: ${(item['precisao'] as num?)?.toStringAsFixed(0)}m',
+                                        l10n.viagemPrecLabel(
+                                            (item['precisao'] as num?)?.toStringAsFixed(0) ?? '--'),
                                         style: TextStyle(
                                             fontSize: 12,
                                             color: Theme.of(context)
@@ -470,6 +473,7 @@ class _HistoricoLocalizacoesScreenState
   }
 
   Widget _buildSemViagemAtiva() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -480,14 +484,13 @@ class _HistoricoLocalizacoesScreenState
                 size: 80,
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
-            const Text(
-              'Nenhuma viagem em andamento',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            Text(
+              l10n.dashboardNenhumaViagemTitulo,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
-              'As viagens agora são criadas na plataforma. Toque em '
-              'sincronizar para buscar a viagem ativa.',
+              l10n.viagemCriadasNaPlataforma,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -504,7 +507,7 @@ class _HistoricoLocalizacoesScreenState
                           strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.sync),
-              label: const Text('Sincronizar'),
+              label: Text(l10n.sincronizar),
             ),
           ],
         ),
@@ -513,6 +516,7 @@ class _HistoricoLocalizacoesScreenState
   }
 
   Widget _buildCardViagemAtiva() {
+    final l10n = AppLocalizations.of(context);
     final viagem = _viagemAtiva!;
     // No claro, mantém o verde original — o tom azul do tema só entra no
     // escuro, onde o verde pastel fixo ficava um bloco claro cego em cima
@@ -537,13 +541,14 @@ class _HistoricoLocalizacoesScreenState
                   Text(
                     viagem.nome?.isNotEmpty == true
                         ? viagem.nome!
-                        : 'Viagem em andamento',
+                        : l10n.viagemEmAndamentoFallback,
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: escuro ? corDestaque : null),
                   ),
                   Text(
-                    'Iniciada em ${DateFormat('dd/MM/yyyy HH:mm').format(viagem.dataInicio)}',
+                    l10n.viagemIniciadaEm(
+                        DateFormat('dd/MM/yyyy HH:mm').format(viagem.dataInicio)),
                     style: TextStyle(
                         color: escuro
                             ? corDestaque.withValues(alpha: 0.75)
@@ -562,7 +567,7 @@ class _HistoricoLocalizacoesScreenState
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Finalizar'),
+                  : Text(l10n.viagemFinalizarBotao),
             ),
           ],
         ),
@@ -571,6 +576,7 @@ class _HistoricoLocalizacoesScreenState
   }
 
   Widget _buildCardEstatisticas() {
+    final l10n = AppLocalizations.of(context);
     return Card(
       margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       child: Padding(
@@ -579,19 +585,19 @@ class _HistoricoLocalizacoesScreenState
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _estatistica(Icons.straighten, '${_distanciaMn!.toStringAsFixed(1)} mn',
-                'Distância'),
+                l10n.mapaLabelDistancia),
             _estatistica(Icons.timer_outlined,
-                _duracao != null ? _formatarDuracao(_duracao!) : '—', 'Duração'),
+                _duracao != null ? _formatarDuracao(_duracao!) : '—', l10n.viagemDuracaoLabel),
             _estatistica(
                 Icons.speed,
                 _velMediaKmh != null
                     ? '${_velMediaKmh!.toStringAsFixed(1)} km/h'
                     : '—',
-                'Vel. média'),
+                l10n.viagemVelMediaLabel),
             _estatistica(
                 Icons.speed_outlined,
                 _velMaxKmh != null ? '${_velMaxKmh!.toStringAsFixed(1)} km/h' : '—',
-                'Vel. máxima'),
+                l10n.viagemVelMaximaLabel),
           ],
         ),
       ),

@@ -982,4 +982,93 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get embarcacaoConfigTestarEnvio => 'Test location reporting';
+
+  @override
+  String viagemErroCarregarHistorico(String erro) {
+    return 'Error loading history: $erro';
+  }
+
+  @override
+  String get viagemResumoDaViagemFallback => 'Trip summary';
+
+  @override
+  String viagemCompartilharInicio(String data) {
+    return 'Start: $data';
+  }
+
+  @override
+  String viagemCompartilharDistancia(String mn) {
+    return 'Distance: $mn nm';
+  }
+
+  @override
+  String viagemCompartilharDuracao(String valor) {
+    return 'Duration: $valor';
+  }
+
+  @override
+  String viagemCompartilharVelMedia(String valor) {
+    return 'Avg. speed: $valor km/h';
+  }
+
+  @override
+  String viagemCompartilharVelMaxima(String valor) {
+    return 'Max. speed: $valor km/h';
+  }
+
+  @override
+  String get viagemCompartilharProducaoTitulo => '🐟 Production:';
+
+  @override
+  String get viagemFinalizarTitulo => 'End trip';
+
+  @override
+  String get viagemFinalizarTexto =>
+      'Are you sure you want to end this trip? Background position tracking stops along with it — the app only starts sending the position again when another trip is started.';
+
+  @override
+  String get viagemFinalizarBotao => 'End';
+
+  @override
+  String viagemErroFinalizar(String erro) {
+    return 'Error ending trip: $erro';
+  }
+
+  @override
+  String get viagemVerRotaTooltip => 'View route on the chart';
+
+  @override
+  String get viagemCompartilharTooltip => 'Share trip summary';
+
+  @override
+  String get viagemAtualizarTooltip => 'Refresh';
+
+  @override
+  String get viagemNenhumRegistro => 'No records found';
+
+  @override
+  String get viagemCriadasNaPlataforma =>
+      'Trips are now created on the platform. Tap sync to fetch the active trip.';
+
+  @override
+  String get viagemEmAndamentoFallback => 'Trip in progress';
+
+  @override
+  String viagemIniciadaEm(String data) {
+    return 'Started on $data';
+  }
+
+  @override
+  String get viagemDuracaoLabel => 'Duration';
+
+  @override
+  String get viagemVelMediaLabel => 'Avg. speed';
+
+  @override
+  String get viagemVelMaximaLabel => 'Max. speed';
+
+  @override
+  String viagemPrecLabel(String m) {
+    return 'Acc: ${m}m';
+  }
 }

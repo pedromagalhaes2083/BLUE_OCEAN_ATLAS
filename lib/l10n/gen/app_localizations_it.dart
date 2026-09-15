@@ -991,4 +991,93 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get embarcacaoConfigTestarEnvio => 'Testa l\'invio della posizione';
+
+  @override
+  String viagemErroCarregarHistorico(String erro) {
+    return 'Errore nel caricare la cronologia: $erro';
+  }
+
+  @override
+  String get viagemResumoDaViagemFallback => 'Riepilogo del viaggio';
+
+  @override
+  String viagemCompartilharInicio(String data) {
+    return 'Inizio: $data';
+  }
+
+  @override
+  String viagemCompartilharDistancia(String mn) {
+    return 'Distanza: $mn mn';
+  }
+
+  @override
+  String viagemCompartilharDuracao(String valor) {
+    return 'Durata: $valor';
+  }
+
+  @override
+  String viagemCompartilharVelMedia(String valor) {
+    return 'Vel. media: $valor km/h';
+  }
+
+  @override
+  String viagemCompartilharVelMaxima(String valor) {
+    return 'Vel. massima: $valor km/h';
+  }
+
+  @override
+  String get viagemCompartilharProducaoTitulo => '🐟 Produzione:';
+
+  @override
+  String get viagemFinalizarTitulo => 'Termina viaggio';
+
+  @override
+  String get viagemFinalizarTexto =>
+      'Sei sicuro di voler terminare questo viaggio? Il tracciamento della posizione in background si ferma insieme ad esso — l\'app tornerà a inviare la posizione solo quando verrà avviato un altro viaggio.';
+
+  @override
+  String get viagemFinalizarBotao => 'Termina';
+
+  @override
+  String viagemErroFinalizar(String erro) {
+    return 'Errore nel terminare il viaggio: $erro';
+  }
+
+  @override
+  String get viagemVerRotaTooltip => 'Vedi rotta sulla carta';
+
+  @override
+  String get viagemCompartilharTooltip => 'Condividi riepilogo del viaggio';
+
+  @override
+  String get viagemAtualizarTooltip => 'Aggiorna';
+
+  @override
+  String get viagemNenhumRegistro => 'Nessun record trovato';
+
+  @override
+  String get viagemCriadasNaPlataforma =>
+      'I viaggi ora vengono creati sulla piattaforma. Tocca sincronizza per recuperare il viaggio attivo.';
+
+  @override
+  String get viagemEmAndamentoFallback => 'Viaggio in corso';
+
+  @override
+  String viagemIniciadaEm(String data) {
+    return 'Iniziato il $data';
+  }
+
+  @override
+  String get viagemDuracaoLabel => 'Durata';
+
+  @override
+  String get viagemVelMediaLabel => 'Vel. media';
+
+  @override
+  String get viagemVelMaximaLabel => 'Vel. massima';
+
+  @override
+  String viagemPrecLabel(String m) {
+    return 'Prec: ${m}m';
+  }
 }

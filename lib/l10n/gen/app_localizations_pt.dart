@@ -985,4 +985,93 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get embarcacaoConfigTestarEnvio => 'Testar envio de localização';
+
+  @override
+  String viagemErroCarregarHistorico(String erro) {
+    return 'Erro ao carregar histórico: $erro';
+  }
+
+  @override
+  String get viagemResumoDaViagemFallback => 'Resumo da viagem';
+
+  @override
+  String viagemCompartilharInicio(String data) {
+    return 'Início: $data';
+  }
+
+  @override
+  String viagemCompartilharDistancia(String mn) {
+    return 'Distância: $mn mn';
+  }
+
+  @override
+  String viagemCompartilharDuracao(String valor) {
+    return 'Duração: $valor';
+  }
+
+  @override
+  String viagemCompartilharVelMedia(String valor) {
+    return 'Vel. média: $valor km/h';
+  }
+
+  @override
+  String viagemCompartilharVelMaxima(String valor) {
+    return 'Vel. máxima: $valor km/h';
+  }
+
+  @override
+  String get viagemCompartilharProducaoTitulo => '🐟 Produção:';
+
+  @override
+  String get viagemFinalizarTitulo => 'Finalizar viagem';
+
+  @override
+  String get viagemFinalizarTexto =>
+      'Tem certeza que deseja encerrar esta viagem? O rastreamento de posição em segundo plano para junto — o app só volta a enviar a posição quando outra viagem for iniciada.';
+
+  @override
+  String get viagemFinalizarBotao => 'Finalizar';
+
+  @override
+  String viagemErroFinalizar(String erro) {
+    return 'Erro ao finalizar viagem: $erro';
+  }
+
+  @override
+  String get viagemVerRotaTooltip => 'Ver rota na carta';
+
+  @override
+  String get viagemCompartilharTooltip => 'Compartilhar resumo da viagem';
+
+  @override
+  String get viagemAtualizarTooltip => 'Atualizar';
+
+  @override
+  String get viagemNenhumRegistro => 'Nenhum registro encontrado';
+
+  @override
+  String get viagemCriadasNaPlataforma =>
+      'As viagens agora são criadas na plataforma. Toque em sincronizar para buscar a viagem ativa.';
+
+  @override
+  String get viagemEmAndamentoFallback => 'Viagem em andamento';
+
+  @override
+  String viagemIniciadaEm(String data) {
+    return 'Iniciada em $data';
+  }
+
+  @override
+  String get viagemDuracaoLabel => 'Duração';
+
+  @override
+  String get viagemVelMediaLabel => 'Vel. média';
+
+  @override
+  String get viagemVelMaximaLabel => 'Vel. máxima';
+
+  @override
+  String viagemPrecLabel(String m) {
+    return 'Prec: ${m}m';
+  }
 }
