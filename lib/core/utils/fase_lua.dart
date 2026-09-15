@@ -17,6 +17,8 @@
 library;
 
 import 'dart:math' as math;
+import 'package:flutter/widgets.dart';
+import '../../l10n/gen/app_localizations.dart';
 
 const double diasMesSinodico = 29.530588853;
 
@@ -219,4 +221,45 @@ double pontuacaoProximidadeSizigia(FaseLua fase) {
   const distanciaMaxima = diasMesSinodico / 4;
   final pontuacao = 100 * (1 - distancia / distanciaMaxima);
   return pontuacao < 0 ? 0 : (pontuacao > 100 ? 100 : pontuacao);
+}
+
+/// Rótulos localizados de [FaseLuaTipo] — o campo `label` do enum fica em
+/// português (é `const`, sem acesso a `BuildContext`); use [rotulo] em
+/// qualquer widget que precise mostrar o nome da fase ao usuário.
+extension FaseLuaTipoL10n on FaseLuaTipo {
+  String rotulo(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      FaseLuaTipo.novaLua => l10n.faseLuaTipoNovaLua,
+      FaseLuaTipo.crescente => l10n.faseLuaTipoCrescente,
+      FaseLuaTipo.quartoCrescente => l10n.faseLuaTipoQuartoCrescente,
+      FaseLuaTipo.gibosaCrescente => l10n.faseLuaTipoGibosaCrescente,
+      FaseLuaTipo.cheia => l10n.faseLuaTipoCheia,
+      FaseLuaTipo.gibosaMinguante => l10n.faseLuaTipoGibosaMinguante,
+      FaseLuaTipo.quartoMinguante => l10n.faseLuaTipoQuartoMinguante,
+      FaseLuaTipo.minguante => l10n.faseLuaTipoMinguante,
+    };
+  }
+}
+
+/// Rótulo/nota localizados de [TipoMareAstronomica] — mesmo motivo de
+/// [FaseLuaTipoL10n].
+extension TipoMareAstronomicaL10n on TipoMareAstronomica {
+  String rotulo(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      TipoMareAstronomica.sizigia => l10n.tipoMareSizigiaLabel,
+      TipoMareAstronomica.quadratura => l10n.tipoMareQuadraturaLabel,
+      TipoMareAstronomica.transicao => l10n.tipoMareTransicaoLabel,
+    };
+  }
+
+  String notaTexto(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      TipoMareAstronomica.sizigia => l10n.tipoMareSizigiaNota,
+      TipoMareAstronomica.quadratura => l10n.tipoMareQuadraturaNota,
+      TipoMareAstronomica.transicao => l10n.tipoMareTransicaoNota,
+    };
+  }
 }

@@ -1862,4 +1862,392 @@ class AppLocalizationsIt extends AppLocalizations {
   String recomendacaoPontosAmostrados(int n) {
     return '$n punti campionati';
   }
+
+  @override
+  String get faseLuaTipoNovaLua => 'Luna Nuova';
+
+  @override
+  String get faseLuaTipoCrescente => 'Luna Crescente';
+
+  @override
+  String get faseLuaTipoQuartoCrescente => 'Primo Quarto';
+
+  @override
+  String get faseLuaTipoGibosaCrescente => 'Gibbosa Crescente';
+
+  @override
+  String get faseLuaTipoCheia => 'Luna Piena';
+
+  @override
+  String get faseLuaTipoGibosaMinguante => 'Gibbosa Calante';
+
+  @override
+  String get faseLuaTipoQuartoMinguante => 'Ultimo Quarto';
+
+  @override
+  String get faseLuaTipoMinguante => 'Luna Calante';
+
+  @override
+  String get tipoMareSizigiaLabel => 'Sizigia';
+
+  @override
+  String get tipoMareSizigiaNota =>
+      'Correnti più forti, maggiore ampiezza di marea.';
+
+  @override
+  String get tipoMareQuadraturaLabel => 'Quadratura';
+
+  @override
+  String get tipoMareQuadraturaNota =>
+      'Correnti più deboli, minore ampiezza di marea.';
+
+  @override
+  String get tipoMareTransicaoLabel => 'Transizione';
+
+  @override
+  String get tipoMareTransicaoNota =>
+      'Né sizigia né quadratura — un periodo intermedio.';
+
+  @override
+  String get tendenciaPressaoCaindo => 'In calo';
+
+  @override
+  String get tendenciaPressaoEstavel => 'Stabile';
+
+  @override
+  String get tendenciaPressaoSubindo => 'In aumento';
+
+  @override
+  String get tipoPeriodoSolunarMaior => 'Periodo Maggiore';
+
+  @override
+  String get tipoPeriodoSolunarMenor => 'Periodo Minore';
+
+  @override
+  String get variavelAmbientalVento => 'Vento';
+
+  @override
+  String get variavelAmbientalCorrente => 'Corrente';
+
+  @override
+  String get variavelAmbientalClorofila => 'Clorofilla';
+
+  @override
+  String get variavelAmbientalOnda => 'Onda';
+
+  @override
+  String get variavelAmbientalTemperatura => 'Temperatura';
+
+  @override
+  String get nivelOperacionalFavoravelTitulo =>
+      'Condizione potenzialmente favorevole';
+
+  @override
+  String get nivelOperacionalFavoravelTexto =>
+      'Quando diversi indicatori oceanografici convergono, l\'influenza della marea può rafforzare una condizione già favorevole.';
+
+  @override
+  String get nivelOperacionalAtencaoTitulo => 'Condizione di attenzione';
+
+  @override
+  String get nivelOperacionalAtencaoTexto =>
+      'La marea da sola non è sufficiente a indicare una buona zona di pesca.';
+
+  @override
+  String get nivelOperacionalBaixaEvidenciaTitulo => 'Bassa evidenza';
+
+  @override
+  String get nivelOperacionalBaixaEvidenciaTexto =>
+      'Non utilizzare la fase di marea come unico motivo per spostare l\'imbarcazione.';
+
+  @override
+  String get nivelOperacionalCardTitulo => 'Classificazione Attuale';
+
+  @override
+  String get nivelOperacionalCardDescricao =>
+      'Classificazione basata sugli indicatori che l\'app ha oggi (marea astronomica + corrente misurata) — non è una previsione di cattura.';
+
+  @override
+  String get nivelOperacionalAgora => 'ADESSO';
+
+  @override
+  String get estadoMareTitulo => 'STATO ATTUALE';
+
+  @override
+  String estadoMareTituloMare(String tipo) {
+    return 'MAREA DI $tipo';
+  }
+
+  @override
+  String get estadoMareFaseDaLua => 'FASE LUNARE';
+
+  @override
+  String estadoMareDiaDoCiclo(int n) {
+    return 'giorno $n del ciclo';
+  }
+
+  @override
+  String get estadoMareAmplitudePrevista => 'AMPIEZZA PREVISTA (24H)';
+
+  @override
+  String get estadoMareProximaPreamar => 'PROSSIMA ALTA MAREA';
+
+  @override
+  String get estadoMareProximaBaixaMar => 'PROSSIMA BASSA MAREA';
+
+  @override
+  String get estadoMareDadoIndisponivel => 'Dato non disponibile';
+
+  @override
+  String get estadoMareQuadratura => 'QUADRATURA';
+
+  @override
+  String get estadoMareSizigia => 'SIZIGIA';
+
+  @override
+  String get classificacaoIndiceBaixa => 'Basso';
+
+  @override
+  String get classificacaoIndiceModerada => 'Moderato';
+
+  @override
+  String get classificacaoIndiceAlta => 'Alto';
+
+  @override
+  String get indiceFatorFaseLunarNome => 'Fase lunare (vicinanza alla sizigia)';
+
+  @override
+  String get indiceFatorAmplitudeNome => 'Ampiezza di marea prevista';
+
+  @override
+  String get indiceFatorCorrenteNome => 'Velocità della corrente';
+
+  @override
+  String indiceFatorFaseLunarDetalhe(String fase, int dia) {
+    return '$fase · giorno $dia del ciclo';
+  }
+
+  @override
+  String indiceFatorAmplitudeDetalhe(String m) {
+    return '$m m nelle prossime 24h';
+  }
+
+  @override
+  String indiceFatorCorrenteDetalhe(String ms) {
+    return '$ms m/s adesso';
+  }
+
+  @override
+  String get indiceInformativoDirecaoCorrente => 'Direzione della corrente';
+
+  @override
+  String get indiceInformativoDiferencaTemperatura =>
+      'Differenza di temperatura';
+
+  @override
+  String get indiceInformativoProximidadeFrentes =>
+      'Vicinanza a fronti termici';
+
+  @override
+  String get indiceCardTitulo => 'Potenziale di Influenza';
+
+  @override
+  String get indiceCardDescricao =>
+      'Quanto le condizioni di marea possono contribuire alla dinamica oceanografica della regione — non è una probabilità di pescare tonno.';
+
+  @override
+  String indiceCardPotencialPrefixo(String classificacao) {
+    return 'Potenziale $classificacao';
+  }
+
+  @override
+  String get indiceCardFatoresConsiderados => 'FATTORI CONSIDERATI';
+
+  @override
+  String get indiceCardInformativos =>
+      'INFORMATIVI (NON CONTANO NEL PUNTEGGIO)';
+
+  @override
+  String get comparacaoSizigiaTitulo => 'Marea di Sizigia';
+
+  @override
+  String get comparacaoSizigiaResumo => 'Maggiore ampiezza di marea';
+
+  @override
+  String get comparacaoSizigiaEfeito1 =>
+      'Maggiore variazione del livello del mare';
+
+  @override
+  String get comparacaoSizigiaEfeito2 =>
+      'Correnti di marea potenzialmente più intense in determinate regioni';
+
+  @override
+  String get comparacaoSizigiaEfeito3 =>
+      'Maggiore trasporto orizzontale di acqua';
+
+  @override
+  String get comparacaoSizigiaEfeito4 =>
+      'Maggiore miscelazione in ambienti dove la marea esercita forte influenza';
+
+  @override
+  String get comparacaoSizigiaEfeito5 =>
+      'Alterazione nella distribuzione/concentrazione di organismi che servono da cibo per i pesci';
+
+  @override
+  String get comparacaoSizigiaRelacaoPesca =>
+      'Nelle aree dove le correnti di marea hanno un\'influenza significativa, i periodi di maggiore ampiezza possono aumentare il movimento e la miscelazione dell\'acqua, potendo alterare la distribuzione delle prede e creare condizioni favorevoli all\'attività dei tonni.';
+
+  @override
+  String get comparacaoSizigiaPotencial => 'ALTO';
+
+  @override
+  String get comparacaoQuadraturaTitulo => 'Marea di Quadratura';
+
+  @override
+  String get comparacaoQuadraturaResumo => 'Minore ampiezza di marea';
+
+  @override
+  String get comparacaoQuadraturaEfeito1 =>
+      'Correnti di marea potenzialmente meno intense';
+
+  @override
+  String get comparacaoQuadraturaEfeito2 =>
+      'Minore variazione del livello dell\'acqua';
+
+  @override
+  String get comparacaoQuadraturaEfeito3 =>
+      'Minore influenza della marea sulla miscelazione in determinate regioni';
+
+  @override
+  String get comparacaoQuadraturaEfeito4 =>
+      'Distribuzione diversa di organismi e prede';
+
+  @override
+  String get comparacaoQuadraturaRelacaoPesca =>
+      'Durante la quadratura, la minore ampiezza di marea può ridurre l\'influenza delle correnti di marea in determinate aree. Tuttavia, ciò non significa necessariamente minore attività di tonno, poiché temperatura, fronti oceanici, cibo, profondità e altri fattori possono essere più importanti.';
+
+  @override
+  String get comparacaoQuadraturaPotencial => 'MODERATO';
+
+  @override
+  String get comparacaoRelacaoPescaTitulo => 'RELAZIONE CON LA PESCA DEL TONNO';
+
+  @override
+  String comparacaoPotencialInfluencia(String potencial) {
+    return 'Potenziale di influenza: $potencial';
+  }
+
+  @override
+  String get comparacaoRodape =>
+      'Rappresenta la forza potenziale dell\'influenza della marea, non una previsione diretta di cattura.';
+
+  @override
+  String get graficoMareSemDado =>
+      'Dato non disponibile per il grafico delle 24h';
+
+  @override
+  String get graficoMareCorrenteLabel => 'Corrente';
+
+  @override
+  String get graficoMareAgoraLabel => 'Adesso';
+
+  @override
+  String get janelaOperacionalTitulo => 'Finestra operativa';
+
+  @override
+  String get janelaOperacionalDescricao =>
+      'Prossime ore — marea, corrente e temperatura reali di ogni orario.';
+
+  @override
+  String get janelaObsSemDado =>
+      'Dati di marea insufficienti per questo orario.';
+
+  @override
+  String get janelaObsEstofa =>
+      'Periodo di stanca (marea ferma). La corrente di marea tende a essere debole in questo orario.';
+
+  @override
+  String get janelaObsEnchente =>
+      'Periodo di flusso. Osservare zone di convergenza e concentrazione di prede.';
+
+  @override
+  String get janelaObsVazante =>
+      'Periodo di riflusso. Osservare bordi di banchi e canali dove la corrente può concentrare il cibo.';
+
+  @override
+  String get explicacaoSizigiaTexto =>
+      'Alla Luna Nuova e alla Luna Piena, le forze gravitazionali del Sole e della Luna si combinano, aumentando l\'ampiezza delle maree.';
+
+  @override
+  String get explicacaoQuadraturaTexto =>
+      'Al primo e ultimo quarto, il Sole e la Luna esercitano le loro forze gravitazionali in direzioni approssimativamente perpendicolari, risultando in una minore ampiezza delle maree.';
+
+  @override
+  String get explicacaoEntendiBotao => 'Capito';
+
+  @override
+  String get explicacaoSol => 'Sole';
+
+  @override
+  String get explicacaoTerra => 'Terra';
+
+  @override
+  String get explicacaoLua => 'Luna';
+
+  @override
+  String get fluxoInfluenciaTitulo => 'Flusso di Influenza';
+
+  @override
+  String get fluxoInfluenciaSubtitulo => 'Perché è importante per il tonno?';
+
+  @override
+  String get fluxoEtapa1Titulo => 'Marea';
+
+  @override
+  String get fluxoEtapa1Sub => 'Sizigia o quadratura';
+
+  @override
+  String get fluxoEtapa2Titulo => 'Correnti';
+
+  @override
+  String get fluxoEtapa2Sub => 'Più o meno intense';
+
+  @override
+  String get fluxoEtapa3Titulo => 'Miscelazione / trasporto d\'acqua';
+
+  @override
+  String get fluxoEtapa3Sub => 'Movimento della colonna d\'acqua';
+
+  @override
+  String get fluxoEtapa4Titulo => 'Distribuzione di nutrienti e prede';
+
+  @override
+  String get fluxoEtapa4Sub => 'Dove si concentra il cibo';
+
+  @override
+  String get fluxoEtapa5Titulo => 'Concentrazione di cibo';
+
+  @override
+  String get fluxoEtapa5Sub => 'Disponibilità per il tonno';
+
+  @override
+  String get fluxoEtapa6Titulo => 'Comportamento dei tonni';
+
+  @override
+  String get fluxoEtapa6Sub => 'Spostamento e aggregazione';
+
+  @override
+  String get fluxoEtapa7Titulo => 'Potenziale di attività di pesca';
+
+  @override
+  String get fluxoEtapa7Sub => 'Un indicatore tra molti';
+
+  @override
+  String get fluxoRodape =>
+      'Questa è una possibile catena di influenza, non una relazione deterministica: ogni fase dipende da fattori locali (batimetria, topografia, regime delle correnti della regione) che la marea da sola non spiega.';
+
+  @override
+  String mareCardTipoLabel(String tipo) {
+    return 'Marea di $tipo';
+  }
 }

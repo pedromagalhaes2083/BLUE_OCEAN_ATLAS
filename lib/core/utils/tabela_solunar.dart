@@ -17,7 +17,9 @@
 /// quando não se calcula a posição exata da lua a cada instante.
 library;
 
+import 'package:flutter/widgets.dart';
 import '../../features/metereologia/domain/models/dia_lunar.dart';
+import '../../l10n/gen/app_localizations.dart';
 
 enum TipoPeriodoSolunar {
   maior('Período Maior', 'Lua no meridiano — efeito mais forte, ~2h.'),
@@ -26,6 +28,18 @@ enum TipoPeriodoSolunar {
   final String label;
   final String nota;
   const TipoPeriodoSolunar(this.label, this.nota);
+}
+
+/// Rótulo localizado de [TipoPeriodoSolunar] — o campo `label` fica em
+/// português (é `const`, sem acesso a `BuildContext`).
+extension TipoPeriodoSolunarL10n on TipoPeriodoSolunar {
+  String rotulo(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      TipoPeriodoSolunar.maior => l10n.tipoPeriodoSolunarMaior,
+      TipoPeriodoSolunar.menor => l10n.tipoPeriodoSolunarMenor,
+    };
+  }
 }
 
 class PeriodoSolunar {

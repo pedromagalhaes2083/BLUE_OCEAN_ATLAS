@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/wave_forecast.dart';
 import '../../../core/utils/cor_tema.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Ponto de dado plotado no gráfico — só o que realmente veio da API
 /// (altura de maré sempre; corrente só quando o modelo marinho cobre o
@@ -56,7 +57,7 @@ class _GraficoMare24hState extends State<GraficoMare24h> {
       return SizedBox(
         height: 100,
         child: Center(
-          child: Text('Dado indisponível para o gráfico de 24h',
+          child: Text(AppLocalizations.of(context).graficoMareSemDado,
               style: TextStyle(color: corRot, fontStyle: FontStyle.italic)),
         ),
       );
@@ -90,6 +91,8 @@ class _GraficoMare24hState extends State<GraficoMare24h> {
                   corTexto: corRot,
                   corDestaque: Theme.of(context).colorScheme.onSurface,
                   temCorrente: pontos.any((p) => p.correnteMs != null),
+                  textoCorrente: AppLocalizations.of(context).graficoMareCorrenteLabel,
+                  textoAgora: AppLocalizations.of(context).graficoMareAgoraLabel,
                 ),
               ),
             ),
@@ -140,6 +143,8 @@ class _MarePainter extends CustomPainter {
   final Color corTexto;
   final Color corDestaque;
   final bool temCorrente;
+  final String textoCorrente;
+  final String textoAgora;
 
   _MarePainter({
     required this.pontos,
@@ -148,6 +153,8 @@ class _MarePainter extends CustomPainter {
     required this.corTexto,
     required this.corDestaque,
     required this.temCorrente,
+    required this.textoCorrente,
+    required this.textoAgora,
   });
 
   @override
@@ -221,7 +228,7 @@ class _MarePainter extends CustomPainter {
           Paint()..color = Colors.blue.withValues(alpha: 0.4 + intensidade * 0.5),
         );
       }
-      _texto('Corrente', corTexto, 9).paint(canvas, Offset(0, yFaixa - 20));
+      _texto(textoCorrente, corTexto, 9).paint(canvas, Offset(0, yFaixa - 20));
     }
 
     // Eventos de preamar/baixa-mar — marca o ponto mais próximo no eixo X.
@@ -246,7 +253,7 @@ class _MarePainter extends CustomPainter {
       ..color = Colors.redAccent.withValues(alpha: 0.6)
       ..strokeWidth = 1.5;
     _tracejada(canvas, Offset(xAgora, 0), Offset(xAgora, 8 + alturaGrafico), agoraPaint);
-    _texto('Agora', Colors.redAccent, 10, bold: true).paint(canvas, Offset(xAgora + 4, 0));
+    _texto(textoAgora, Colors.redAccent, 10, bold: true).paint(canvas, Offset(xAgora + 4, 0));
 
     // Seleção (toque).
     if (indiceSelecionado != null && indiceSelecionado! < pontos.length) {

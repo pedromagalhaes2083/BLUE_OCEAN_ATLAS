@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/cor_tema.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Os dois cards de comparação Sizígia × Quadratura da tela "Maré e Pesca
 /// de Atum" — conteúdo fixo (a diferença física entre os dois regimes de
@@ -13,44 +14,36 @@ class ComparacaoSizigiaQuadraturaWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
+      final l10n = AppLocalizations.of(context);
       final estreito = constraints.maxWidth < 640;
       final cardSizigia = _CardRegimeMare(
-        titulo: 'Maré de Sizígia',
+        titulo: l10n.comparacaoSizigiaTitulo,
         emoji: '🌊',
         corPrincipal: Colors.orange.shade800,
-        resumo: 'Maior amplitude de maré',
-        efeitos: const [
-          'Maior variação do nível do mar',
-          'Correntes de maré potencialmente mais intensas em determinadas regiões',
-          'Maior transporte horizontal de água',
-          'Maior mistura em ambientes onde a maré exerce forte influência',
-          'Alteração na distribuição/concentração de organismos que servem de alimento aos peixes',
+        resumo: l10n.comparacaoSizigiaResumo,
+        efeitos: [
+          l10n.comparacaoSizigiaEfeito1,
+          l10n.comparacaoSizigiaEfeito2,
+          l10n.comparacaoSizigiaEfeito3,
+          l10n.comparacaoSizigiaEfeito4,
+          l10n.comparacaoSizigiaEfeito5,
         ],
-        relacaoPesca:
-            'Em áreas onde as correntes de maré possuem influência significativa, '
-            'períodos de maior amplitude podem aumentar a movimentação e a mistura '
-            'da água, podendo alterar a distribuição de presas e criar condições '
-            'favoráveis à atividade dos atuns.',
-        potencial: 'ALTO',
+        relacaoPesca: l10n.comparacaoSizigiaRelacaoPesca,
+        potencial: l10n.comparacaoSizigiaPotencial,
       );
       final cardQuadratura = _CardRegimeMare(
-        titulo: 'Maré de Quadratura',
+        titulo: l10n.comparacaoQuadraturaTitulo,
         emoji: '🌊',
         corPrincipal: Colors.blueGrey.shade700,
-        resumo: 'Menor amplitude de maré',
-        efeitos: const [
-          'Correntes de maré potencialmente menos intensas',
-          'Menor variação do nível da água',
-          'Menor influência da maré sobre a mistura em determinadas regiões',
-          'Distribuição diferente de organismos e presas',
+        resumo: l10n.comparacaoQuadraturaResumo,
+        efeitos: [
+          l10n.comparacaoQuadraturaEfeito1,
+          l10n.comparacaoQuadraturaEfeito2,
+          l10n.comparacaoQuadraturaEfeito3,
+          l10n.comparacaoQuadraturaEfeito4,
         ],
-        relacaoPesca:
-            'Durante a quadratura, a menor amplitude da maré pode resultar em menor '
-            'influência das correntes de maré em determinadas áreas. Entretanto, '
-            'isso não significa necessariamente menor atividade de atum, pois '
-            'temperatura, frentes oceânicas, alimento, profundidade e outros '
-            'fatores podem ser mais importantes.',
-        potencial: 'MODERADO',
+        relacaoPesca: l10n.comparacaoQuadraturaRelacaoPesca,
+        potencial: l10n.comparacaoQuadraturaPotencial,
       );
 
       if (estreito) {
@@ -139,7 +132,7 @@ class _CardRegimeMare extends StatelessWidget {
                   ),
                 )),
             const SizedBox(height: 8),
-            Text('RELAÇÃO COM A PESCA DE ATUM',
+            Text(AppLocalizations.of(context).comparacaoRelacaoPescaTitulo,
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -160,7 +153,9 @@ class _CardRegimeMare extends StatelessWidget {
                   Icon(Icons.insights, size: 15, color: corPrincipal),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text('Potencial de influência: $potencial',
+                    child: Text(
+                        AppLocalizations.of(context)
+                            .comparacaoPotencialInfluencia(potencial),
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -171,8 +166,7 @@ class _CardRegimeMare extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Representa a força potencial da influência da maré, não uma '
-              'previsão direta de captura.',
+              AppLocalizations.of(context).comparacaoRodape,
               style: TextStyle(fontSize: 10.5, color: corRot, fontStyle: FontStyle.italic),
             ),
           ],

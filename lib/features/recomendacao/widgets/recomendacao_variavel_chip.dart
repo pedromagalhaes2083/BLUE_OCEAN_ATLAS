@@ -13,7 +13,7 @@ class RecomendacaoVariavelChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final tipo = variavel.tipo;
     final label = tipo != null
-        ? '${tipo.label}: ${variavel.valor.toStringAsFixed(2)} ${tipo.unidade}'
+        ? '${tipo.rotulo(context)}: ${variavel.valor.toStringAsFixed(2)} ${tipo.unidade}'
         : AppLocalizations.of(context).recomendacaoVarPrefixo(
             '${variavel.variavel}', variavel.valor.toStringAsFixed(2));
 

@@ -207,7 +207,8 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
           Icon(icone, size: 16, color: cor),
           const SizedBox(width: 4),
           Text(
-            '${tendencia.pressaoAtualHpa.toStringAsFixed(0)} hPa · ${tendencia.tipo.label}',
+            '${tendencia.pressaoAtualHpa.toStringAsFixed(0)} hPa · '
+            '${tendencia.tipo.rotulo(context)}',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cor),
           ),
         ],

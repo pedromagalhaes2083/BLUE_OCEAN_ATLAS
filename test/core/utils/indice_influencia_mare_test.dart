@@ -10,8 +10,8 @@ void main() {
     test('sem nenhum dado extra, pontua só a fase lunar (sizígia = 100)', () {
       final resultado = calcularIndiceInfluenciaMare(fase: faseNova);
       expect(resultado.valor, closeTo(100, 0.5));
-      final corrente =
-          resultado.fatoresPontuados.firstWhere((f) => f.nome.contains('corrente'));
+      final corrente = resultado.fatoresPontuados
+          .firstWhere((f) => f.tipo == TipoFatorIndiceMare.correnteVelocidade);
       expect(corrente.disponivel, isFalse);
       expect(corrente.pontuacao, isNull);
     });
@@ -19,9 +19,9 @@ void main() {
     test('amplitude e corrente indisponíveis aparecem marcadas, não zeradas', () {
       final resultado = calcularIndiceInfluenciaMare(fase: faseNova);
       final amplitude = resultado.fatoresPontuados
-          .firstWhere((f) => f.nome.contains('Amplitude'));
+          .firstWhere((f) => f.tipo == TipoFatorIndiceMare.amplitudeMare);
       expect(amplitude.disponivel, isFalse);
-      expect(amplitude.detalhe, isNull);
+      expect(amplitude.valorDetalhe, isNull);
     });
 
     test('quadratura pontua baixo na fase lunar', () {
@@ -29,8 +29,8 @@ void main() {
           calcularFaseLua(DateTime.utc(2000, 1, 6, 18, 14)
               .add(Duration(minutes: (diasMesSinodico / 4 * 24 * 60).round())));
       final resultado = calcularIndiceInfluenciaMare(fase: faseQuadratura);
-      final fatorFase =
-          resultado.fatoresPontuados.firstWhere((f) => f.nome.contains('Fase lunar'));
+      final fatorFase = resultado.fatoresPontuados
+          .firstWhere((f) => f.tipo == TipoFatorIndiceMare.faseLunar);
       expect(fatorFase.pontuacao, closeTo(0, 1));
     });
 
@@ -49,7 +49,7 @@ void main() {
         amplitudeMareM: 1.5, // metade da referência de 3.0m
       );
       final amplitude = resultado.fatoresPontuados
-          .firstWhere((f) => f.nome.contains('Amplitude'));
+          .firstWhere((f) => f.tipo == TipoFatorIndiceMare.amplitudeMare);
       expect(amplitude.pontuacao, closeTo(50, 0.5));
     });
 
@@ -66,8 +66,10 @@ void main() {
 
     test('lista fatores informativos que não entram na pontuação', () {
       final resultado = calcularIndiceInfluenciaMare(fase: faseNova);
-      expect(resultado.fatoresInformativos, contains('Clorofila'));
-      expect(resultado.fatoresInformativos, contains('Vento'));
+      expect(resultado.fatoresInformativos,
+          contains(FatorInformativoIndiceMare.clorofila));
+      expect(resultado.fatoresInformativos,
+          contains(FatorInformativoIndiceMare.vento));
     });
   });
 

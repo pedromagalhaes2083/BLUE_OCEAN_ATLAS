@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/cor_tema.dart';
+import '../../../core/utils/fase_lua.dart';
 import '../../../core/utils/indice_influencia_mare.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// "Índice de Influência da Maré" — 0 a 100, mostrado com um medidor
 /// circular simples. Ver a doc de [calcularIndiceInfluenciaMare]: isto NÃO
@@ -18,6 +20,7 @@ class IndiceInfluenciaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final corRot = corRotulo(context);
     final valor = indice.valor;
+    final l10n = AppLocalizations.of(context);
 
     return Card(
       elevation: 2,
@@ -28,12 +31,11 @@ class IndiceInfluenciaCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Potencial de Influência',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(l10n.indiceCardTitulo,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
             Text(
-              'Quanto as condições de maré podem estar contribuindo para a '
-              'dinâmica oceanográfica da região — não é chance de pegar atum.',
+              l10n.indiceCardDescricao,
               style: TextStyle(fontSize: 11.5, color: corRot, height: 1.3),
             ),
             const SizedBox(height: 18),
@@ -42,7 +44,7 @@ class IndiceInfluenciaCard extends StatelessWidget {
                 width: 140,
                 height: 140,
                 child: valor == null
-                    ? _semDado(corRot)
+                    ? _semDado(context, corRot)
                     : Stack(
                         alignment: Alignment.center,
                         children: [
@@ -82,7 +84,8 @@ class IndiceInfluenciaCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Potencial ${indice.classificacao!.label.toLowerCase()}',
+                    l10n.indiceCardPotencialPrefixo(
+                        indice.classificacao!.rotulo(context).toLowerCase()),
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -92,16 +95,16 @@ class IndiceInfluenciaCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 20),
-            Text('FATORES CONSIDERADOS',
+            Text(l10n.indiceCardFatoresConsiderados,
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.4,
                     color: corRot)),
             const SizedBox(height: 8),
-            ...indice.fatoresPontuados.map((f) => _linhaFator(corRot, f)),
+            ...indice.fatoresPontuados.map((f) => _linhaFator(context, corRot, f)),
             const SizedBox(height: 14),
-            Text('INFORMATIVOS (NÃO ENTRAM NA PONTUAÇÃO)',
+            Text(l10n.indiceCardInformativos,
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -112,8 +115,9 @@ class IndiceInfluenciaCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: indice.fatoresInformativos
-                  .map((nome) => Chip(
-                        label: Text(nome, style: const TextStyle(fontSize: 11)),
+                  .map((f) => Chip(
+                        label: Text(f.rotulo(context),
+                            style: const TextStyle(fontSize: 11)),
                         visualDensity: VisualDensity.compact,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         backgroundColor: Colors.grey.withValues(alpha: 0.12),
@@ -127,34 +131,68 @@ class IndiceInfluenciaCard extends StatelessWidget {
     );
   }
 
-  Widget _semDado(Color corRot) => Column(
+  Widget _semDado(BuildContext context, Color corRot) => Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.help_outline, color: corRot, size: 32),
           const SizedBox(height: 8),
-          Text('Dado indisponível',
+          Text(AppLocalizations.of(context).estadoMareDadoIndisponivel,
               style: TextStyle(color: corRot, fontStyle: FontStyle.italic)),
         ],
       );
+
+  /// Nome localizado do fator, a partir de [FatorIndiceMare.tipo] — sem
+  /// texto pré-formatado no domínio (ver doc de [FatorIndiceMare]).
+  String _nomeFator(AppLocalizations l10n, FatorIndiceMare fator) =>
+      switch (fator.tipo) {
+        TipoFatorIndiceMare.faseLunar => l10n.indiceFatorFaseLunarNome,
+        TipoFatorIndiceMare.amplitudeMare => l10n.indiceFatorAmplitudeNome,
+        TipoFatorIndiceMare.correnteVelocidade => l10n.indiceFatorCorrenteNome,
+      };
+
+  /// Detalhe legível localizado, montado a partir dos dados brutos de
+  /// [FatorIndiceMare] (ver doc da classe).
+  String? _detalheFator(
+      BuildContext context, AppLocalizations l10n, FatorIndiceMare fator) {
+    switch (fator.tipo) {
+      case TipoFatorIndiceMare.faseLunar:
+        final tipo = fator.faseTipo;
+        final dia = fator.diaDoCiclo;
+        if (tipo == null || dia == null) return null;
+        return l10n.indiceFatorFaseLunarDetalhe(tipo.rotulo(context), dia);
+      case TipoFatorIndiceMare.amplitudeMare:
+        final v = fator.valorDetalhe;
+        return v == null
+            ? null
+            : l10n.indiceFatorAmplitudeDetalhe(v.toStringAsFixed(2));
+      case TipoFatorIndiceMare.correnteVelocidade:
+        final v = fator.valorDetalhe;
+        return v == null
+            ? null
+            : l10n.indiceFatorCorrenteDetalhe(v.toStringAsFixed(2));
+    }
+  }
 
   // Nome do fator numa linha própria (alguns são longos, ex: "Fase lunar
   // (proximidade da sizígia)") e detalhe+pontuação embaixo, com o detalhe
   // dentro de um Expanded — sem isso, um detalhe comprido (ex: "Quarto
   // Minguante · dia 22 do ciclo") ao lado da pontuação num Row sem limite
   // estourava a largura do card (visto ao vivo no aparelho).
-  Widget _linhaFator(Color corRot, FatorIndiceMare fator) {
+  Widget _linhaFator(BuildContext context, Color corRot, FatorIndiceMare fator) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(fator.nome, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500)),
+          Text(_nomeFator(l10n, fator),
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500)),
           const SizedBox(height: 2),
           if (fator.disponivel)
             Row(
               children: [
                 Expanded(
-                  child: Text(fator.detalhe ?? '',
+                  child: Text(_detalheFator(context, l10n, fator) ?? '',
                       style: TextStyle(fontSize: 11, color: corRot),
                       overflow: TextOverflow.ellipsis),
                 ),
@@ -167,7 +205,7 @@ class IndiceInfluenciaCard extends StatelessWidget {
               ],
             )
           else
-            Text('Dado indisponível',
+            Text(l10n.estadoMareDadoIndisponivel,
                 style: TextStyle(fontSize: 11, color: corRot, fontStyle: FontStyle.italic)),
         ],
       ),

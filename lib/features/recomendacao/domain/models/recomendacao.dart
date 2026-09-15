@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/gen/app_localizations.dart';
 
 /// Taxonomia das variáveis ambientais amostradas nos pontos de uma
 /// recomendação, confirmada com o backend.
@@ -21,6 +22,21 @@ enum VariavelAmbiental {
       if (v.codigo == codigo) return v;
     }
     return null;
+  }
+}
+
+/// Rótulo localizado de [VariavelAmbiental] — o campo `label` fica em
+/// português (é `const`, sem acesso a `BuildContext`).
+extension VariavelAmbientalL10n on VariavelAmbiental {
+  String rotulo(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      VariavelAmbiental.vento => l10n.variavelAmbientalVento,
+      VariavelAmbiental.corrente => l10n.variavelAmbientalCorrente,
+      VariavelAmbiental.clorofila => l10n.variavelAmbientalClorofila,
+      VariavelAmbiental.onda => l10n.variavelAmbientalOnda,
+      VariavelAmbiental.temperatura => l10n.variavelAmbientalTemperatura,
+    };
   }
 }
 

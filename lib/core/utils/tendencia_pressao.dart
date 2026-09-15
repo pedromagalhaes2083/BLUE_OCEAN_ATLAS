@@ -8,6 +8,9 @@
 /// agora com o de [_janelaHoras] atrás.
 library;
 
+import 'package:flutter/widgets.dart';
+import '../../l10n/gen/app_localizations.dart';
+
 const int _janelaHoras = 3;
 
 /// Limiar (hPa em [_janelaHoras]h) acima do qual a variação já conta como
@@ -24,6 +27,19 @@ enum TendenciaPressaoTipo {
   final String label;
   final String nota;
   const TendenciaPressaoTipo(this.label, this.nota);
+}
+
+/// Rótulo localizado de [TendenciaPressaoTipo] — o campo `label` fica em
+/// português (é `const`, sem acesso a `BuildContext`).
+extension TendenciaPressaoTipoL10n on TendenciaPressaoTipo {
+  String rotulo(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      TendenciaPressaoTipo.caindo => l10n.tendenciaPressaoCaindo,
+      TendenciaPressaoTipo.estavel => l10n.tendenciaPressaoEstavel,
+      TendenciaPressaoTipo.subindo => l10n.tendenciaPressaoSubindo,
+    };
+  }
 }
 
 class TendenciaPressao {

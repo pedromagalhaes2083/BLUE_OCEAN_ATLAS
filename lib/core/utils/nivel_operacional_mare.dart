@@ -11,6 +11,8 @@
 /// original — nunca promete presença de atum.
 library;
 
+import 'package:flutter/widgets.dart';
+import '../../l10n/gen/app_localizations.dart';
 import 'fase_lua.dart';
 
 enum NivelOperacionalMare {
@@ -33,6 +35,30 @@ enum NivelOperacionalMare {
   final String titulo;
   final String textoOperacional;
   const NivelOperacionalMare(this.titulo, this.textoOperacional);
+}
+
+/// Título/texto localizados de [NivelOperacionalMare] — os campos ficam em
+/// português (são `const`, sem acesso a `BuildContext`).
+extension NivelOperacionalMareL10n on NivelOperacionalMare {
+  String tituloTexto(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      NivelOperacionalMare.favoravel => l10n.nivelOperacionalFavoravelTitulo,
+      NivelOperacionalMare.atencao => l10n.nivelOperacionalAtencaoTitulo,
+      NivelOperacionalMare.baixaEvidencia =>
+        l10n.nivelOperacionalBaixaEvidenciaTitulo,
+    };
+  }
+
+  String textoOperacionalTexto(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      NivelOperacionalMare.favoravel => l10n.nivelOperacionalFavoravelTexto,
+      NivelOperacionalMare.atencao => l10n.nivelOperacionalAtencaoTexto,
+      NivelOperacionalMare.baixaEvidencia =>
+        l10n.nivelOperacionalBaixaEvidenciaTexto,
+    };
+  }
 }
 
 /// Corrente (m/s) acima da qual ela conta como "sinal presente" pra esse

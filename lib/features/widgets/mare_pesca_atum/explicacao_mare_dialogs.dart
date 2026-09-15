@@ -1,32 +1,33 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/gen/app_localizations.dart';
+
 /// Modais "Entenda a sizígia" / "Entenda a quadratura" — ilustração
 /// simples (posições relativas de Sol, Terra e Lua) + o texto explicativo
 /// literal do pedido original. Conteúdo educativo fixo, não depende de
 /// nenhum dado.
 void mostrarExplicacaoSizigia(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   showDialog<void>(
     context: context,
     builder: (context) => _DialogExplicacao(
-      titulo: 'Entenda a sizígia',
+      titulo: l10n.mareEPescaEntendaSizigia,
       cor: Colors.orange.shade800,
       ilustracao: const _IlustracaoAlinhada(),
-      texto: 'Na Lua Nova e na Lua Cheia, as forças gravitacionais do Sol e '
-          'da Lua se combinam, aumentando a amplitude das marés.',
+      texto: l10n.explicacaoSizigiaTexto,
     ),
   );
 }
 
 void mostrarExplicacaoQuadratura(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   showDialog<void>(
     context: context,
     builder: (context) => _DialogExplicacao(
-      titulo: 'Entenda a quadratura',
+      titulo: l10n.mareEPescaEntendaQuadratura,
       cor: Colors.blueGrey.shade700,
       ilustracao: const _IlustracaoPerpendicular(),
-      texto: 'Nos quartos crescente e minguante, Sol e Lua exercem suas '
-          'forças gravitacionais em direções aproximadamente perpendiculares, '
-          'resultando em menor amplitude das marés.',
+      texto: l10n.explicacaoQuadraturaTexto,
     ),
   );
 }
@@ -67,7 +68,7 @@ class _DialogExplicacao extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Entendi'),
+          child: Text(AppLocalizations.of(context).explicacaoEntendiBotao),
         ),
       ],
     );
@@ -80,17 +81,18 @@ class _IlustracaoAlinhada extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SizedBox(
       height: 70,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _corpo('Sol', Colors.amber.shade700, 28),
+          _corpo(l10n.explicacaoSol, Colors.amber.shade700, 28),
           _linha(),
-          _corpo('Terra', Colors.blue.shade700, 22),
+          _corpo(l10n.explicacaoTerra, Colors.blue.shade700, 22),
           _linha(),
-          _corpo('Lua', Colors.grey.shade500, 16),
+          _corpo(l10n.explicacaoLua, Colors.grey.shade500, 16),
         ],
       ),
     );
@@ -103,6 +105,7 @@ class _IlustracaoPerpendicular extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SizedBox(
       height: 100,
       child: Stack(
@@ -111,9 +114,9 @@ class _IlustracaoPerpendicular extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _corpo('Sol', Colors.amber.shade700, 28),
+              _corpo(l10n.explicacaoSol, Colors.amber.shade700, 28),
               _linha(),
-              _corpo('Terra', Colors.blue.shade700, 22),
+              _corpo(l10n.explicacaoTerra, Colors.blue.shade700, 22),
             ],
           ),
           Positioned(
@@ -121,7 +124,7 @@ class _IlustracaoPerpendicular extends StatelessWidget {
             right: MediaQuery.of(context).size.width * 0.28,
             child: Column(
               children: [
-                _corpo('Lua', Colors.grey.shade500, 16),
+                _corpo(l10n.explicacaoLua, Colors.grey.shade500, 16),
                 Container(width: 1.5, height: 26, color: Colors.grey.withValues(alpha: 0.5)),
               ],
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/nivel_operacional_mare.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Seção "Classificação Atual" (como interpretar a maré na operação) — os 3 níveis
 /// (🟢 favorável / 🟡 atenção / 🔴 baixa evidência), com o nível calculado
@@ -15,6 +16,7 @@ class NivelOperacionalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final corRot = corRotulo(context);
+    final l10n = AppLocalizations.of(context);
     return Card(
       elevation: 2,
       clipBehavior: Clip.antiAlias,
@@ -24,12 +26,11 @@ class NivelOperacionalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Classificação Atual',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(l10n.nivelOperacionalCardTitulo,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
             Text(
-              'Classificação a partir dos indicadores que o app tem hoje '
-              '(maré astronômica + corrente medida) — não é previsão de captura.',
+              l10n.nivelOperacionalCardDescricao,
               style: TextStyle(fontSize: 11.5, color: corRot),
             ),
             const SizedBox(height: 16),
@@ -91,7 +92,7 @@ class NivelOperacionalCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(nivel.titulo,
+                      child: Text(nivel.tituloTexto(context),
                           style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -105,8 +106,8 @@ class NivelOperacionalCard extends StatelessWidget {
                           color: cor,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Text('AGORA',
-                            style: TextStyle(
+                        child: Text(AppLocalizations.of(context).nivelOperacionalAgora,
+                            style: const TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white)),
@@ -114,7 +115,7 @@ class NivelOperacionalCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 3),
-                Text(nivel.textoOperacional,
+                Text(nivel.textoOperacionalTexto(context),
                     style: TextStyle(
                         fontSize: 12,
                         color: ativo ? null : corRot,

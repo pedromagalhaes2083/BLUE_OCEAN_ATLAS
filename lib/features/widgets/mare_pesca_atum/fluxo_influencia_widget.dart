@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/cor_tema.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Seção "Fluxo de Influência" ("Por que isso importa para o atum?") — a cadeia de influência
 /// Maré → Corrente → Mistura/Transporte → Nutrientes/Presas → Alimento →
@@ -13,19 +14,21 @@ import '../../../core/utils/cor_tema.dart';
 class FluxoInfluenciaWidget extends StatelessWidget {
   const FluxoInfluenciaWidget({super.key});
 
-  static const _etapas = [
-    (Icons.nightlight_round, 'Maré', 'Sizígia ou quadratura'),
-    (Icons.water, 'Correntes', 'Mais ou menos intensas'),
-    (Icons.blur_on, 'Mistura / transporte de água', 'Movimentação da coluna d\'água'),
-    (Icons.scatter_plot, 'Distribuição de nutrientes e presas', 'Onde o alimento se concentra'),
-    (Icons.restaurant, 'Concentração de alimento', 'Disponibilidade pro atum'),
-    (Icons.set_meal, 'Comportamento dos atuns', 'Deslocamento e agregação'),
-    (Icons.trending_up, 'Potencial de atividade de pesca', 'Um indicador entre vários'),
-  ];
+  List<(IconData, String, String)> _etapas(AppLocalizations l10n) => [
+        (Icons.nightlight_round, l10n.fluxoEtapa1Titulo, l10n.fluxoEtapa1Sub),
+        (Icons.water, l10n.fluxoEtapa2Titulo, l10n.fluxoEtapa2Sub),
+        (Icons.blur_on, l10n.fluxoEtapa3Titulo, l10n.fluxoEtapa3Sub),
+        (Icons.scatter_plot, l10n.fluxoEtapa4Titulo, l10n.fluxoEtapa4Sub),
+        (Icons.restaurant, l10n.fluxoEtapa5Titulo, l10n.fluxoEtapa5Sub),
+        (Icons.set_meal, l10n.fluxoEtapa6Titulo, l10n.fluxoEtapa6Sub),
+        (Icons.trending_up, l10n.fluxoEtapa7Titulo, l10n.fluxoEtapa7Sub),
+      ];
 
   @override
   Widget build(BuildContext context) {
     final corRot = corRotulo(context);
+    final l10n = AppLocalizations.of(context);
+    final etapas = _etapas(l10n);
     final escuro = Theme.of(context).brightness == Brightness.dark;
     final corCard = Color.alphaBlend(
       const Color(0xFFF1F8E9).withValues(alpha: escuro ? 0.18 : 1.0),
@@ -45,16 +48,16 @@ class FluxoInfluenciaWidget extends StatelessWidget {
             Row(children: [
               const Icon(Icons.route, color: Colors.green, size: 18),
               const SizedBox(width: 8),
-              const Text('Fluxo de Influência',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(l10n.fluxoInfluenciaTitulo,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             ]),
             const SizedBox(height: 4),
-            Text('Por que isso importa para o atum?',
+            Text(l10n.fluxoInfluenciaSubtitulo,
                 style: TextStyle(fontSize: 11.5, color: corRot)),
             const SizedBox(height: 16),
-            for (var i = 0; i < _etapas.length; i++) ...[
-              _linhaEtapa(corRot, _etapas[i]),
-              if (i < _etapas.length - 1)
+            for (var i = 0; i < etapas.length; i++) ...[
+              _linhaEtapa(corRot, etapas[i]),
+              if (i < etapas.length - 1)
                 Padding(
                   padding: const EdgeInsets.only(left: 17),
                   child: Icon(Icons.arrow_downward, size: 16, color: corRot),
@@ -68,10 +71,7 @@ class FluxoInfluenciaWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                'Essa é uma cadeia de influência possível, não uma relação '
-                'determinística: cada etapa depende de fatores locais (batimetria, '
-                'topografia, regime de correntes da região) que a maré sozinha não '
-                'explica.',
+                l10n.fluxoRodape,
                 style: TextStyle(fontSize: 11.5, color: corRot, height: 1.4),
               ),
             ),

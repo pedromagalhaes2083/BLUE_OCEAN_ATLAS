@@ -1843,4 +1843,385 @@ class AppLocalizationsEn extends AppLocalizations {
   String recomendacaoPontosAmostrados(int n) {
     return '$n sampled points';
   }
+
+  @override
+  String get faseLuaTipoNovaLua => 'New Moon';
+
+  @override
+  String get faseLuaTipoCrescente => 'Waxing Crescent';
+
+  @override
+  String get faseLuaTipoQuartoCrescente => 'First Quarter';
+
+  @override
+  String get faseLuaTipoGibosaCrescente => 'Waxing Gibbous';
+
+  @override
+  String get faseLuaTipoCheia => 'Full Moon';
+
+  @override
+  String get faseLuaTipoGibosaMinguante => 'Waning Gibbous';
+
+  @override
+  String get faseLuaTipoQuartoMinguante => 'Last Quarter';
+
+  @override
+  String get faseLuaTipoMinguante => 'Waning Crescent';
+
+  @override
+  String get tipoMareSizigiaLabel => 'Spring Tide';
+
+  @override
+  String get tipoMareSizigiaNota =>
+      'Stronger currents, greater tidal amplitude.';
+
+  @override
+  String get tipoMareQuadraturaLabel => 'Neap Tide';
+
+  @override
+  String get tipoMareQuadraturaNota =>
+      'Weaker currents, smaller tidal amplitude.';
+
+  @override
+  String get tipoMareTransicaoLabel => 'Transition';
+
+  @override
+  String get tipoMareTransicaoNota =>
+      'Neither spring nor neap tide — a midway period.';
+
+  @override
+  String get tendenciaPressaoCaindo => 'Falling';
+
+  @override
+  String get tendenciaPressaoEstavel => 'Stable';
+
+  @override
+  String get tendenciaPressaoSubindo => 'Rising';
+
+  @override
+  String get tipoPeriodoSolunarMaior => 'Major Period';
+
+  @override
+  String get tipoPeriodoSolunarMenor => 'Minor Period';
+
+  @override
+  String get variavelAmbientalVento => 'Wind';
+
+  @override
+  String get variavelAmbientalCorrente => 'Current';
+
+  @override
+  String get variavelAmbientalClorofila => 'Chlorophyll';
+
+  @override
+  String get variavelAmbientalOnda => 'Wave';
+
+  @override
+  String get variavelAmbientalTemperatura => 'Temperature';
+
+  @override
+  String get nivelOperacionalFavoravelTitulo =>
+      'Potentially favorable condition';
+
+  @override
+  String get nivelOperacionalFavoravelTexto =>
+      'When several oceanographic indicators converge, the tide\'s influence can reinforce an already favorable condition.';
+
+  @override
+  String get nivelOperacionalAtencaoTitulo => 'Caution condition';
+
+  @override
+  String get nivelOperacionalAtencaoTexto =>
+      'The tide alone is not enough to indicate a good fishing area.';
+
+  @override
+  String get nivelOperacionalBaixaEvidenciaTitulo => 'Low evidence';
+
+  @override
+  String get nivelOperacionalBaixaEvidenciaTexto =>
+      'Do not use the tide phase as the sole reason to move the vessel.';
+
+  @override
+  String get nivelOperacionalCardTitulo => 'Current Classification';
+
+  @override
+  String get nivelOperacionalCardDescricao =>
+      'Classification from the indicators the app has today (astronomical tide + measured current) — not a catch prediction.';
+
+  @override
+  String get nivelOperacionalAgora => 'NOW';
+
+  @override
+  String get estadoMareTitulo => 'CURRENT STATE';
+
+  @override
+  String estadoMareTituloMare(String tipo) {
+    return '$tipo TIDE';
+  }
+
+  @override
+  String get estadoMareFaseDaLua => 'MOON PHASE';
+
+  @override
+  String estadoMareDiaDoCiclo(int n) {
+    return 'day $n of the cycle';
+  }
+
+  @override
+  String get estadoMareAmplitudePrevista => 'FORECAST AMPLITUDE (24H)';
+
+  @override
+  String get estadoMareProximaPreamar => 'NEXT HIGH TIDE';
+
+  @override
+  String get estadoMareProximaBaixaMar => 'NEXT LOW TIDE';
+
+  @override
+  String get estadoMareDadoIndisponivel => 'Data unavailable';
+
+  @override
+  String get estadoMareQuadratura => 'NEAP';
+
+  @override
+  String get estadoMareSizigia => 'SPRING';
+
+  @override
+  String get classificacaoIndiceBaixa => 'Low';
+
+  @override
+  String get classificacaoIndiceModerada => 'Moderate';
+
+  @override
+  String get classificacaoIndiceAlta => 'High';
+
+  @override
+  String get indiceFatorFaseLunarNome =>
+      'Moon phase (proximity to spring tide)';
+
+  @override
+  String get indiceFatorAmplitudeNome => 'Forecast tidal amplitude';
+
+  @override
+  String get indiceFatorCorrenteNome => 'Current speed';
+
+  @override
+  String indiceFatorFaseLunarDetalhe(String fase, int dia) {
+    return '$fase · day $dia of the cycle';
+  }
+
+  @override
+  String indiceFatorAmplitudeDetalhe(String m) {
+    return '$m m over the next 24h';
+  }
+
+  @override
+  String indiceFatorCorrenteDetalhe(String ms) {
+    return '$ms m/s now';
+  }
+
+  @override
+  String get indiceInformativoDirecaoCorrente => 'Current direction';
+
+  @override
+  String get indiceInformativoDiferencaTemperatura => 'Temperature difference';
+
+  @override
+  String get indiceInformativoProximidadeFrentes =>
+      'Proximity to thermal fronts';
+
+  @override
+  String get indiceCardTitulo => 'Influence Potential';
+
+  @override
+  String get indiceCardDescricao =>
+      'How much tide conditions may be contributing to the region\'s oceanographic dynamics — not a chance of catching tuna.';
+
+  @override
+  String indiceCardPotencialPrefixo(String classificacao) {
+    return '$classificacao potential';
+  }
+
+  @override
+  String get indiceCardFatoresConsiderados => 'FACTORS CONSIDERED';
+
+  @override
+  String get indiceCardInformativos => 'INFORMATIONAL (NOT SCORED)';
+
+  @override
+  String get comparacaoSizigiaTitulo => 'Spring Tide';
+
+  @override
+  String get comparacaoSizigiaResumo => 'Greater tidal amplitude';
+
+  @override
+  String get comparacaoSizigiaEfeito1 => 'Greater variation in sea level';
+
+  @override
+  String get comparacaoSizigiaEfeito2 =>
+      'Potentially stronger tidal currents in certain regions';
+
+  @override
+  String get comparacaoSizigiaEfeito3 => 'Greater horizontal water transport';
+
+  @override
+  String get comparacaoSizigiaEfeito4 =>
+      'More mixing in environments where the tide has strong influence';
+
+  @override
+  String get comparacaoSizigiaEfeito5 =>
+      'Change in the distribution/concentration of organisms that serve as food for fish';
+
+  @override
+  String get comparacaoSizigiaRelacaoPesca =>
+      'In areas where tidal currents have significant influence, periods of greater amplitude can increase water movement and mixing, potentially altering prey distribution and creating favorable conditions for tuna activity.';
+
+  @override
+  String get comparacaoSizigiaPotencial => 'HIGH';
+
+  @override
+  String get comparacaoQuadraturaTitulo => 'Neap Tide';
+
+  @override
+  String get comparacaoQuadraturaResumo => 'Smaller tidal amplitude';
+
+  @override
+  String get comparacaoQuadraturaEfeito1 => 'Potentially weaker tidal currents';
+
+  @override
+  String get comparacaoQuadraturaEfeito2 => 'Smaller variation in water level';
+
+  @override
+  String get comparacaoQuadraturaEfeito3 =>
+      'Less tidal influence on mixing in certain regions';
+
+  @override
+  String get comparacaoQuadraturaEfeito4 =>
+      'Different distribution of organisms and prey';
+
+  @override
+  String get comparacaoQuadraturaRelacaoPesca =>
+      'During the neap tide, the smaller tidal amplitude can result in less tidal current influence in certain areas. However, this doesn\'t necessarily mean less tuna activity, since temperature, ocean fronts, food, depth and other factors may be more important.';
+
+  @override
+  String get comparacaoQuadraturaPotencial => 'MODERATE';
+
+  @override
+  String get comparacaoRelacaoPescaTitulo => 'RELATION TO TUNA FISHING';
+
+  @override
+  String comparacaoPotencialInfluencia(String potencial) {
+    return 'Influence potential: $potencial';
+  }
+
+  @override
+  String get comparacaoRodape =>
+      'Represents the tide\'s potential strength of influence, not a direct catch forecast.';
+
+  @override
+  String get graficoMareSemDado => 'Data unavailable for the 24h chart';
+
+  @override
+  String get graficoMareCorrenteLabel => 'Current';
+
+  @override
+  String get graficoMareAgoraLabel => 'Now';
+
+  @override
+  String get janelaOperacionalTitulo => 'Operational window';
+
+  @override
+  String get janelaOperacionalDescricao =>
+      'Upcoming hours — real tide, current and temperature for each time.';
+
+  @override
+  String get janelaObsSemDado => 'Not enough tide data for this time.';
+
+  @override
+  String get janelaObsEstofa =>
+      'Slack tide period (tide stopped). Tidal current tends to be weak at this time.';
+
+  @override
+  String get janelaObsEnchente =>
+      'Flood tide period. Watch for convergence zones and prey concentration.';
+
+  @override
+  String get janelaObsVazante =>
+      'Ebb tide period. Watch bank edges and channels where currents may concentrate food.';
+
+  @override
+  String get explicacaoSizigiaTexto =>
+      'At the New Moon and Full Moon, the Sun\'s and Moon\'s gravitational forces combine, increasing tidal amplitude.';
+
+  @override
+  String get explicacaoQuadraturaTexto =>
+      'At the first and last quarters, the Sun and Moon exert their gravitational forces in roughly perpendicular directions, resulting in a smaller tidal amplitude.';
+
+  @override
+  String get explicacaoEntendiBotao => 'Got it';
+
+  @override
+  String get explicacaoSol => 'Sun';
+
+  @override
+  String get explicacaoTerra => 'Earth';
+
+  @override
+  String get explicacaoLua => 'Moon';
+
+  @override
+  String get fluxoInfluenciaTitulo => 'Influence Flow';
+
+  @override
+  String get fluxoInfluenciaSubtitulo => 'Why does this matter for tuna?';
+
+  @override
+  String get fluxoEtapa1Titulo => 'Tide';
+
+  @override
+  String get fluxoEtapa1Sub => 'Spring or neap';
+
+  @override
+  String get fluxoEtapa2Titulo => 'Currents';
+
+  @override
+  String get fluxoEtapa2Sub => 'More or less intense';
+
+  @override
+  String get fluxoEtapa3Titulo => 'Mixing / water transport';
+
+  @override
+  String get fluxoEtapa3Sub => 'Movement of the water column';
+
+  @override
+  String get fluxoEtapa4Titulo => 'Distribution of nutrients and prey';
+
+  @override
+  String get fluxoEtapa4Sub => 'Where food concentrates';
+
+  @override
+  String get fluxoEtapa5Titulo => 'Food concentration';
+
+  @override
+  String get fluxoEtapa5Sub => 'Availability for tuna';
+
+  @override
+  String get fluxoEtapa6Titulo => 'Tuna behavior';
+
+  @override
+  String get fluxoEtapa6Sub => 'Movement and aggregation';
+
+  @override
+  String get fluxoEtapa7Titulo => 'Fishing activity potential';
+
+  @override
+  String get fluxoEtapa7Sub => 'One indicator among several';
+
+  @override
+  String get fluxoRodape =>
+      'This is a possible chain of influence, not a deterministic relationship: each step depends on local factors (bathymetry, topography, the region\'s current patterns) that the tide alone doesn\'t explain.';
+
+  @override
+  String mareCardTipoLabel(String tipo) {
+    return '$tipo Tide';
+  }
 }

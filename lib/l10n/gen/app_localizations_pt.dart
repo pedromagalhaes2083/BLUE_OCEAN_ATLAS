@@ -1850,4 +1850,387 @@ class AppLocalizationsPt extends AppLocalizations {
   String recomendacaoPontosAmostrados(int n) {
     return '$n pontos amostrados';
   }
+
+  @override
+  String get faseLuaTipoNovaLua => 'Lua Nova';
+
+  @override
+  String get faseLuaTipoCrescente => 'Lua Crescente';
+
+  @override
+  String get faseLuaTipoQuartoCrescente => 'Quarto Crescente';
+
+  @override
+  String get faseLuaTipoGibosaCrescente => 'Gibosa Crescente';
+
+  @override
+  String get faseLuaTipoCheia => 'Lua Cheia';
+
+  @override
+  String get faseLuaTipoGibosaMinguante => 'Gibosa Minguante';
+
+  @override
+  String get faseLuaTipoQuartoMinguante => 'Quarto Minguante';
+
+  @override
+  String get faseLuaTipoMinguante => 'Lua Minguante';
+
+  @override
+  String get tipoMareSizigiaLabel => 'Sizígia';
+
+  @override
+  String get tipoMareSizigiaNota =>
+      'Correntes mais fortes, maior amplitude de maré.';
+
+  @override
+  String get tipoMareQuadraturaLabel => 'Quadratura';
+
+  @override
+  String get tipoMareQuadraturaNota =>
+      'Correntes mais fracas, menor amplitude de maré.';
+
+  @override
+  String get tipoMareTransicaoLabel => 'Transição';
+
+  @override
+  String get tipoMareTransicaoNota =>
+      'Nem sizígia nem quadratura — período de meio de caminho.';
+
+  @override
+  String get tendenciaPressaoCaindo => 'Caindo';
+
+  @override
+  String get tendenciaPressaoEstavel => 'Estável';
+
+  @override
+  String get tendenciaPressaoSubindo => 'Subindo';
+
+  @override
+  String get tipoPeriodoSolunarMaior => 'Período Maior';
+
+  @override
+  String get tipoPeriodoSolunarMenor => 'Período Menor';
+
+  @override
+  String get variavelAmbientalVento => 'Vento';
+
+  @override
+  String get variavelAmbientalCorrente => 'Corrente';
+
+  @override
+  String get variavelAmbientalClorofila => 'Clorofila';
+
+  @override
+  String get variavelAmbientalOnda => 'Onda';
+
+  @override
+  String get variavelAmbientalTemperatura => 'Temperatura';
+
+  @override
+  String get nivelOperacionalFavoravelTitulo =>
+      'Condição potencialmente favorável';
+
+  @override
+  String get nivelOperacionalFavoravelTexto =>
+      'Quando vários indicadores oceanográficos convergem, a influência da maré pode reforçar uma condição já favorável.';
+
+  @override
+  String get nivelOperacionalAtencaoTitulo => 'Condição de atenção';
+
+  @override
+  String get nivelOperacionalAtencaoTexto =>
+      'A maré isoladamente não é suficiente para indicar uma boa área de pesca.';
+
+  @override
+  String get nivelOperacionalBaixaEvidenciaTitulo => 'Baixa evidência';
+
+  @override
+  String get nivelOperacionalBaixaEvidenciaTexto =>
+      'Não utilizar a fase da maré como único motivo para deslocar a embarcação.';
+
+  @override
+  String get nivelOperacionalCardTitulo => 'Classificação Atual';
+
+  @override
+  String get nivelOperacionalCardDescricao =>
+      'Classificação a partir dos indicadores que o app tem hoje (maré astronômica + corrente medida) — não é previsão de captura.';
+
+  @override
+  String get nivelOperacionalAgora => 'AGORA';
+
+  @override
+  String get estadoMareTitulo => 'ESTADO ATUAL';
+
+  @override
+  String estadoMareTituloMare(String tipo) {
+    return 'MARÉ DE $tipo';
+  }
+
+  @override
+  String get estadoMareFaseDaLua => 'FASE DA LUA';
+
+  @override
+  String estadoMareDiaDoCiclo(int n) {
+    return 'dia $n do ciclo';
+  }
+
+  @override
+  String get estadoMareAmplitudePrevista => 'AMPLITUDE PREVISTA (24H)';
+
+  @override
+  String get estadoMareProximaPreamar => 'PRÓXIMA PREAMAR';
+
+  @override
+  String get estadoMareProximaBaixaMar => 'PRÓXIMA BAIXA-MAR';
+
+  @override
+  String get estadoMareDadoIndisponivel => 'Dado indisponível';
+
+  @override
+  String get estadoMareQuadratura => 'QUADRATURA';
+
+  @override
+  String get estadoMareSizigia => 'SIZÍGIA';
+
+  @override
+  String get classificacaoIndiceBaixa => 'Baixo';
+
+  @override
+  String get classificacaoIndiceModerada => 'Moderado';
+
+  @override
+  String get classificacaoIndiceAlta => 'Alto';
+
+  @override
+  String get indiceFatorFaseLunarNome => 'Fase lunar (proximidade da sizígia)';
+
+  @override
+  String get indiceFatorAmplitudeNome => 'Amplitude de maré prevista';
+
+  @override
+  String get indiceFatorCorrenteNome => 'Velocidade da corrente';
+
+  @override
+  String indiceFatorFaseLunarDetalhe(String fase, int dia) {
+    return '$fase · dia $dia do ciclo';
+  }
+
+  @override
+  String indiceFatorAmplitudeDetalhe(String m) {
+    return '$m m nas próximas 24h';
+  }
+
+  @override
+  String indiceFatorCorrenteDetalhe(String ms) {
+    return '$ms m/s agora';
+  }
+
+  @override
+  String get indiceInformativoDirecaoCorrente => 'Direção da corrente';
+
+  @override
+  String get indiceInformativoDiferencaTemperatura =>
+      'Diferença de temperatura';
+
+  @override
+  String get indiceInformativoProximidadeFrentes =>
+      'Proximidade de frentes térmicas';
+
+  @override
+  String get indiceCardTitulo => 'Potencial de Influência';
+
+  @override
+  String get indiceCardDescricao =>
+      'Quanto as condições de maré podem estar contribuindo para a dinâmica oceanográfica da região — não é chance de pegar atum.';
+
+  @override
+  String indiceCardPotencialPrefixo(String classificacao) {
+    return 'Potencial $classificacao';
+  }
+
+  @override
+  String get indiceCardFatoresConsiderados => 'FATORES CONSIDERADOS';
+
+  @override
+  String get indiceCardInformativos => 'INFORMATIVOS (NÃO ENTRAM NA PONTUAÇÃO)';
+
+  @override
+  String get comparacaoSizigiaTitulo => 'Maré de Sizígia';
+
+  @override
+  String get comparacaoSizigiaResumo => 'Maior amplitude de maré';
+
+  @override
+  String get comparacaoSizigiaEfeito1 => 'Maior variação do nível do mar';
+
+  @override
+  String get comparacaoSizigiaEfeito2 =>
+      'Correntes de maré potencialmente mais intensas em determinadas regiões';
+
+  @override
+  String get comparacaoSizigiaEfeito3 => 'Maior transporte horizontal de água';
+
+  @override
+  String get comparacaoSizigiaEfeito4 =>
+      'Maior mistura em ambientes onde a maré exerce forte influência';
+
+  @override
+  String get comparacaoSizigiaEfeito5 =>
+      'Alteração na distribuição/concentração de organismos que servem de alimento aos peixes';
+
+  @override
+  String get comparacaoSizigiaRelacaoPesca =>
+      'Em áreas onde as correntes de maré possuem influência significativa, períodos de maior amplitude podem aumentar a movimentação e a mistura da água, podendo alterar a distribuição de presas e criar condições favoráveis à atividade dos atuns.';
+
+  @override
+  String get comparacaoSizigiaPotencial => 'ALTO';
+
+  @override
+  String get comparacaoQuadraturaTitulo => 'Maré de Quadratura';
+
+  @override
+  String get comparacaoQuadraturaResumo => 'Menor amplitude de maré';
+
+  @override
+  String get comparacaoQuadraturaEfeito1 =>
+      'Correntes de maré potencialmente menos intensas';
+
+  @override
+  String get comparacaoQuadraturaEfeito2 => 'Menor variação do nível da água';
+
+  @override
+  String get comparacaoQuadraturaEfeito3 =>
+      'Menor influência da maré sobre a mistura em determinadas regiões';
+
+  @override
+  String get comparacaoQuadraturaEfeito4 =>
+      'Distribuição diferente de organismos e presas';
+
+  @override
+  String get comparacaoQuadraturaRelacaoPesca =>
+      'Durante a quadratura, a menor amplitude da maré pode resultar em menor influência das correntes de maré em determinadas áreas. Entretanto, isso não significa necessariamente menor atividade de atum, pois temperatura, frentes oceânicas, alimento, profundidade e outros fatores podem ser mais importantes.';
+
+  @override
+  String get comparacaoQuadraturaPotencial => 'MODERADO';
+
+  @override
+  String get comparacaoRelacaoPescaTitulo => 'RELAÇÃO COM A PESCA DE ATUM';
+
+  @override
+  String comparacaoPotencialInfluencia(String potencial) {
+    return 'Potencial de influência: $potencial';
+  }
+
+  @override
+  String get comparacaoRodape =>
+      'Representa a força potencial da influência da maré, não uma previsão direta de captura.';
+
+  @override
+  String get graficoMareSemDado => 'Dado indisponível para o gráfico de 24h';
+
+  @override
+  String get graficoMareCorrenteLabel => 'Corrente';
+
+  @override
+  String get graficoMareAgoraLabel => 'Agora';
+
+  @override
+  String get janelaOperacionalTitulo => 'Janela operacional';
+
+  @override
+  String get janelaOperacionalDescricao =>
+      'Próximas horas — maré, corrente e temperatura reais de cada horário.';
+
+  @override
+  String get janelaObsSemDado =>
+      'Sem dado de maré suficiente para esse horário.';
+
+  @override
+  String get janelaObsEstofa =>
+      'Período de estofa (maré parada). Corrente de maré tende a ficar fraca nesse horário.';
+
+  @override
+  String get janelaObsEnchente =>
+      'Período de enchente. Observar regiões de convergência e concentração de presas.';
+
+  @override
+  String get janelaObsVazante =>
+      'Período de vazante. Observar bordas de banco e canais onde a correnteza pode concentrar alimento.';
+
+  @override
+  String get explicacaoSizigiaTexto =>
+      'Na Lua Nova e na Lua Cheia, as forças gravitacionais do Sol e da Lua se combinam, aumentando a amplitude das marés.';
+
+  @override
+  String get explicacaoQuadraturaTexto =>
+      'Nos quartos crescente e minguante, Sol e Lua exercem suas forças gravitacionais em direções aproximadamente perpendiculares, resultando em menor amplitude das marés.';
+
+  @override
+  String get explicacaoEntendiBotao => 'Entendi';
+
+  @override
+  String get explicacaoSol => 'Sol';
+
+  @override
+  String get explicacaoTerra => 'Terra';
+
+  @override
+  String get explicacaoLua => 'Lua';
+
+  @override
+  String get fluxoInfluenciaTitulo => 'Fluxo de Influência';
+
+  @override
+  String get fluxoInfluenciaSubtitulo => 'Por que isso importa para o atum?';
+
+  @override
+  String get fluxoEtapa1Titulo => 'Maré';
+
+  @override
+  String get fluxoEtapa1Sub => 'Sizígia ou quadratura';
+
+  @override
+  String get fluxoEtapa2Titulo => 'Correntes';
+
+  @override
+  String get fluxoEtapa2Sub => 'Mais ou menos intensas';
+
+  @override
+  String get fluxoEtapa3Titulo => 'Mistura / transporte de água';
+
+  @override
+  String get fluxoEtapa3Sub => 'Movimentação da coluna d\'água';
+
+  @override
+  String get fluxoEtapa4Titulo => 'Distribuição de nutrientes e presas';
+
+  @override
+  String get fluxoEtapa4Sub => 'Onde o alimento se concentra';
+
+  @override
+  String get fluxoEtapa5Titulo => 'Concentração de alimento';
+
+  @override
+  String get fluxoEtapa5Sub => 'Disponibilidade pro atum';
+
+  @override
+  String get fluxoEtapa6Titulo => 'Comportamento dos atuns';
+
+  @override
+  String get fluxoEtapa6Sub => 'Deslocamento e agregação';
+
+  @override
+  String get fluxoEtapa7Titulo => 'Potencial de atividade de pesca';
+
+  @override
+  String get fluxoEtapa7Sub => 'Um indicador entre vários';
+
+  @override
+  String get fluxoRodape =>
+      'Essa é uma cadeia de influência possível, não uma relação determinística: cada etapa depende de fatores locais (batimetria, topografia, regime de correntes da região) que a maré sozinha não explica.';
+
+  @override
+  String mareCardTipoLabel(String tipo) {
+    return 'Maré de $tipo';
+  }
 }

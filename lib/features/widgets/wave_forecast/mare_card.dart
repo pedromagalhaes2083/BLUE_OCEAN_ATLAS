@@ -117,14 +117,15 @@ class _SelaMareAstronomica extends StatelessWidget {
     }
 
     return Tooltip(
-      message: tipo.nota,
+      message: tipo.notaTexto(context),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icone, size: 14, color: cor),
           const SizedBox(width: 4),
           Text(
-            'Maré de ${tipo.label.toLowerCase()}',
+            AppLocalizations.of(context)
+                .mareCardTipoLabel(tipo.rotulo(context).toLowerCase()),
             style: TextStyle(fontSize: 11, color: cor, fontWeight: FontWeight.w600),
           ),
         ],

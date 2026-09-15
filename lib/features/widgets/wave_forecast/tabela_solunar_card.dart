@@ -88,7 +88,7 @@ class _LinhaPeriodo extends StatelessWidget {
           SizedBox(
             width: 84,
             child: Text(
-              periodo.tipo.label,
+              periodo.tipo.rotulo(context),
               style: TextStyle(
                   fontSize: 12, fontWeight: FontWeight.w600, color: cor),
             ),

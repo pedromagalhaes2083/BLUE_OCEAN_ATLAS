@@ -32,6 +32,8 @@
 /// nem têm fonte de dado no app ainda.
 library;
 
+import 'package:flutter/widgets.dart';
+import '../../l10n/gen/app_localizations.dart';
 import 'fase_lua.dart';
 
 /// Amplitude de maré (m) acima da qual o fator conta pontuação máxima —
@@ -45,20 +47,63 @@ const double _amplitudeReferenciaM = 3.0;
 /// maioria das regiões costeiras.
 const double _correnteReferenciaMs = 1.5;
 
+/// Qual fator um [FatorIndiceMare] representa — usado pra escolher o nome
+/// (localizado) e como formatar o [FatorIndiceMare.detalhe] na UI, sem
+/// depender de texto em português pré-formatado aqui no domínio (que não
+/// tem `BuildContext` pra localizar).
+enum TipoFatorIndiceMare { faseLunar, amplitudeMare, correnteVelocidade }
+
 /// Um fator individual do índice — [pontuacao] é 0-100, ou `null` quando o
 /// dado de origem não estava disponível (a UI deve mostrar
 /// "Dado indisponível", nunca um valor inventado).
+///
+/// O "detalhe" (valor bruto legível ao lado da pontuação, ex: "1.8 m",
+/// "0.42 m/s") não vem pronto daqui — fica como dado estruturado
+/// ([faseTipo]/[diaDoCiclo] para [TipoFatorIndiceMare.faseLunar],
+/// [valorDetalhe] para os outros dois) pra a UI formatar e localizar.
 class FatorIndiceMare {
-  final String nome;
+  final TipoFatorIndiceMare tipo;
   final double? pontuacao;
 
-  /// Valor bruto legível (ex: "1.8 m", "0.42 m/s"), pra mostrar ao lado da
-  /// pontuação — transparência sobre o DADO que gerou a INTERPRETAÇÃO.
-  final String? detalhe;
+  final FaseLuaTipo? faseTipo;
+  final int? diaDoCiclo;
+  final double? valorDetalhe;
 
-  const FatorIndiceMare({required this.nome, this.pontuacao, this.detalhe});
+  const FatorIndiceMare({
+    required this.tipo,
+    this.pontuacao,
+    this.faseTipo,
+    this.diaDoCiclo,
+    this.valorDetalhe,
+  });
 
   bool get disponivel => pontuacao != null;
+}
+
+/// Fatores citados no pedido original que o índice não pontua (ver doc do
+/// arquivo) — listados por transparência, sem texto pré-formatado.
+enum FatorInformativoIndiceMare {
+  direcaoCorrente,
+  vento,
+  diferencaTemperatura,
+  proximidadeFrentesTermicas,
+  clorofila,
+}
+
+extension FatorInformativoIndiceMareL10n on FatorInformativoIndiceMare {
+  String rotulo(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      FatorInformativoIndiceMare.direcaoCorrente =>
+        l10n.indiceInformativoDirecaoCorrente,
+      FatorInformativoIndiceMare.vento => l10n.variavelAmbientalVento,
+      FatorInformativoIndiceMare.diferencaTemperatura =>
+        l10n.indiceInformativoDiferencaTemperatura,
+      FatorInformativoIndiceMare.proximidadeFrentesTermicas =>
+        l10n.indiceInformativoProximidadeFrentes,
+      FatorInformativoIndiceMare.clorofila => l10n.variavelAmbientalClorofila,
+    };
+  }
 }
 
 /// Classificação textual do [IndiceInfluenciaMare.valor] — mesma ideia do
@@ -77,6 +122,19 @@ enum ClassificacaoIndiceMare {
   const ClassificacaoIndiceMare(this.label);
 }
 
+/// Rótulo localizado de [ClassificacaoIndiceMare] — o campo `label` fica em
+/// português (é `const`, sem acesso a `BuildContext`).
+extension ClassificacaoIndiceMareL10n on ClassificacaoIndiceMare {
+  String rotulo(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      ClassificacaoIndiceMare.baixa => l10n.classificacaoIndiceBaixa,
+      ClassificacaoIndiceMare.moderada => l10n.classificacaoIndiceModerada,
+      ClassificacaoIndiceMare.alta => l10n.classificacaoIndiceAlta,
+    };
+  }
+}
+
 /// Resultado do cálculo — [valor] é `null` quando nenhum fator tinha dado
 /// disponível (nesse caso a UI mostra o card inteiro como indisponível, sem
 /// inventar um número).
@@ -87,7 +145,7 @@ class IndiceInfluenciaMare {
   /// Fatores citados no pedido original que este índice não pontua (ver
   /// motivo na doc do arquivo) — listados por transparência, pra tela
   /// mostrar quais entradas foram consideradas e quais não.
-  final List<String> fatoresInformativos;
+  final List<FatorInformativoIndiceMare> fatoresInformativos;
 
   const IndiceInfluenciaMare({
     required this.valor,
@@ -119,27 +177,24 @@ IndiceInfluenciaMare calcularIndiceInfluenciaMare({
   final pontuacaoFase = pontuacaoProximidadeSizigia(fase);
   final fatores = <FatorIndiceMare>[
     FatorIndiceMare(
-      nome: 'Fase lunar (proximidade da sizígia)',
+      tipo: TipoFatorIndiceMare.faseLunar,
       pontuacao: pontuacaoFase,
-      detalhe: '${fase.tipo.label} · dia ${fase.idadeDias.round()} do ciclo',
+      faseTipo: fase.tipo,
+      diaDoCiclo: fase.idadeDias.round(),
     ),
     FatorIndiceMare(
-      nome: 'Amplitude de maré prevista',
+      tipo: TipoFatorIndiceMare.amplitudeMare,
       pontuacao: amplitudeMareM == null
           ? null
           : _clamp0a100(100 * amplitudeMareM / _amplitudeReferenciaM),
-      detalhe: amplitudeMareM == null
-          ? null
-          : '${amplitudeMareM.toStringAsFixed(2)} m nas próximas 24h',
+      valorDetalhe: amplitudeMareM,
     ),
     FatorIndiceMare(
-      nome: 'Velocidade da corrente',
+      tipo: TipoFatorIndiceMare.correnteVelocidade,
       pontuacao: correnteVelocidadeMs == null
           ? null
           : _clamp0a100(100 * correnteVelocidadeMs / _correnteReferenciaMs),
-      detalhe: correnteVelocidadeMs == null
-          ? null
-          : '${correnteVelocidadeMs.toStringAsFixed(2)} m/s agora',
+      valorDetalhe: correnteVelocidadeMs,
     ),
   ];
 
@@ -153,11 +208,11 @@ IndiceInfluenciaMare calcularIndiceInfluenciaMare({
     valor: valor,
     fatoresPontuados: fatores,
     fatoresInformativos: const [
-      'Direção da corrente',
-      'Vento',
-      'Diferença de temperatura',
-      'Proximidade de frentes térmicas',
-      'Clorofila',
+      FatorInformativoIndiceMare.direcaoCorrente,
+      FatorInformativoIndiceMare.vento,
+      FatorInformativoIndiceMare.diferencaTemperatura,
+      FatorInformativoIndiceMare.proximidadeFrentesTermicas,
+      FatorInformativoIndiceMare.clorofila,
     ],
   );
 }

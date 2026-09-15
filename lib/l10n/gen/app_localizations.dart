@@ -3201,6 +3201,684 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{n} pontos amostrados'**
   String recomendacaoPontosAmostrados(int n);
+
+  /// No description provided for @faseLuaTipoNovaLua.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lua Nova'**
+  String get faseLuaTipoNovaLua;
+
+  /// No description provided for @faseLuaTipoCrescente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lua Crescente'**
+  String get faseLuaTipoCrescente;
+
+  /// No description provided for @faseLuaTipoQuartoCrescente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quarto Crescente'**
+  String get faseLuaTipoQuartoCrescente;
+
+  /// No description provided for @faseLuaTipoGibosaCrescente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gibosa Crescente'**
+  String get faseLuaTipoGibosaCrescente;
+
+  /// No description provided for @faseLuaTipoCheia.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lua Cheia'**
+  String get faseLuaTipoCheia;
+
+  /// No description provided for @faseLuaTipoGibosaMinguante.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gibosa Minguante'**
+  String get faseLuaTipoGibosaMinguante;
+
+  /// No description provided for @faseLuaTipoQuartoMinguante.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quarto Minguante'**
+  String get faseLuaTipoQuartoMinguante;
+
+  /// No description provided for @faseLuaTipoMinguante.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lua Minguante'**
+  String get faseLuaTipoMinguante;
+
+  /// No description provided for @tipoMareSizigiaLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sizígia'**
+  String get tipoMareSizigiaLabel;
+
+  /// No description provided for @tipoMareSizigiaNota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Correntes mais fortes, maior amplitude de maré.'**
+  String get tipoMareSizigiaNota;
+
+  /// No description provided for @tipoMareQuadraturaLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quadratura'**
+  String get tipoMareQuadraturaLabel;
+
+  /// No description provided for @tipoMareQuadraturaNota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Correntes mais fracas, menor amplitude de maré.'**
+  String get tipoMareQuadraturaNota;
+
+  /// No description provided for @tipoMareTransicaoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transição'**
+  String get tipoMareTransicaoLabel;
+
+  /// No description provided for @tipoMareTransicaoNota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nem sizígia nem quadratura — período de meio de caminho.'**
+  String get tipoMareTransicaoNota;
+
+  /// No description provided for @tendenciaPressaoCaindo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Caindo'**
+  String get tendenciaPressaoCaindo;
+
+  /// No description provided for @tendenciaPressaoEstavel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estável'**
+  String get tendenciaPressaoEstavel;
+
+  /// No description provided for @tendenciaPressaoSubindo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Subindo'**
+  String get tendenciaPressaoSubindo;
+
+  /// No description provided for @tipoPeriodoSolunarMaior.
+  ///
+  /// In pt, this message translates to:
+  /// **'Período Maior'**
+  String get tipoPeriodoSolunarMaior;
+
+  /// No description provided for @tipoPeriodoSolunarMenor.
+  ///
+  /// In pt, this message translates to:
+  /// **'Período Menor'**
+  String get tipoPeriodoSolunarMenor;
+
+  /// No description provided for @variavelAmbientalVento.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vento'**
+  String get variavelAmbientalVento;
+
+  /// No description provided for @variavelAmbientalCorrente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Corrente'**
+  String get variavelAmbientalCorrente;
+
+  /// No description provided for @variavelAmbientalClorofila.
+  ///
+  /// In pt, this message translates to:
+  /// **'Clorofila'**
+  String get variavelAmbientalClorofila;
+
+  /// No description provided for @variavelAmbientalOnda.
+  ///
+  /// In pt, this message translates to:
+  /// **'Onda'**
+  String get variavelAmbientalOnda;
+
+  /// No description provided for @variavelAmbientalTemperatura.
+  ///
+  /// In pt, this message translates to:
+  /// **'Temperatura'**
+  String get variavelAmbientalTemperatura;
+
+  /// No description provided for @nivelOperacionalFavoravelTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Condição potencialmente favorável'**
+  String get nivelOperacionalFavoravelTitulo;
+
+  /// No description provided for @nivelOperacionalFavoravelTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando vários indicadores oceanográficos convergem, a influência da maré pode reforçar uma condição já favorável.'**
+  String get nivelOperacionalFavoravelTexto;
+
+  /// No description provided for @nivelOperacionalAtencaoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Condição de atenção'**
+  String get nivelOperacionalAtencaoTitulo;
+
+  /// No description provided for @nivelOperacionalAtencaoTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'A maré isoladamente não é suficiente para indicar uma boa área de pesca.'**
+  String get nivelOperacionalAtencaoTexto;
+
+  /// No description provided for @nivelOperacionalBaixaEvidenciaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixa evidência'**
+  String get nivelOperacionalBaixaEvidenciaTitulo;
+
+  /// No description provided for @nivelOperacionalBaixaEvidenciaTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não utilizar a fase da maré como único motivo para deslocar a embarcação.'**
+  String get nivelOperacionalBaixaEvidenciaTexto;
+
+  /// No description provided for @nivelOperacionalCardTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Classificação Atual'**
+  String get nivelOperacionalCardTitulo;
+
+  /// No description provided for @nivelOperacionalCardDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Classificação a partir dos indicadores que o app tem hoje (maré astronômica + corrente medida) — não é previsão de captura.'**
+  String get nivelOperacionalCardDescricao;
+
+  /// No description provided for @nivelOperacionalAgora.
+  ///
+  /// In pt, this message translates to:
+  /// **'AGORA'**
+  String get nivelOperacionalAgora;
+
+  /// No description provided for @estadoMareTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'ESTADO ATUAL'**
+  String get estadoMareTitulo;
+
+  /// No description provided for @estadoMareTituloMare.
+  ///
+  /// In pt, this message translates to:
+  /// **'MARÉ DE {tipo}'**
+  String estadoMareTituloMare(String tipo);
+
+  /// No description provided for @estadoMareFaseDaLua.
+  ///
+  /// In pt, this message translates to:
+  /// **'FASE DA LUA'**
+  String get estadoMareFaseDaLua;
+
+  /// No description provided for @estadoMareDiaDoCiclo.
+  ///
+  /// In pt, this message translates to:
+  /// **'dia {n} do ciclo'**
+  String estadoMareDiaDoCiclo(int n);
+
+  /// No description provided for @estadoMareAmplitudePrevista.
+  ///
+  /// In pt, this message translates to:
+  /// **'AMPLITUDE PREVISTA (24H)'**
+  String get estadoMareAmplitudePrevista;
+
+  /// No description provided for @estadoMareProximaPreamar.
+  ///
+  /// In pt, this message translates to:
+  /// **'PRÓXIMA PREAMAR'**
+  String get estadoMareProximaPreamar;
+
+  /// No description provided for @estadoMareProximaBaixaMar.
+  ///
+  /// In pt, this message translates to:
+  /// **'PRÓXIMA BAIXA-MAR'**
+  String get estadoMareProximaBaixaMar;
+
+  /// No description provided for @estadoMareDadoIndisponivel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dado indisponível'**
+  String get estadoMareDadoIndisponivel;
+
+  /// No description provided for @estadoMareQuadratura.
+  ///
+  /// In pt, this message translates to:
+  /// **'QUADRATURA'**
+  String get estadoMareQuadratura;
+
+  /// No description provided for @estadoMareSizigia.
+  ///
+  /// In pt, this message translates to:
+  /// **'SIZÍGIA'**
+  String get estadoMareSizigia;
+
+  /// No description provided for @classificacaoIndiceBaixa.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixo'**
+  String get classificacaoIndiceBaixa;
+
+  /// No description provided for @classificacaoIndiceModerada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Moderado'**
+  String get classificacaoIndiceModerada;
+
+  /// No description provided for @classificacaoIndiceAlta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alto'**
+  String get classificacaoIndiceAlta;
+
+  /// No description provided for @indiceFatorFaseLunarNome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fase lunar (proximidade da sizígia)'**
+  String get indiceFatorFaseLunarNome;
+
+  /// No description provided for @indiceFatorAmplitudeNome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Amplitude de maré prevista'**
+  String get indiceFatorAmplitudeNome;
+
+  /// No description provided for @indiceFatorCorrenteNome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade da corrente'**
+  String get indiceFatorCorrenteNome;
+
+  /// No description provided for @indiceFatorFaseLunarDetalhe.
+  ///
+  /// In pt, this message translates to:
+  /// **'{fase} · dia {dia} do ciclo'**
+  String indiceFatorFaseLunarDetalhe(String fase, int dia);
+
+  /// No description provided for @indiceFatorAmplitudeDetalhe.
+  ///
+  /// In pt, this message translates to:
+  /// **'{m} m nas próximas 24h'**
+  String indiceFatorAmplitudeDetalhe(String m);
+
+  /// No description provided for @indiceFatorCorrenteDetalhe.
+  ///
+  /// In pt, this message translates to:
+  /// **'{ms} m/s agora'**
+  String indiceFatorCorrenteDetalhe(String ms);
+
+  /// No description provided for @indiceInformativoDirecaoCorrente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Direção da corrente'**
+  String get indiceInformativoDirecaoCorrente;
+
+  /// No description provided for @indiceInformativoDiferencaTemperatura.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diferença de temperatura'**
+  String get indiceInformativoDiferencaTemperatura;
+
+  /// No description provided for @indiceInformativoProximidadeFrentes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Proximidade de frentes térmicas'**
+  String get indiceInformativoProximidadeFrentes;
+
+  /// No description provided for @indiceCardTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Potencial de Influência'**
+  String get indiceCardTitulo;
+
+  /// No description provided for @indiceCardDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto as condições de maré podem estar contribuindo para a dinâmica oceanográfica da região — não é chance de pegar atum.'**
+  String get indiceCardDescricao;
+
+  /// No description provided for @indiceCardPotencialPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Potencial {classificacao}'**
+  String indiceCardPotencialPrefixo(String classificacao);
+
+  /// No description provided for @indiceCardFatoresConsiderados.
+  ///
+  /// In pt, this message translates to:
+  /// **'FATORES CONSIDERADOS'**
+  String get indiceCardFatoresConsiderados;
+
+  /// No description provided for @indiceCardInformativos.
+  ///
+  /// In pt, this message translates to:
+  /// **'INFORMATIVOS (NÃO ENTRAM NA PONTUAÇÃO)'**
+  String get indiceCardInformativos;
+
+  /// No description provided for @comparacaoSizigiaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré de Sizígia'**
+  String get comparacaoSizigiaTitulo;
+
+  /// No description provided for @comparacaoSizigiaResumo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maior amplitude de maré'**
+  String get comparacaoSizigiaResumo;
+
+  /// No description provided for @comparacaoSizigiaEfeito1.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maior variação do nível do mar'**
+  String get comparacaoSizigiaEfeito1;
+
+  /// No description provided for @comparacaoSizigiaEfeito2.
+  ///
+  /// In pt, this message translates to:
+  /// **'Correntes de maré potencialmente mais intensas em determinadas regiões'**
+  String get comparacaoSizigiaEfeito2;
+
+  /// No description provided for @comparacaoSizigiaEfeito3.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maior transporte horizontal de água'**
+  String get comparacaoSizigiaEfeito3;
+
+  /// No description provided for @comparacaoSizigiaEfeito4.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maior mistura em ambientes onde a maré exerce forte influência'**
+  String get comparacaoSizigiaEfeito4;
+
+  /// No description provided for @comparacaoSizigiaEfeito5.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alteração na distribuição/concentração de organismos que servem de alimento aos peixes'**
+  String get comparacaoSizigiaEfeito5;
+
+  /// No description provided for @comparacaoSizigiaRelacaoPesca.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em áreas onde as correntes de maré possuem influência significativa, períodos de maior amplitude podem aumentar a movimentação e a mistura da água, podendo alterar a distribuição de presas e criar condições favoráveis à atividade dos atuns.'**
+  String get comparacaoSizigiaRelacaoPesca;
+
+  /// No description provided for @comparacaoSizigiaPotencial.
+  ///
+  /// In pt, this message translates to:
+  /// **'ALTO'**
+  String get comparacaoSizigiaPotencial;
+
+  /// No description provided for @comparacaoQuadraturaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré de Quadratura'**
+  String get comparacaoQuadraturaTitulo;
+
+  /// No description provided for @comparacaoQuadraturaResumo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Menor amplitude de maré'**
+  String get comparacaoQuadraturaResumo;
+
+  /// No description provided for @comparacaoQuadraturaEfeito1.
+  ///
+  /// In pt, this message translates to:
+  /// **'Correntes de maré potencialmente menos intensas'**
+  String get comparacaoQuadraturaEfeito1;
+
+  /// No description provided for @comparacaoQuadraturaEfeito2.
+  ///
+  /// In pt, this message translates to:
+  /// **'Menor variação do nível da água'**
+  String get comparacaoQuadraturaEfeito2;
+
+  /// No description provided for @comparacaoQuadraturaEfeito3.
+  ///
+  /// In pt, this message translates to:
+  /// **'Menor influência da maré sobre a mistura em determinadas regiões'**
+  String get comparacaoQuadraturaEfeito3;
+
+  /// No description provided for @comparacaoQuadraturaEfeito4.
+  ///
+  /// In pt, this message translates to:
+  /// **'Distribuição diferente de organismos e presas'**
+  String get comparacaoQuadraturaEfeito4;
+
+  /// No description provided for @comparacaoQuadraturaRelacaoPesca.
+  ///
+  /// In pt, this message translates to:
+  /// **'Durante a quadratura, a menor amplitude da maré pode resultar em menor influência das correntes de maré em determinadas áreas. Entretanto, isso não significa necessariamente menor atividade de atum, pois temperatura, frentes oceânicas, alimento, profundidade e outros fatores podem ser mais importantes.'**
+  String get comparacaoQuadraturaRelacaoPesca;
+
+  /// No description provided for @comparacaoQuadraturaPotencial.
+  ///
+  /// In pt, this message translates to:
+  /// **'MODERADO'**
+  String get comparacaoQuadraturaPotencial;
+
+  /// No description provided for @comparacaoRelacaoPescaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'RELAÇÃO COM A PESCA DE ATUM'**
+  String get comparacaoRelacaoPescaTitulo;
+
+  /// No description provided for @comparacaoPotencialInfluencia.
+  ///
+  /// In pt, this message translates to:
+  /// **'Potencial de influência: {potencial}'**
+  String comparacaoPotencialInfluencia(String potencial);
+
+  /// No description provided for @comparacaoRodape.
+  ///
+  /// In pt, this message translates to:
+  /// **'Representa a força potencial da influência da maré, não uma previsão direta de captura.'**
+  String get comparacaoRodape;
+
+  /// No description provided for @graficoMareSemDado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dado indisponível para o gráfico de 24h'**
+  String get graficoMareSemDado;
+
+  /// No description provided for @graficoMareCorrenteLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Corrente'**
+  String get graficoMareCorrenteLabel;
+
+  /// No description provided for @graficoMareAgoraLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agora'**
+  String get graficoMareAgoraLabel;
+
+  /// No description provided for @janelaOperacionalTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Janela operacional'**
+  String get janelaOperacionalTitulo;
+
+  /// No description provided for @janelaOperacionalDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximas horas — maré, corrente e temperatura reais de cada horário.'**
+  String get janelaOperacionalDescricao;
+
+  /// No description provided for @janelaObsSemDado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem dado de maré suficiente para esse horário.'**
+  String get janelaObsSemDado;
+
+  /// No description provided for @janelaObsEstofa.
+  ///
+  /// In pt, this message translates to:
+  /// **'Período de estofa (maré parada). Corrente de maré tende a ficar fraca nesse horário.'**
+  String get janelaObsEstofa;
+
+  /// No description provided for @janelaObsEnchente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Período de enchente. Observar regiões de convergência e concentração de presas.'**
+  String get janelaObsEnchente;
+
+  /// No description provided for @janelaObsVazante.
+  ///
+  /// In pt, this message translates to:
+  /// **'Período de vazante. Observar bordas de banco e canais onde a correnteza pode concentrar alimento.'**
+  String get janelaObsVazante;
+
+  /// No description provided for @explicacaoSizigiaTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Na Lua Nova e na Lua Cheia, as forças gravitacionais do Sol e da Lua se combinam, aumentando a amplitude das marés.'**
+  String get explicacaoSizigiaTexto;
+
+  /// No description provided for @explicacaoQuadraturaTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nos quartos crescente e minguante, Sol e Lua exercem suas forças gravitacionais em direções aproximadamente perpendiculares, resultando em menor amplitude das marés.'**
+  String get explicacaoQuadraturaTexto;
+
+  /// No description provided for @explicacaoEntendiBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entendi'**
+  String get explicacaoEntendiBotao;
+
+  /// No description provided for @explicacaoSol.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sol'**
+  String get explicacaoSol;
+
+  /// No description provided for @explicacaoTerra.
+  ///
+  /// In pt, this message translates to:
+  /// **'Terra'**
+  String get explicacaoTerra;
+
+  /// No description provided for @explicacaoLua.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lua'**
+  String get explicacaoLua;
+
+  /// No description provided for @fluxoInfluenciaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fluxo de Influência'**
+  String get fluxoInfluenciaTitulo;
+
+  /// No description provided for @fluxoInfluenciaSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Por que isso importa para o atum?'**
+  String get fluxoInfluenciaSubtitulo;
+
+  /// No description provided for @fluxoEtapa1Titulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré'**
+  String get fluxoEtapa1Titulo;
+
+  /// No description provided for @fluxoEtapa1Sub.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sizígia ou quadratura'**
+  String get fluxoEtapa1Sub;
+
+  /// No description provided for @fluxoEtapa2Titulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Correntes'**
+  String get fluxoEtapa2Titulo;
+
+  /// No description provided for @fluxoEtapa2Sub.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais ou menos intensas'**
+  String get fluxoEtapa2Sub;
+
+  /// No description provided for @fluxoEtapa3Titulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mistura / transporte de água'**
+  String get fluxoEtapa3Titulo;
+
+  /// No description provided for @fluxoEtapa3Sub.
+  ///
+  /// In pt, this message translates to:
+  /// **'Movimentação da coluna d\'água'**
+  String get fluxoEtapa3Sub;
+
+  /// No description provided for @fluxoEtapa4Titulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Distribuição de nutrientes e presas'**
+  String get fluxoEtapa4Titulo;
+
+  /// No description provided for @fluxoEtapa4Sub.
+  ///
+  /// In pt, this message translates to:
+  /// **'Onde o alimento se concentra'**
+  String get fluxoEtapa4Sub;
+
+  /// No description provided for @fluxoEtapa5Titulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concentração de alimento'**
+  String get fluxoEtapa5Titulo;
+
+  /// No description provided for @fluxoEtapa5Sub.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disponibilidade pro atum'**
+  String get fluxoEtapa5Sub;
+
+  /// No description provided for @fluxoEtapa6Titulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comportamento dos atuns'**
+  String get fluxoEtapa6Titulo;
+
+  /// No description provided for @fluxoEtapa6Sub.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deslocamento e agregação'**
+  String get fluxoEtapa6Sub;
+
+  /// No description provided for @fluxoEtapa7Titulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Potencial de atividade de pesca'**
+  String get fluxoEtapa7Titulo;
+
+  /// No description provided for @fluxoEtapa7Sub.
+  ///
+  /// In pt, this message translates to:
+  /// **'Um indicador entre vários'**
+  String get fluxoEtapa7Sub;
+
+  /// No description provided for @fluxoRodape.
+  ///
+  /// In pt, this message translates to:
+  /// **'Essa é uma cadeia de influência possível, não uma relação determinística: cada etapa depende de fatores locais (batimetria, topografia, regime de correntes da região) que a maré sozinha não explica.'**
+  String get fluxoRodape;
+
+  /// No description provided for @mareCardTipoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré de {tipo}'**
+  String mareCardTipoLabel(String tipo);
 }
 
 class _AppLocalizationsDelegate

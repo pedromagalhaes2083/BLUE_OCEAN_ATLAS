@@ -304,7 +304,7 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
           const SizedBox(width: 6),
           Text(
               AppLocalizations.of(context)
-                  .mareEPescaCondicaoAtual(_tipoMare.label),
+                  .mareEPescaCondicaoAtual(_tipoMare.rotulo(context)),
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cor)),
         ],
       ),

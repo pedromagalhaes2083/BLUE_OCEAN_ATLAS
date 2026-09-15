@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/fase_lua.dart';
 import '../../../core/models/wave_forecast.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Card principal da tela "Maré e Pesca de Atum" — estado atual da maré
 /// astronômica (sizígia/quadratura/transição), fase da lua, amplitude
@@ -39,6 +40,7 @@ class EstadoMareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final corRot = corRotulo(context);
+    final l10n = AppLocalizations.of(context);
     final escuro = Theme.of(context).brightness == Brightness.dark;
     final corCard = Color.alphaBlend(
       const Color(0xFFE0F7FA).withValues(alpha: escuro ? 0.18 : 1.0),
@@ -60,7 +62,7 @@ class EstadoMareCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ESTADO ATUAL',
+            Text(l10n.estadoMareTitulo,
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -73,7 +75,8 @@ class EstadoMareCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'MARÉ DE ${tipoMare.label.toUpperCase()}',
+                    l10n.estadoMareTituloMare(
+                        tipoMare.rotulo(context).toUpperCase()),
                     style: TextStyle(
                         fontSize: 21, fontWeight: FontWeight.bold, color: _corTipo),
                   ),
@@ -81,7 +84,8 @@ class EstadoMareCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text(tipoMare.nota, style: TextStyle(fontSize: 12, color: corRot)),
+            Text(tipoMare.notaTexto(context),
+                style: TextStyle(fontSize: 12, color: corRot)),
             const SizedBox(height: 18),
             _barraQuadraturaSizigia(context),
             const SizedBox(height: 20),
@@ -90,29 +94,33 @@ class EstadoMareCard extends StatelessWidget {
               runSpacing: 16,
               children: [
                 _dado(
+                  context,
                   corRot,
-                  label: 'FASE DA LUA',
-                  valor: '${fase.tipo.emoji} ${fase.tipo.label}',
-                  sub: 'dia ${fase.idadeDias.round()} do ciclo',
+                  label: l10n.estadoMareFaseDaLua,
+                  valor: '${fase.tipo.emoji} ${fase.tipo.rotulo(context)}',
+                  sub: l10n.estadoMareDiaDoCiclo(fase.idadeDias.round()),
                 ),
                 _dado(
+                  context,
                   corRot,
-                  label: 'AMPLITUDE PREVISTA (24H)',
+                  label: l10n.estadoMareAmplitudePrevista,
                   valor: amplitudeMareM == null
                       ? null
                       : '${amplitudeMareM!.toStringAsFixed(2)} m',
                 ),
                 _dado(
+                  context,
                   corRot,
-                  label: 'PRÓXIMA PREAMAR',
+                  label: l10n.estadoMareProximaPreamar,
                   valor: proximaPreamar == null ? null : _hm(proximaPreamar.time),
                   sub: proximaPreamar == null
                       ? null
                       : '${proximaPreamar.alturaM.toStringAsFixed(2)} m',
                 ),
                 _dado(
+                  context,
                   corRot,
-                  label: 'PRÓXIMA BAIXA-MAR',
+                  label: l10n.estadoMareProximaBaixaMar,
                   valor: proximaBaixamar == null ? null : _hm(proximaBaixamar.time),
                   sub: proximaBaixamar == null
                       ? null
@@ -129,7 +137,7 @@ class EstadoMareCard extends StatelessWidget {
   String _hm(DateTime d) =>
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
-  Widget _dado(Color corRot,
+  Widget _dado(BuildContext context, Color corRot,
       {required String label, required String? valor, String? sub}) {
     return SizedBox(
       width: 150,
@@ -144,7 +152,7 @@ class EstadoMareCard extends StatelessWidget {
                   color: corRot)),
           const SizedBox(height: 4),
           Text(
-            valor ?? 'Dado indisponível',
+            valor ?? AppLocalizations.of(context).estadoMareDadoIndisponivel,
             style: TextStyle(
                 fontSize: valor == null ? 13 : 16,
                 fontWeight: valor == null ? FontWeight.normal : FontWeight.bold,
@@ -213,10 +221,10 @@ class EstadoMareCard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('QUADRATURA',
+            Text(AppLocalizations.of(context).estadoMareQuadratura,
                 style: TextStyle(
                     fontSize: 10, fontWeight: FontWeight.w700, color: corRot)),
-            Text('SIZÍGIA',
+            Text(AppLocalizations.of(context).estadoMareSizigia,
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,

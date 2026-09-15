@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/wave_forecast.dart';
 import '../../../core/utils/cor_tema.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../metereologia/domain/models/previsao_tempo.dart';
 
 /// Um bloco da timeline "Janela operacional" — sempre construído a partir
@@ -24,22 +25,34 @@ class _BlocoJanela {
     this.temperaturaC,
   });
 
-  String get observacao {
+  /// Sem texto pré-formatado aqui (classe sem `BuildContext`) — a UI
+  /// localiza a partir desse tipo (ver [_TipoObservacaoJanelaL10n]).
+  _TipoObservacaoJanela get tipoObservacao {
     final delta = deltaMareM;
-    if (delta == null) return 'Sem dado de maré suficiente para esse horário.';
-    if (delta.abs() < 0.03) {
-      return 'Período de estofa (maré parada). Corrente de maré tende a ficar fraca nesse horário.';
-    }
-    if (delta > 0) {
-      return 'Período de enchente. Observar regiões de convergência e concentração de presas.';
-    }
-    return 'Período de vazante. Observar bordas de banco e canais onde a correnteza pode concentrar alimento.';
+    if (delta == null) return _TipoObservacaoJanela.semDado;
+    if (delta.abs() < 0.03) return _TipoObservacaoJanela.estofa;
+    if (delta > 0) return _TipoObservacaoJanela.enchente;
+    return _TipoObservacaoJanela.vazante;
   }
 
   IconData get icone {
     final delta = deltaMareM;
     if (delta == null || delta.abs() < 0.03) return Icons.trending_flat;
     return delta > 0 ? Icons.trending_up : Icons.trending_down;
+  }
+}
+
+enum _TipoObservacaoJanela { semDado, estofa, enchente, vazante }
+
+extension _TipoObservacaoJanelaL10n on _TipoObservacaoJanela {
+  String texto(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      _TipoObservacaoJanela.semDado => l10n.janelaObsSemDado,
+      _TipoObservacaoJanela.estofa => l10n.janelaObsEstofa,
+      _TipoObservacaoJanela.enchente => l10n.janelaObsEnchente,
+      _TipoObservacaoJanela.vazante => l10n.janelaObsVazante,
+    };
   }
 }
 
@@ -110,10 +123,10 @@ class JanelaOperacionalWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Janela operacional',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(AppLocalizations.of(context).janelaOperacionalTitulo,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text('Próximas horas — maré, corrente e temperatura reais de cada horário.',
+            Text(AppLocalizations.of(context).janelaOperacionalDescricao,
                 style: TextStyle(fontSize: 11.5, color: corRot)),
             const SizedBox(height: 14),
             SizedBox(
@@ -184,7 +197,7 @@ class _CardBloco extends StatelessWidget {
           const SizedBox(height: 6),
           Expanded(
             child: Text(
-              bloco.observacao,
+              bloco.tipoObservacao.texto(context),
               style: const TextStyle(fontSize: 10.5, height: 1.3),
               overflow: TextOverflow.fade,
             ),

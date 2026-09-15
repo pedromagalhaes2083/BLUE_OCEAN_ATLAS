@@ -76,7 +76,7 @@ class FaseLuaCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          faseAtual.tipo.label,
+                          faseAtual.tipo.rotulo(context),
                           style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold),
                         ),
@@ -198,7 +198,7 @@ class _ProximaFaseChip extends StatelessWidget {
         children: [
           Text(proxima.tipo.emoji, style: const TextStyle(fontSize: 18)),
           Text(
-            proxima.tipo.label,
+            proxima.tipo.rotulo(context),
             textAlign: TextAlign.center,
             style: const TextStyle(
                 fontSize: 10,
