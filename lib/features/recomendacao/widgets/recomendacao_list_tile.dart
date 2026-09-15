@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../domain/models/recomendacao.dart';
 import 'recomendacao_confianca_dots.dart';
 
@@ -36,6 +37,7 @@ class RecomendacaoListTile extends StatelessWidget {
     final r = recomendacao;
     final cor = _corScore;
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    final l10n = AppLocalizations.of(context);
 
     return InkWell(
       onTap: onTap,
@@ -62,7 +64,7 @@ class RecomendacaoListTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    r.titulo.isEmpty ? '(sem título)' : r.titulo,
+                    r.titulo.isEmpty ? l10n.recomendacaoSemTitulo : r.titulo,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -101,7 +103,7 @@ class RecomendacaoListTile extends StatelessWidget {
                           const SizedBox(width: 8),
                         if (r.pontos != null && r.pontos!.isNotEmpty)
                           Text(
-                            '${r.pontos!.length} pts',
+                            l10n.recomendacaoPontosAbrev(r.pontos!.length),
                             style: TextStyle(
                                 fontSize: 12, color: onSurfaceVariant),
                           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../../metereologia/presentation/mare_pesca_atum_screen.dart';
 import '../domain/models/recomendacao.dart';
@@ -27,6 +28,7 @@ class RecomendacaoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = recomendacao;
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    final l10n = AppLocalizations.of(context);
 
     // Sem Card/elevação própria — o conteúdo já vive dentro do bottom
     // sheet em CartasScreen, que fornece o fundo e o cantinho arredondado;
@@ -45,7 +47,7 @@ class RecomendacaoCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    r.titulo.isEmpty ? '(sem título)' : r.titulo,
+                    r.titulo.isEmpty ? l10n.recomendacaoSemTitulo : r.titulo,
                     style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.bold),
                   ),
@@ -104,7 +106,7 @@ class RecomendacaoCard extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Icons.map_outlined, size: 18),
-              label: const Text('Ver na Carta'),
+              label: Text(l10n.recomendacaoVerNaCarta),
             ),
           ),
           if (r.centroide != null) ...[
@@ -123,7 +125,7 @@ class RecomendacaoCard extends StatelessWidget {
                   ),
                 ),
                 icon: const Icon(Icons.phishing, size: 18),
-                label: const Text('Maré e Pesca aqui'),
+                label: Text(l10n.meusPontosMareEPescaAqui),
               ),
             ),
           ],
@@ -136,7 +138,7 @@ class RecomendacaoCard extends StatelessWidget {
               const Icon(Icons.set_meal, size: 14, color: Colors.blueGrey),
               const SizedBox(width: 5),
               Text(
-                '${r.estimativaCapturaKg} kg estimados',
+                l10n.recomendacaoKgEstimados('${r.estimativaCapturaKg}'),
                 style:
                     const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
               ),
@@ -153,7 +155,7 @@ class RecomendacaoCard extends StatelessWidget {
           const SizedBox(height: 8),
           const Divider(height: 24),
           Text(
-            '${r.pontos!.length} pontos amostrados',
+            l10n.recomendacaoPontosAmostrados(r.pontos!.length),
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),

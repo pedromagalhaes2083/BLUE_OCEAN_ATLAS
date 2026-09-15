@@ -3147,6 +3147,60 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'SST'**
   String get mapaSstLabel;
+
+  /// No description provided for @recomendacaoSemTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'(sem título)'**
+  String get recomendacaoSemTitulo;
+
+  /// No description provided for @recomendacaoNenhumaDisponivel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma recomendação disponível'**
+  String get recomendacaoNenhumaDisponivel;
+
+  /// No description provided for @recomendacaoExpirada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expirada'**
+  String get recomendacaoExpirada;
+
+  /// No description provided for @recomendacaoValidaAte.
+  ///
+  /// In pt, this message translates to:
+  /// **'Válida até {data}'**
+  String recomendacaoValidaAte(String data);
+
+  /// No description provided for @recomendacaoVarPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Var. {variavel}: {valor}'**
+  String recomendacaoVarPrefixo(String variavel, String valor);
+
+  /// No description provided for @recomendacaoPontosAbrev.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n} pts'**
+  String recomendacaoPontosAbrev(int n);
+
+  /// No description provided for @recomendacaoVerNaCarta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver na Carta'**
+  String get recomendacaoVerNaCarta;
+
+  /// No description provided for @recomendacaoKgEstimados.
+  ///
+  /// In pt, this message translates to:
+  /// **'{kg} kg estimados'**
+  String recomendacaoKgEstimados(String kg);
+
+  /// No description provided for @recomendacaoPontosAmostrados.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n} pontos amostrados'**
+  String recomendacaoPontosAmostrados(int n);
 }
 
 class _AppLocalizationsDelegate

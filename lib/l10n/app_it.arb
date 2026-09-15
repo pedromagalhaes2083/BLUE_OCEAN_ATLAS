@@ -634,5 +634,20 @@
 
   "mapaScreenTituloFallback": "Mappa",
   "mapaRotaProducao": "Rotta di Produzione",
-  "mapaSstLabel": "SST"
+  "mapaSstLabel": "SST",
+
+  "recomendacaoSemTitulo": "(senza titolo)",
+  "recomendacaoNenhumaDisponivel": "Nessuna raccomandazione disponibile",
+  "recomendacaoExpirada": "Scaduta",
+  "recomendacaoValidaAte": "Valida fino al {data}",
+  "@recomendacaoValidaAte": {"placeholders": {"data": {"type": "String"}}},
+  "recomendacaoVarPrefixo": "Var. {variavel}: {valor}",
+  "@recomendacaoVarPrefixo": {"placeholders": {"variavel": {"type": "String"}, "valor": {"type": "String"}}},
+  "recomendacaoPontosAbrev": "{n} pt",
+  "@recomendacaoPontosAbrev": {"placeholders": {"n": {"type": "int"}}},
+  "recomendacaoVerNaCarta": "Vedi sulla Carta",
+  "recomendacaoKgEstimados": "{kg} kg stimati",
+  "@recomendacaoKgEstimados": {"placeholders": {"kg": {"type": "String"}}},
+  "recomendacaoPontosAmostrados": "{n} punti campionati",
+  "@recomendacaoPontosAmostrados": {"placeholders": {"n": {"type": "int"}}}
 }

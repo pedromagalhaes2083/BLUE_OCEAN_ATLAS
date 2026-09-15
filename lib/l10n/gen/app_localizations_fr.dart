@@ -1833,4 +1833,42 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get mapaSstLabel => 'SST';
+
+  @override
+  String get recomendacaoSemTitulo => '(sans titre)';
+
+  @override
+  String get recomendacaoNenhumaDisponivel =>
+      'Aucune recommandation disponible';
+
+  @override
+  String get recomendacaoExpirada => 'Expirée';
+
+  @override
+  String recomendacaoValidaAte(String data) {
+    return 'Valide jusqu\'au $data';
+  }
+
+  @override
+  String recomendacaoVarPrefixo(String variavel, String valor) {
+    return 'Var. $variavel : $valor';
+  }
+
+  @override
+  String recomendacaoPontosAbrev(int n) {
+    return '$n pts';
+  }
+
+  @override
+  String get recomendacaoVerNaCarta => 'Voir sur la Carte';
+
+  @override
+  String recomendacaoKgEstimados(String kg) {
+    return '$kg kg estimés';
+  }
+
+  @override
+  String recomendacaoPontosAmostrados(int n) {
+    return '$n points échantillonnés';
+  }
 }

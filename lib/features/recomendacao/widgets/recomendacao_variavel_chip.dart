@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../domain/models/recomendacao.dart';
 
 /// Selo com uma variável ambiental (vento, corrente, clorofila, onda,
@@ -13,7 +14,8 @@ class RecomendacaoVariavelChip extends StatelessWidget {
     final tipo = variavel.tipo;
     final label = tipo != null
         ? '${tipo.label}: ${variavel.valor.toStringAsFixed(2)} ${tipo.unidade}'
-        : 'Var. ${variavel.variavel}: ${variavel.valor.toStringAsFixed(2)}';
+        : AppLocalizations.of(context).recomendacaoVarPrefixo(
+            '${variavel.variavel}', variavel.valor.toStringAsFixed(2));
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

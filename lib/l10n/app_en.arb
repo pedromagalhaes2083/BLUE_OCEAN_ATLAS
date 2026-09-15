@@ -634,5 +634,20 @@
 
   "mapaScreenTituloFallback": "Map",
   "mapaRotaProducao": "Production Route",
-  "mapaSstLabel": "SST"
+  "mapaSstLabel": "SST",
+
+  "recomendacaoSemTitulo": "(no title)",
+  "recomendacaoNenhumaDisponivel": "No recommendations available",
+  "recomendacaoExpirada": "Expired",
+  "recomendacaoValidaAte": "Valid until {data}",
+  "@recomendacaoValidaAte": {"placeholders": {"data": {"type": "String"}}},
+  "recomendacaoVarPrefixo": "Var. {variavel}: {valor}",
+  "@recomendacaoVarPrefixo": {"placeholders": {"variavel": {"type": "String"}, "valor": {"type": "String"}}},
+  "recomendacaoPontosAbrev": "{n} pts",
+  "@recomendacaoPontosAbrev": {"placeholders": {"n": {"type": "int"}}},
+  "recomendacaoVerNaCarta": "View on Chart",
+  "recomendacaoKgEstimados": "{kg} kg estimated",
+  "@recomendacaoKgEstimados": {"placeholders": {"kg": {"type": "String"}}},
+  "recomendacaoPontosAmostrados": "{n} sampled points",
+  "@recomendacaoPontosAmostrados": {"placeholders": {"n": {"type": "int"}}}
 }

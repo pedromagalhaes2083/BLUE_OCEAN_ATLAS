@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../domain/models/recomendacao.dart';
 import 'recomendacao_list_tile.dart';
 
@@ -17,12 +18,12 @@ class RecomendacoesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (recomendacoes.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: Text(
-            'Nenhuma recomendação disponível',
-            style: TextStyle(color: Colors.grey),
+            AppLocalizations.of(context).recomendacaoNenhumaDisponivel,
+            style: const TextStyle(color: Colors.grey),
           ),
         ),
       );
