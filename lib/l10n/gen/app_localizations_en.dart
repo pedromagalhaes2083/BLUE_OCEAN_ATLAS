@@ -1532,4 +1532,160 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get alertaRotaCorrenteExtrema => 'Extreme';
+
+  @override
+  String get diaSemanaSegunda => 'Monday';
+
+  @override
+  String get diaSemanaTerca => 'Tuesday';
+
+  @override
+  String get diaSemanaQuarta => 'Wednesday';
+
+  @override
+  String get diaSemanaQuinta => 'Thursday';
+
+  @override
+  String get diaSemanaSexta => 'Friday';
+
+  @override
+  String get diaSemanaSabado => 'Saturday';
+
+  @override
+  String get diaSemanaDomingo => 'Sunday';
+
+  @override
+  String get faseLuaScreenTitulo => 'Moon Phase';
+
+  @override
+  String get faseLuaErroBuscarPrefixo => 'Error fetching moonrise/moonset';
+
+  @override
+  String get faseLuaAguardandoPosicao =>
+      'Waiting for the vessel\'s current position for moonrise/moonset times — the phase above doesn\'t depend on it.';
+
+  @override
+  String get faseLuaNascerEPorTitulo => 'MOONRISE AND MOONSET';
+
+  @override
+  String faseLuaHojeData(String data) {
+    return 'Today, $data';
+  }
+
+  @override
+  String get erroSincronizarPrefixo => 'Error syncing';
+
+  @override
+  String get tabuaMareTooltipRemoverPorto => 'Remove port';
+
+  @override
+  String get tabuaMareRemoverPortoTitulo => 'Remove port?';
+
+  @override
+  String tabuaMareRemoverPortoConteudo(String nome) {
+    return '\"$nome\" will be removed from the list.';
+  }
+
+  @override
+  String get tabuaMareSincronizando => 'Syncing...';
+
+  @override
+  String get tabuaMareSincronizarDeNovo => 'Sync again';
+
+  @override
+  String tabuaMareSincronizadoEm(String data) {
+    return 'Synced on $data · available offline';
+  }
+
+  @override
+  String get tabuaMareAindaNaoSincronizado =>
+      'Not synced yet — needs internet the first time';
+
+  @override
+  String get tabuaMareSincronizePrimeiraVez =>
+      'Sync at least once, with internet, to calculate this port\'s offline tide table.';
+
+  @override
+  String get tabuaMareNivelAgoraTitulo => 'Level now';
+
+  @override
+  String get tabuaMareTitulo => 'Tide Table';
+
+  @override
+  String get tabuaMareBotaoPorto => 'Port';
+
+  @override
+  String tabuaMareErroCarregarPrefixo(String erro) {
+    return 'Error loading ports: $erro';
+  }
+
+  @override
+  String tabuaMareErroSincronizarNome(String nome) {
+    return 'Error syncing \"$nome\"';
+  }
+
+  @override
+  String get tabuaMareNovoPortoTitulo => 'New port';
+
+  @override
+  String get tabuaMareNomeLabel => 'Name';
+
+  @override
+  String get tabuaMareNomeHint => 'e.g. Port of Itarema';
+
+  @override
+  String get tabuaMarePreencherNome => 'Enter the port\'s name';
+
+  @override
+  String get tabuaMareNenhumPortoTitulo => 'No ports saved yet';
+
+  @override
+  String get tabuaMareNenhumPortoDescricao =>
+      'Save a port\'s coordinates (e.g. Itarema, Acaraú, Camocim) to check the forecast tide, even offline once synced.';
+
+  @override
+  String get tabuaMarePoucosDados =>
+      'Too little tide data was returned for this point';
+
+  @override
+  String get mareEPescaTitulo => 'Tide and Fishing';
+
+  @override
+  String get mareEPescaErroBuscarPrefixo => 'Error fetching tide forecast';
+
+  @override
+  String get mareEPescaAguardandoPosicao =>
+      'Waiting for the vessel\'s current position...';
+
+  @override
+  String get mareEPescaCabecalhoTitulo => 'Tide Influence on Tuna Fishing';
+
+  @override
+  String get mareEPescaCabecalhoDescricao =>
+      'Understand how tidal amplitude can affect currents, water mixing and tuna feeding conditions.';
+
+  @override
+  String mareEPescaCondicaoAtual(String tipo) {
+    return 'Current tide condition: $tipo';
+  }
+
+  @override
+  String get mareEPescaGrafico24hTitulo => 'Tide over the next 24h';
+
+  @override
+  String get mareEPescaEntendaSizigia => 'Understand spring tides';
+
+  @override
+  String get mareEPescaEntendaQuadratura => 'Understand neap tides';
+
+  @override
+  String get mareEPescaImportante => 'Important';
+
+  @override
+  String get mareEPescaAvisoPrincipal =>
+      'The tide phase should not be used in isolation to determine a fishing area. The environment\'s response varies with location, depth, topography, current patterns, temperature, food availability, wind and other oceanographic factors.';
+
+  @override
+  String get mareEPescaAvisoSecundario =>
+      'Use the tide as one of the indicators within an integrated analysis.';
 }

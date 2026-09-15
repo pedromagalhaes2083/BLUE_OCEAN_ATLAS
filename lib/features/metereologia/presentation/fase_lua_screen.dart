@@ -4,6 +4,7 @@ import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/fase_lua.dart';
 import '../../../core/utils/tabela_solunar.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../widgets/posicao_atual_widget.dart';
 import '../../widgets/wave_forecast/fase_lua_card.dart';
 import '../../widgets/wave_forecast/tabela_solunar_card.dart';
@@ -49,8 +50,8 @@ class _FaseLuaScreenState extends State<FaseLuaScreen> {
       setState(() => _dias = dias);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erro =
-          mensagemErroAmigavel(e, prefixo: 'Erro ao buscar nascer/pôr da lua'));
+      setState(() => _erro = mensagemErroAmigavel(e,
+          prefixo: AppLocalizations.of(context).faseLuaErroBuscarPrefixo));
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -96,8 +97,9 @@ class _FaseLuaScreenState extends State<FaseLuaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Fase da Lua')),
+      appBar: AppBar(title: Text(l10n.faseLuaScreenTitulo)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -124,8 +126,7 @@ class _FaseLuaScreenState extends State<FaseLuaScreen> {
             Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Aguardando posição atual da embarcação para os horários '
-                'de nascer/pôr da lua — a fase acima não depende disso.',
+                l10n.faseLuaAguardandoPosicao,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: corRotulo(context)),
               ),
@@ -160,7 +161,7 @@ class _FaseLuaScreenState extends State<FaseLuaScreen> {
               ),
             )
           else if (_dias != null) ...[
-            Text('NASCER E PÔR DA LUA',
+            Text(l10n.faseLuaNascerEPorTitulo,
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -197,9 +198,11 @@ class _LinhaDiaLunar extends StatelessWidget {
         dia.data.day == hoje.day;
 
     final fase = calcularFaseLua(dia.data);
-    const diasSemana = [
-      'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira',
-      'Sexta-feira', 'Sábado', 'Domingo',
+    final l10n = AppLocalizations.of(context);
+    final diasSemana = [
+      l10n.diaSemanaSegunda, l10n.diaSemanaTerca, l10n.diaSemanaQuarta,
+      l10n.diaSemanaQuinta, l10n.diaSemanaSexta, l10n.diaSemanaSabado,
+      l10n.diaSemanaDomingo,
     ];
     final d = dia.data.day.toString().padLeft(2, '0');
     final mes = dia.data.month.toString().padLeft(2, '0');
@@ -226,7 +229,9 @@ class _LinhaDiaLunar extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-              eHoje ? 'Hoje, $d/$mes' : '${diasSemana[dia.data.weekday - 1]}, $d/$mes',
+              eHoje
+                  ? l10n.faseLuaHojeData('$d/$mes')
+                  : '${diasSemana[dia.data.weekday - 1]}, $d/$mes',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: eHoje ? FontWeight.bold : FontWeight.normal,

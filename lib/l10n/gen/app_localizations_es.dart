@@ -1544,4 +1544,163 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get alertaRotaCorrenteExtrema => 'Extrema';
+
+  @override
+  String get diaSemanaSegunda => 'Lunes';
+
+  @override
+  String get diaSemanaTerca => 'Martes';
+
+  @override
+  String get diaSemanaQuarta => 'Miércoles';
+
+  @override
+  String get diaSemanaQuinta => 'Jueves';
+
+  @override
+  String get diaSemanaSexta => 'Viernes';
+
+  @override
+  String get diaSemanaSabado => 'Sábado';
+
+  @override
+  String get diaSemanaDomingo => 'Domingo';
+
+  @override
+  String get faseLuaScreenTitulo => 'Fase Lunar';
+
+  @override
+  String get faseLuaErroBuscarPrefixo =>
+      'Error al buscar salida/puesta de la luna';
+
+  @override
+  String get faseLuaAguardandoPosicao =>
+      'Esperando la posición actual de la embarcación para los horarios de salida/puesta de la luna — la fase de arriba no depende de eso.';
+
+  @override
+  String get faseLuaNascerEPorTitulo => 'SALIDA Y PUESTA DE LA LUNA';
+
+  @override
+  String faseLuaHojeData(String data) {
+    return 'Hoy, $data';
+  }
+
+  @override
+  String get erroSincronizarPrefixo => 'Error al sincronizar';
+
+  @override
+  String get tabuaMareTooltipRemoverPorto => 'Eliminar puerto';
+
+  @override
+  String get tabuaMareRemoverPortoTitulo => '¿Eliminar puerto?';
+
+  @override
+  String tabuaMareRemoverPortoConteudo(String nome) {
+    return '\"$nome\" se eliminará de la lista.';
+  }
+
+  @override
+  String get tabuaMareSincronizando => 'Sincronizando...';
+
+  @override
+  String get tabuaMareSincronizarDeNovo => 'Sincronizar de nuevo';
+
+  @override
+  String tabuaMareSincronizadoEm(String data) {
+    return 'Sincronizado el $data · disponible sin conexión';
+  }
+
+  @override
+  String get tabuaMareAindaNaoSincronizado =>
+      'Aún no sincronizado — necesita internet la primera vez';
+
+  @override
+  String get tabuaMareSincronizePrimeiraVez =>
+      'Sincronice al menos una vez, con internet, para calcular la tabla de mareas sin conexión de este puerto.';
+
+  @override
+  String get tabuaMareNivelAgoraTitulo => 'Nivel ahora';
+
+  @override
+  String get tabuaMareTitulo => 'Tabla de Mareas';
+
+  @override
+  String get tabuaMareBotaoPorto => 'Puerto';
+
+  @override
+  String tabuaMareErroCarregarPrefixo(String erro) {
+    return 'Error al cargar puertos: $erro';
+  }
+
+  @override
+  String tabuaMareErroSincronizarNome(String nome) {
+    return 'Error al sincronizar \"$nome\"';
+  }
+
+  @override
+  String get tabuaMareNovoPortoTitulo => 'Nuevo puerto';
+
+  @override
+  String get tabuaMareNomeLabel => 'Nombre';
+
+  @override
+  String get tabuaMareNomeHint => 'Ej: Puerto de Itarema';
+
+  @override
+  String get tabuaMarePreencherNome => 'Complete el nombre del puerto';
+
+  @override
+  String get tabuaMareNenhumPortoTitulo => 'Aún no hay puertos guardados';
+
+  @override
+  String get tabuaMareNenhumPortoDescricao =>
+      'Guarde la coordenada de un puerto (ej: Itarema, Acaraú, Camocim) para consultar la marea prevista, incluso sin conexión tras sincronizar.';
+
+  @override
+  String get tabuaMarePoucosDados =>
+      'Se devolvieron muy pocos datos de marea para este punto';
+
+  @override
+  String get mareEPescaTitulo => 'Marea y Pesca';
+
+  @override
+  String get mareEPescaErroBuscarPrefixo =>
+      'Error al buscar la previsión de marea';
+
+  @override
+  String get mareEPescaAguardandoPosicao =>
+      'Esperando la posición actual de la embarcación...';
+
+  @override
+  String get mareEPescaCabecalhoTitulo =>
+      'Influencia de la Marea en la Pesca de Atún';
+
+  @override
+  String get mareEPescaCabecalhoDescricao =>
+      'Comprenda cómo la amplitud de las mareas puede alterar las corrientes, la mezcla del agua y las condiciones de alimentación de los atunes.';
+
+  @override
+  String mareEPescaCondicaoAtual(String tipo) {
+    return 'Condición actual de la marea: $tipo';
+  }
+
+  @override
+  String get mareEPescaGrafico24hTitulo => 'Marea en las próximas 24h';
+
+  @override
+  String get mareEPescaEntendaSizigia => 'Entienda las mareas vivas';
+
+  @override
+  String get mareEPescaEntendaQuadratura => 'Entienda las mareas muertas';
+
+  @override
+  String get mareEPescaImportante => 'Importante';
+
+  @override
+  String get mareEPescaAvisoPrincipal =>
+      'La fase de la marea no debe utilizarse de forma aislada para determinar un área de pesca. La respuesta del ambiente varía según la ubicación, profundidad, topografía, régimen de corrientes, temperatura, disponibilidad de alimento, viento y otros factores oceanográficos.';
+
+  @override
+  String get mareEPescaAvisoSecundario =>
+      'Utilice la marea como uno de los indicadores dentro de un análisis integrado.';
 }

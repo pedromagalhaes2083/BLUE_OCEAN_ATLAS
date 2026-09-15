@@ -7,6 +7,7 @@ import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/fase_lua.dart';
 import '../../../core/utils/indice_influencia_mare.dart';
 import '../../../core/utils/nivel_operacional_mare.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/meus_pontos_screen.dart';
 import '../../widgets/mare_pesca_atum/comparacao_sizigia_quadratura_widget.dart';
 import '../../widgets/mare_pesca_atum/estado_mare_card.dart';
@@ -102,8 +103,8 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(
-          () => _erro = mensagemErroAmigavel(e, prefixo: 'Erro ao buscar previsão de maré'));
+      setState(() => _erro = mensagemErroAmigavel(e,
+          prefixo: AppLocalizations.of(context).mareEPescaErroBuscarPrefixo));
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -137,23 +138,26 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
   Widget build(BuildContext context) {
     final corRot = corRotulo(context);
     final forecast = _waveForecast;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget._pontoFixo
-            ? (widget.nomePonto?.isNotEmpty == true ? widget.nomePonto! : 'Maré e Pesca')
-            : 'Maré e Pesca'),
+            ? (widget.nomePonto?.isNotEmpty == true
+                ? widget.nomePonto!
+                : l10n.mareEPescaTitulo)
+            : l10n.mareEPescaTitulo),
         actions: [
           if (widget._pontoFixo)
             IconButton(
               icon: const Icon(Icons.refresh),
-              tooltip: 'Atualizar',
+              tooltip: l10n.viagemAtualizarTooltip,
               onPressed: _carregando ? null : _buscarDados,
             )
           else
             IconButton(
               icon: const Icon(Icons.pin_drop),
-              tooltip: 'Meus Pontos',
+              tooltip: l10n.mapaMeusPontosTooltip,
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const MeusPontosScreen()),
@@ -175,7 +179,7 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
             ),
           const SizedBox(height: 20),
           if (_lat == null || _lon == null)
-            _mensagemCentral('Aguardando posição atual da embarcação...')
+            _mensagemCentral(l10n.mareEPescaAguardandoPosicao)
           else if (_carregando)
             const Center(
               child: Padding(
@@ -226,7 +230,7 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
             _botoesExplicacao(context),
           ],
           const SizedBox(height: 20),
-          _avisoCientifico(corRot),
+          _avisoCientifico(context, corRot),
           const SizedBox(height: 12),
         ],
       ),
@@ -261,26 +265,26 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
   }
 
   Widget _cabecalho(BuildContext context, Color corRot) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Influência da Maré na Pesca de Atum',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        Text(
+          l10n.mareEPescaCabecalhoTitulo,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 6),
         Text(
-          'Entenda como a amplitude das marés pode alterar correntes, mistura da '
-          'água e condições de alimentação dos atuns.',
+          l10n.mareEPescaCabecalhoDescricao,
           style: TextStyle(fontSize: 13, color: corRot, height: 1.4),
         ),
         const SizedBox(height: 12),
-        _seloTipoMare(),
+        _seloTipoMare(context),
       ],
     );
   }
 
-  Widget _seloTipoMare() {
+  Widget _seloTipoMare(BuildContext context) {
     final cor = switch (_tipoMare) {
       TipoMareAstronomica.sizigia => Colors.orange.shade800,
       TipoMareAstronomica.quadratura => Colors.blueGrey,
@@ -298,7 +302,9 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
         children: [
           Icon(Icons.water, size: 14, color: cor),
           const SizedBox(width: 6),
-          Text('Condição atual da maré: ${_tipoMare.label}',
+          Text(
+              AppLocalizations.of(context)
+                  .mareEPescaCondicaoAtual(_tipoMare.label),
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cor)),
         ],
       ),
@@ -318,8 +324,8 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Maré nas próximas 24h',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(AppLocalizations.of(context).mareEPescaGrafico24hTitulo,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
             GraficoMare24h(forecast: forecast, eventos: forecast.eventosMare),
           ],
@@ -329,6 +335,7 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
   }
 
   Widget _botoesExplicacao(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -336,18 +343,19 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
         OutlinedButton.icon(
           onPressed: () => mostrarExplicacaoSizigia(context),
           icon: const Icon(Icons.nightlight_round, size: 16),
-          label: const Text('Entenda a sizígia'),
+          label: Text(l10n.mareEPescaEntendaSizigia),
         ),
         OutlinedButton.icon(
           onPressed: () => mostrarExplicacaoQuadratura(context),
           icon: const Icon(Icons.nightlight_round, size: 16),
-          label: const Text('Entenda a quadratura'),
+          label: Text(l10n.mareEPescaEntendaQuadratura),
         ),
       ],
     );
   }
 
-  Widget _avisoCientifico(Color corRot) {
+  Widget _avisoCientifico(BuildContext context, Color corRot) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -361,21 +369,18 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
           Row(children: [
             Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800, size: 18),
             const SizedBox(width: 8),
-            const Text('Importante',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            Text(l10n.mareEPescaImportante,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
           ]),
           const SizedBox(height: 8),
-          const Text(
-            'A fase da maré não deve ser utilizada isoladamente para determinar '
-            'uma área de pesca. A resposta do ambiente varia conforme localização, '
-            'profundidade, topografia, regime de correntes, temperatura, '
-            'disponibilidade de alimento, vento e outros fatores oceanográficos.',
-            style: TextStyle(fontSize: 12, height: 1.4),
+          Text(
+            l10n.mareEPescaAvisoPrincipal,
+            style: const TextStyle(fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Utilize a maré como um dos indicadores dentro de uma análise integrada.',
-            style: TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600),
+          Text(
+            l10n.mareEPescaAvisoSecundario,
+            style: const TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600),
           ),
         ],
       ),

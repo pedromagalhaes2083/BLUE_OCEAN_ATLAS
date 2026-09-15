@@ -4,6 +4,7 @@ import '../../../core/database/database_helper.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/mare_harmonica.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../widgets/seletor_coordenada_widget.dart';
 import '../data/wave_forecast_repository.dart';
 import '../domain/models/porto_mare.dart';
@@ -46,7 +47,8 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
       setState(() => _portos = portos);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erro = 'Erro ao carregar portos: $e');
+      setState(() => _erro =
+          AppLocalizations.of(context).tabuaMareErroCarregarPrefixo('$e'));
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -61,12 +63,13 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
   /// que o usuário chamou a sincronização, deixando erro de conexão sem
   /// nenhum feedback visível pra quem estava na tela de detalhe.
   Future<PortoMare> _sincronizarPortoSemUI(PortoMare porto) async {
+    final mensagemPoucosDados = AppLocalizations.of(context).tabuaMarePoucosDados;
     final serie = await WaveForecastRepository().buscarSerieNivelMar(
       latitude: porto.latitude,
       longitude: porto.longitude,
     );
     if (serie.length < 24) {
-      throw Exception('Poucos dados de maré retornados pra esse ponto');
+      throw Exception(mensagemPoucosDados);
     }
     final modelo = ajustarModeloMareHarmonico(
       horarios: serie.map((e) => e.horario).toList(),
@@ -99,7 +102,8 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(mensagemErroAmigavel(e,
-                prefixo: 'Erro ao sincronizar "${porto.nome}"'))),
+                prefixo: AppLocalizations.of(context)
+                    .tabuaMareErroSincronizarNome(porto.nome)))),
       );
     } finally {
       if (mounted) setState(() => _sincronizando.remove(porto.id));
@@ -117,20 +121,21 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
     final nomeController = TextEditingController();
     double lat = 0;
     double lon = 0;
+    final l10n = AppLocalizations.of(context);
 
     final salvar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Novo porto'),
+        title: Text(l10n.tabuaMareNovoPortoTitulo),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nomeController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  hintText: 'Ex: Porto de Itarema',
+                decoration: InputDecoration(
+                  labelText: l10n.tabuaMareNomeLabel,
+                  hintText: l10n.tabuaMareNomeHint,
                 ),
                 textCapitalization: TextCapitalization.words,
               ),
@@ -147,19 +152,19 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelar),
           ),
           FilledButton(
             onPressed: () {
               if (nomeController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Preencha o nome do porto')),
+                  SnackBar(content: Text(l10n.tabuaMarePreencherNome)),
                 );
                 return;
               }
               Navigator.pop(dialogContext, true);
             },
-            child: const Text('Salvar'),
+            child: Text(l10n.salvar),
           ),
         ],
       ),
@@ -192,13 +197,14 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tábua de Maré'),
+        title: Text(l10n.tabuaMareTitulo),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Atualizar',
+            tooltip: l10n.viagemAtualizarTooltip,
             onPressed: _carregando ? null : _carregar,
           ),
         ],
@@ -206,7 +212,7 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _adicionarPorto,
         icon: const Icon(Icons.add),
-        label: const Text('Porto'),
+        label: Text(l10n.tabuaMareBotaoPorto),
       ),
       body: _buildBody(),
     );
@@ -221,6 +227,7 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
     }
     if (_portos.isEmpty) {
       final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+      final l10n = AppLocalizations.of(context);
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -229,15 +236,14 @@ class _TabuaMareScreenState extends State<TabuaMareScreen> {
             children: [
               Icon(Icons.water_outlined, size: 64, color: onSurfaceVariant),
               const SizedBox(height: 16),
-              const Text(
-                'Nenhum porto salvo ainda',
+              Text(
+                l10n.tabuaMareNenhumPortoTitulo,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                'Salve a coordenada de um porto (ex: Itarema, Acaraú, Camocim) '
-                'pra consultar a maré prevista, mesmo offline depois de sincronizado.',
+                l10n.tabuaMareNenhumPortoDescricao,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: onSurfaceVariant),
               ),

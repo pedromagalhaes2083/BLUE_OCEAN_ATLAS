@@ -2690,6 +2690,276 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Extrema'**
   String get alertaRotaCorrenteExtrema;
+
+  /// No description provided for @diaSemanaSegunda.
+  ///
+  /// In pt, this message translates to:
+  /// **'Segunda-feira'**
+  String get diaSemanaSegunda;
+
+  /// No description provided for @diaSemanaTerca.
+  ///
+  /// In pt, this message translates to:
+  /// **'Terça-feira'**
+  String get diaSemanaTerca;
+
+  /// No description provided for @diaSemanaQuarta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quarta-feira'**
+  String get diaSemanaQuarta;
+
+  /// No description provided for @diaSemanaQuinta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quinta-feira'**
+  String get diaSemanaQuinta;
+
+  /// No description provided for @diaSemanaSexta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sexta-feira'**
+  String get diaSemanaSexta;
+
+  /// No description provided for @diaSemanaSabado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sábado'**
+  String get diaSemanaSabado;
+
+  /// No description provided for @diaSemanaDomingo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Domingo'**
+  String get diaSemanaDomingo;
+
+  /// No description provided for @faseLuaScreenTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fase da Lua'**
+  String get faseLuaScreenTitulo;
+
+  /// No description provided for @faseLuaErroBuscarPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao buscar nascer/pôr da lua'**
+  String get faseLuaErroBuscarPrefixo;
+
+  /// No description provided for @faseLuaAguardandoPosicao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando posição atual da embarcação para os horários de nascer/pôr da lua — a fase acima não depende disso.'**
+  String get faseLuaAguardandoPosicao;
+
+  /// No description provided for @faseLuaNascerEPorTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'NASCER E PÔR DA LUA'**
+  String get faseLuaNascerEPorTitulo;
+
+  /// No description provided for @faseLuaHojeData.
+  ///
+  /// In pt, this message translates to:
+  /// **'Hoje, {data}'**
+  String faseLuaHojeData(String data);
+
+  /// No description provided for @erroSincronizarPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao sincronizar'**
+  String get erroSincronizarPrefixo;
+
+  /// No description provided for @tabuaMareTooltipRemoverPorto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover porto'**
+  String get tabuaMareTooltipRemoverPorto;
+
+  /// No description provided for @tabuaMareRemoverPortoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover porto?'**
+  String get tabuaMareRemoverPortoTitulo;
+
+  /// No description provided for @tabuaMareRemoverPortoConteudo.
+  ///
+  /// In pt, this message translates to:
+  /// **'\"{nome}\" será removido da lista.'**
+  String tabuaMareRemoverPortoConteudo(String nome);
+
+  /// No description provided for @tabuaMareSincronizando.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sincronizando...'**
+  String get tabuaMareSincronizando;
+
+  /// No description provided for @tabuaMareSincronizarDeNovo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sincronizar de novo'**
+  String get tabuaMareSincronizarDeNovo;
+
+  /// No description provided for @tabuaMareSincronizadoEm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sincronizado em {data} · disponível offline'**
+  String tabuaMareSincronizadoEm(String data);
+
+  /// No description provided for @tabuaMareAindaNaoSincronizado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda não sincronizado — precisa de internet na 1ª vez'**
+  String get tabuaMareAindaNaoSincronizado;
+
+  /// No description provided for @tabuaMareSincronizePrimeiraVez.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sincronize pelo menos uma vez, com internet, pra calcular a tábua de maré offline deste porto.'**
+  String get tabuaMareSincronizePrimeiraVez;
+
+  /// No description provided for @tabuaMareNivelAgoraTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nível agora'**
+  String get tabuaMareNivelAgoraTitulo;
+
+  /// No description provided for @tabuaMareTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tábua de Maré'**
+  String get tabuaMareTitulo;
+
+  /// No description provided for @tabuaMareBotaoPorto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Porto'**
+  String get tabuaMareBotaoPorto;
+
+  /// No description provided for @tabuaMareErroCarregarPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar portos: {erro}'**
+  String tabuaMareErroCarregarPrefixo(String erro);
+
+  /// No description provided for @tabuaMareErroSincronizarNome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao sincronizar \"{nome}\"'**
+  String tabuaMareErroSincronizarNome(String nome);
+
+  /// No description provided for @tabuaMareNovoPortoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Novo porto'**
+  String get tabuaMareNovoPortoTitulo;
+
+  /// No description provided for @tabuaMareNomeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome'**
+  String get tabuaMareNomeLabel;
+
+  /// No description provided for @tabuaMareNomeHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ex: Porto de Itarema'**
+  String get tabuaMareNomeHint;
+
+  /// No description provided for @tabuaMarePreencherNome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preencha o nome do porto'**
+  String get tabuaMarePreencherNome;
+
+  /// No description provided for @tabuaMareNenhumPortoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum porto salvo ainda'**
+  String get tabuaMareNenhumPortoTitulo;
+
+  /// No description provided for @tabuaMareNenhumPortoDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salve a coordenada de um porto (ex: Itarema, Acaraú, Camocim) pra consultar a maré prevista, mesmo offline depois de sincronizado.'**
+  String get tabuaMareNenhumPortoDescricao;
+
+  /// No description provided for @tabuaMarePoucosDados.
+  ///
+  /// In pt, this message translates to:
+  /// **'Poucos dados de maré retornados pra esse ponto'**
+  String get tabuaMarePoucosDados;
+
+  /// No description provided for @mareEPescaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré e Pesca'**
+  String get mareEPescaTitulo;
+
+  /// No description provided for @mareEPescaErroBuscarPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao buscar previsão de maré'**
+  String get mareEPescaErroBuscarPrefixo;
+
+  /// No description provided for @mareEPescaAguardandoPosicao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando posição atual da embarcação...'**
+  String get mareEPescaAguardandoPosicao;
+
+  /// No description provided for @mareEPescaCabecalhoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Influência da Maré na Pesca de Atum'**
+  String get mareEPescaCabecalhoTitulo;
+
+  /// No description provided for @mareEPescaCabecalhoDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entenda como a amplitude das marés pode alterar correntes, mistura da água e condições de alimentação dos atuns.'**
+  String get mareEPescaCabecalhoDescricao;
+
+  /// No description provided for @mareEPescaCondicaoAtual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Condição atual da maré: {tipo}'**
+  String mareEPescaCondicaoAtual(String tipo);
+
+  /// No description provided for @mareEPescaGrafico24hTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré nas próximas 24h'**
+  String get mareEPescaGrafico24hTitulo;
+
+  /// No description provided for @mareEPescaEntendaSizigia.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entenda a sizígia'**
+  String get mareEPescaEntendaSizigia;
+
+  /// No description provided for @mareEPescaEntendaQuadratura.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entenda a quadratura'**
+  String get mareEPescaEntendaQuadratura;
+
+  /// No description provided for @mareEPescaImportante.
+  ///
+  /// In pt, this message translates to:
+  /// **'Importante'**
+  String get mareEPescaImportante;
+
+  /// No description provided for @mareEPescaAvisoPrincipal.
+  ///
+  /// In pt, this message translates to:
+  /// **'A fase da maré não deve ser utilizada isoladamente para determinar uma área de pesca. A resposta do ambiente varia conforme localização, profundidade, topografia, regime de correntes, temperatura, disponibilidade de alimento, vento e outros fatores oceanográficos.'**
+  String get mareEPescaAvisoPrincipal;
+
+  /// No description provided for @mareEPescaAvisoSecundario.
+  ///
+  /// In pt, this message translates to:
+  /// **'Utilize a maré como um dos indicadores dentro de uma análise integrada.'**
+  String get mareEPescaAvisoSecundario;
 }
 
 class _AppLocalizationsDelegate
