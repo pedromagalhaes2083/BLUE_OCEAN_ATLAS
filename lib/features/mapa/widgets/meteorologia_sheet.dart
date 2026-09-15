@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/services/pontos_service.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 class MeteorologiaSheet extends StatelessWidget {
   final PontoMapa ponto;
@@ -29,6 +30,7 @@ class MeteorologiaSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = ponto.meteorologia;
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
@@ -46,57 +48,57 @@ class MeteorologiaSheet extends StatelessWidget {
               children: [
                 if (m != null) ...[
                   _MetSection(
-                    title: 'Vento',
+                    title: l10n.meteoSheetVentoTitulo,
                     icon: Icons.air,
                     rows: [
-                      _MetRow('Velocidade real (TWS)', _kt(m.twsKts)),
-                      _MetRow('Direção real (TWD)', _deg(m.twdDeg)),
-                      _MetRow('Ângulo real (TWA)', _deg(m.twaDeg)),
-                      _MetRow('Velocidade aparente (AWS)', _kt(m.awsKts)),
-                      _MetRow('Ângulo aparente (AWA)', _deg(m.awaDeg)),
-                      _MetRow('Rajadas', _kt(m.gustsKts)),
+                      _MetRow(l10n.meteoSheetVelocidadeRealTws, _kt(m.twsKts)),
+                      _MetRow(l10n.meteoSheetDirecaoRealTwd, _deg(m.twdDeg)),
+                      _MetRow(l10n.meteoSheetAnguloRealTwa, _deg(m.twaDeg)),
+                      _MetRow(l10n.meteoSheetVelocidadeAparenteAws, _kt(m.awsKts)),
+                      _MetRow(l10n.meteoSheetAnguloAparenteAwa, _deg(m.awaDeg)),
+                      _MetRow(l10n.meteoSheetRajadas, _kt(m.gustsKts)),
                     ],
                   ),
                   const SizedBox(height: 12),
                   _MetSection(
-                    title: 'Movimento',
+                    title: l10n.meteoSheetMovimentoTitulo,
                     icon: Icons.speed,
                     rows: [
-                      _MetRow('Velocidade Real (SOG)', _kt(m.sogKts)),
-                      _MetRow('Direção Real (COG)', _deg(m.cogDeg)),
-                      _MetRow('Velocidade Aparente (STW)', _kt(m.stwKts)),
-                      _MetRow('Ângulo Aparente (CTW)', _deg(m.ctwDeg)),
+                      _MetRow(l10n.meteoSheetVelocidadeRealSog, _kt(m.sogKts)),
+                      _MetRow(l10n.meteoSheetDirecaoRealCog, _deg(m.cogDeg)),
+                      _MetRow(l10n.meteoSheetVelocidadeAparenteStw, _kt(m.stwKts)),
+                      _MetRow(l10n.meteoSheetAnguloAparenteCtw, _deg(m.ctwDeg)),
                     ],
                   ),
                   const SizedBox(height: 12),
                   _MetSection(
-                    title: 'Atmosfera',
+                    title: l10n.meteoSheetAtmosferaTitulo,
                     icon: Icons.thermostat,
                     rows: [
-                      _MetRow('Temperatura', _c(m.airtempC)),
-                      _MetRow('Pressão', _hpa(m.pressureHpa)),
-                      _MetRow('Nuvens', _pct(m.cloudsPct)),
-                      _MetRow('Chuva', _mmh(m.rainMmH)),
+                      _MetRow(l10n.labelTemperatura, _c(m.airtempC)),
+                      _MetRow(l10n.labelPressao, _hpa(m.pressureHpa)),
+                      _MetRow(l10n.meteoSheetNuvens, _pct(m.cloudsPct)),
+                      _MetRow(l10n.meteoSheetChuva, _mmh(m.rainMmH)),
                     ],
                   ),
                   const SizedBox(height: 12),
                   _MetSection(
-                    title: 'Ondas',
+                    title: l10n.meteoSheetOndasTitulo,
                     icon: Icons.waves,
                     rows: [
-                      _MetRow('Altura combinada', _mt(m.combWavesHeightM)),
-                      _MetRow('Vento — altura', _mt(m.windWavesHeightM)),
-                      _MetRow('Vento — direção', _deg(m.windWavesDirDeg)),
-                      _MetRow('Vento — período', _s(m.windWavesPeriodS)),
-                      _MetRow('Swell — altura', _mt(m.swellHeightM)),
-                      _MetRow('Swell — direção', _deg(m.swellDirDeg)),
-                      _MetRow('Swell — período', _s(m.swellPeriodS)),
+                      _MetRow(l10n.meteoSheetAlturaCombinada, _mt(m.combWavesHeightM)),
+                      _MetRow(l10n.meteoSheetVentoAltura, _mt(m.windWavesHeightM)),
+                      _MetRow(l10n.meteoSheetVentoDirecao, _deg(m.windWavesDirDeg)),
+                      _MetRow(l10n.meteoSheetVentoPeriodo, _s(m.windWavesPeriodS)),
+                      _MetRow(l10n.meteoSheetSwellAltura, _mt(m.swellHeightM)),
+                      _MetRow(l10n.meteoSheetSwellDirecao, _deg(m.swellDirDeg)),
+                      _MetRow(l10n.meteoSheetSwellPeriodo, _s(m.swellPeriodS)),
                     ],
                   ),
                 ] else
-                  const Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Center(child: Text('Sem dados meteorológicos')),
+                  Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Center(child: Text(l10n.meteoSheetSemDados)),
                   ),
                 const SizedBox(height: 24),
               ],
@@ -119,6 +121,7 @@ class MeteorologiaSheet extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Row(
@@ -139,7 +142,7 @@ class MeteorologiaSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ponto.embarcacao ?? 'Posição',
+                  ponto.embarcacao ?? l10n.meteoSheetPosicaoFallback,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 16),
                 ),

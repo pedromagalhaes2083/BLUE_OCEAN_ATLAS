@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/wave_forecast.dart';
 import '../../../core/utils/cor_tema.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Card único com as condições atuais do mar: altura/período de onda,
 /// corrente (velocidade + direção), swell, direção da onda e a previsão
@@ -43,14 +44,14 @@ class CondicoesAtuaisCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(entry, corRot),
+                _buildHeader(context, entry, corRot),
                 const SizedBox(height: 20),
-                _buildAlturaECorrente(entry, corRot),
+                _buildAlturaECorrente(context, entry, corRot),
                 if (entry.swellWaveHeight != null) ...[
                   const SizedBox(height: 16),
                   _divider(),
                   const SizedBox(height: 12),
-                  _buildSwellEDirecao(entry, corRot),
+                  _buildSwellEDirecao(context, entry, corRot),
                 ],
               ],
             ),
@@ -59,7 +60,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
             _divider(),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-              child: _buildTimeline(entry, proximas, corRot),
+              child: _buildTimeline(context, entry, proximas, corRot),
             ),
           ],
         ],
@@ -69,16 +70,16 @@ class CondicoesAtuaisCard extends StatelessWidget {
 
   Widget _divider() => Divider(color: Colors.grey.withValues(alpha: 0.25), height: 1);
 
-  Widget _buildHeader(WaveHourEntry entry, Color corRot) {
+  Widget _buildHeader(BuildContext context, WaveHourEntry entry, Color corRot) {
     final d = entry.time.day.toString().padLeft(2, '0');
     final mo = entry.time.month.toString().padLeft(2, '0');
     return Row(
       children: [
         const Icon(Icons.waves, color: Colors.blueGrey, size: 18),
         const SizedBox(width: 8),
-        const Text(
-          'Condições Atuais',
-          style: TextStyle(
+        Text(
+          AppLocalizations.of(context).ondaCondicoesAtuais,
+          style: const TextStyle(
               color: Colors.blueGrey, fontSize: 13, fontWeight: FontWeight.w600),
         ),
         const Spacer(),
@@ -87,28 +88,28 @@ class CondicoesAtuaisCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAlturaECorrente(WaveHourEntry entry, Color corRot) {
+  Widget _buildAlturaECorrente(BuildContext context, WaveHourEntry entry, Color corRot) {
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: _buildAltura(entry, corRot)),
+          Expanded(child: _buildAltura(context, entry, corRot)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: VerticalDivider(
                 color: Colors.grey.withValues(alpha: 0.25), width: 1),
           ),
-          Expanded(child: _buildCorrente(entry, corRot)),
+          Expanded(child: _buildCorrente(context, entry, corRot)),
         ],
       ),
     );
   }
 
-  Widget _buildAltura(WaveHourEntry entry, Color corRot) {
+  Widget _buildAltura(BuildContext context, WaveHourEntry entry, Color corRot) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('ALTURA DE ONDA',
+        Text(AppLocalizations.of(context).ondaAlturaTitulo,
             style: TextStyle(
                 color: corRot,
                 fontSize: 10,
@@ -137,35 +138,37 @@ class CondicoesAtuaisCard extends StatelessWidget {
           ],
         ),
         Text(
-          _heightLabel(entry.waveHeight),
+          _heightLabel(context, entry.waveHeight),
           style: TextStyle(
               color: _heightColor(entry.waveHeight),
               fontSize: 12,
               fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 6),
-        Text('Período ${entry.wavePeriod.toStringAsFixed(1)} s',
+        Text(AppLocalizations.of(context)
+                .ondaPeriodo(entry.wavePeriod.toStringAsFixed(1)),
             style: TextStyle(color: corRot, fontSize: 12)),
       ],
     );
   }
 
-  Widget _buildCorrente(WaveHourEntry entry, Color corRot) {
+  Widget _buildCorrente(BuildContext context, WaveHourEntry entry, Color corRot) {
     final velocidade = entry.oceanCurrentVelocity;
     final direcao = entry.oceanCurrentDirection;
+    final l10n = AppLocalizations.of(context);
 
     if (velocidade == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('CORRENTE',
+          Text(l10n.ondaCorrenteTitulo,
               style: TextStyle(
                   color: corRot,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5)),
           const SizedBox(height: 8),
-          Text('Sem dados', style: TextStyle(color: corRot, fontSize: 13)),
+          Text(l10n.ondaSemDados, style: TextStyle(color: corRot, fontSize: 13)),
         ],
       );
     }
@@ -173,7 +176,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('CORRENTE',
+        Text(l10n.ondaCorrenteTitulo,
             style: TextStyle(
                 color: corRot,
                 fontSize: 10,
@@ -225,7 +228,8 @@ class CondicoesAtuaisCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSwellEDirecao(WaveHourEntry entry, Color corRot) {
+  Widget _buildSwellEDirecao(BuildContext context, WaveHourEntry entry, Color corRot) {
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       spacing: 16,
       runSpacing: 6,
@@ -236,7 +240,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
             Icon(Icons.waves, size: 15, color: corRot),
             const SizedBox(width: 6),
             Text(
-              'Swell ${entry.swellWaveHeight!.toStringAsFixed(2)} m'
+              '${l10n.ondaSwellPrefixo} ${entry.swellWaveHeight!.toStringAsFixed(2)} m'
               '${entry.swellWavePeriod != null ? ' · ${entry.swellWavePeriod!.toStringAsFixed(1)} s' : ''}'
               '${entry.swellWaveDirection != null ? ' · ${entry.swellWaveDirection}°' : ''}',
               style: TextStyle(
@@ -249,7 +253,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
           children: [
             Icon(Icons.explore_outlined, size: 15, color: corRot),
             const SizedBox(width: 6),
-            Text('Dir. onda ${entry.waveDirection}°',
+            Text(l10n.ondaDirecaoOnda(entry.waveDirection),
                 style: TextStyle(
                     color: corRot, fontSize: 12, fontWeight: FontWeight.w500)),
           ],
@@ -258,8 +262,8 @@ class CondicoesAtuaisCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeline(
-      WaveHourEntry current, List<WaveHourEntry> proximas, Color corRot) {
+  Widget _buildTimeline(BuildContext context, WaveHourEntry current,
+      List<WaveHourEntry> proximas, Color corRot) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -267,7 +271,7 @@ class CondicoesAtuaisCard extends StatelessWidget {
           children: [
             Icon(Icons.schedule, size: 14, color: corRot),
             const SizedBox(width: 6),
-            Text('Previsão horária',
+            Text(AppLocalizations.of(context).ventoPrevisaoHoraria,
                 style: TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w600, color: corRot)),
             const Spacer(),
@@ -300,13 +304,14 @@ class CondicoesAtuaisCard extends StatelessWidget {
     return Colors.redAccent.shade700;
   }
 
-  String _heightLabel(double h) {
-    if (h < 0.5) return 'Calmo';
-    if (h < 1.0) return 'Leve';
-    if (h < 2.0) return 'Moderado';
-    if (h < 3.0) return 'Agitado';
-    if (h < 4.0) return 'Muito agitado';
-    return 'Tempestuoso';
+  String _heightLabel(BuildContext context, double h) {
+    final l10n = AppLocalizations.of(context);
+    if (h < 0.5) return l10n.ondaAlturaCalmo;
+    if (h < 1.0) return l10n.ondaAlturaLeve;
+    if (h < 2.0) return l10n.ondaAlturaModerado;
+    if (h < 3.0) return l10n.ondaAlturaAgitado;
+    if (h < 4.0) return l10n.ondaAlturaMuitoAgitado;
+    return l10n.ondaAlturaTempestuoso;
   }
 }
 

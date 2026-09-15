@@ -2090,6 +2090,402 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'❌ Erro: {erro}'**
   String posicaoErroGenerico(String erro);
+
+  /// No description provided for @profundidadeCarregando.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando profundidade...'**
+  String get profundidadeCarregando;
+
+  /// No description provided for @pontoEmTerra.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ponto em terra'**
+  String get pontoEmTerra;
+
+  /// No description provided for @sstCarregando.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando temperatura da água...'**
+  String get sstCarregando;
+
+  /// No description provided for @sstSuperficieDoMar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Superfície do mar'**
+  String get sstSuperficieDoMar;
+
+  /// No description provided for @mareNivelAgora.
+  ///
+  /// In pt, this message translates to:
+  /// **'{nivel} m agora'**
+  String mareNivelAgora(String nivel);
+
+  /// No description provided for @marePreamar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preamar'**
+  String get marePreamar;
+
+  /// No description provided for @mareBaixaMar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixa-mar'**
+  String get mareBaixaMar;
+
+  /// No description provided for @luaLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lua'**
+  String get luaLabel;
+
+  /// No description provided for @luaIluminadaCiclo.
+  ///
+  /// In pt, this message translates to:
+  /// **'{pct}% iluminada · dia {dia} do ciclo'**
+  String luaIluminadaCiclo(int pct, int dia);
+
+  /// No description provided for @luaNascer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nascer'**
+  String get luaNascer;
+
+  /// No description provided for @luaPor.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pôr'**
+  String get luaPor;
+
+  /// No description provided for @luaProximasFases.
+  ///
+  /// In pt, this message translates to:
+  /// **'PRÓXIMAS FASES'**
+  String get luaProximasFases;
+
+  /// No description provided for @luaHoje.
+  ///
+  /// In pt, this message translates to:
+  /// **'hoje'**
+  String get luaHoje;
+
+  /// No description provided for @luaEmDias.
+  ///
+  /// In pt, this message translates to:
+  /// **'em {d}d'**
+  String luaEmDias(int d);
+
+  /// No description provided for @solunarTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tabela Solunar'**
+  String get solunarTitulo;
+
+  /// No description provided for @solunarSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Períodos de maior atividade de alimentação, segundo a posição da lua'**
+  String get solunarSubtitulo;
+
+  /// No description provided for @ventoCarregando.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando previsão do tempo...'**
+  String get ventoCarregando;
+
+  /// No description provided for @ventoClimaAtual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Clima Atual'**
+  String get ventoClimaAtual;
+
+  /// No description provided for @ventoVelocidadeTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'VELOCIDADE DO VENTO'**
+  String get ventoVelocidadeTitulo;
+
+  /// No description provided for @ventoDirecao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Direção: {graus}°'**
+  String ventoDirecao(int graus);
+
+  /// No description provided for @labelTemperatura.
+  ///
+  /// In pt, this message translates to:
+  /// **'Temperatura'**
+  String get labelTemperatura;
+
+  /// No description provided for @labelPressao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pressão'**
+  String get labelPressao;
+
+  /// No description provided for @ventoPrevisaoHoraria.
+  ///
+  /// In pt, this message translates to:
+  /// **'Previsão horária'**
+  String get ventoPrevisaoHoraria;
+
+  /// No description provided for @ventoIntensidadeCalmo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Calmo'**
+  String get ventoIntensidadeCalmo;
+
+  /// No description provided for @ventoIntensidadeLeve.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leve'**
+  String get ventoIntensidadeLeve;
+
+  /// No description provided for @ventoIntensidadeModerado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Moderado'**
+  String get ventoIntensidadeModerado;
+
+  /// No description provided for @ventoIntensidadeForte.
+  ///
+  /// In pt, this message translates to:
+  /// **'Forte'**
+  String get ventoIntensidadeForte;
+
+  /// No description provided for @ventoIntensidadeMuitoForte.
+  ///
+  /// In pt, this message translates to:
+  /// **'Muito forte'**
+  String get ventoIntensidadeMuitoForte;
+
+  /// No description provided for @ondaCondicoesAtuais.
+  ///
+  /// In pt, this message translates to:
+  /// **'Condições Atuais'**
+  String get ondaCondicoesAtuais;
+
+  /// No description provided for @ondaAlturaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'ALTURA DE ONDA'**
+  String get ondaAlturaTitulo;
+
+  /// No description provided for @ondaPeriodo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Período {n} s'**
+  String ondaPeriodo(String n);
+
+  /// No description provided for @ondaCorrenteTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'CORRENTE'**
+  String get ondaCorrenteTitulo;
+
+  /// No description provided for @ondaSemDados.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem dados'**
+  String get ondaSemDados;
+
+  /// No description provided for @ondaSwellPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Swell'**
+  String get ondaSwellPrefixo;
+
+  /// No description provided for @ondaDirecaoOnda.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dir. onda {graus}°'**
+  String ondaDirecaoOnda(int graus);
+
+  /// No description provided for @ondaAlturaCalmo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Calmo'**
+  String get ondaAlturaCalmo;
+
+  /// No description provided for @ondaAlturaLeve.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leve'**
+  String get ondaAlturaLeve;
+
+  /// No description provided for @ondaAlturaModerado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Moderado'**
+  String get ondaAlturaModerado;
+
+  /// No description provided for @ondaAlturaAgitado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agitado'**
+  String get ondaAlturaAgitado;
+
+  /// No description provided for @ondaAlturaMuitoAgitado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Muito agitado'**
+  String get ondaAlturaMuitoAgitado;
+
+  /// No description provided for @ondaAlturaTempestuoso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tempestuoso'**
+  String get ondaAlturaTempestuoso;
+
+  /// No description provided for @meteoSheetPosicaoFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Posição'**
+  String get meteoSheetPosicaoFallback;
+
+  /// No description provided for @meteoSheetSemDados.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem dados meteorológicos'**
+  String get meteoSheetSemDados;
+
+  /// No description provided for @meteoSheetVentoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vento'**
+  String get meteoSheetVentoTitulo;
+
+  /// No description provided for @meteoSheetMovimentoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Movimento'**
+  String get meteoSheetMovimentoTitulo;
+
+  /// No description provided for @meteoSheetAtmosferaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atmosfera'**
+  String get meteoSheetAtmosferaTitulo;
+
+  /// No description provided for @meteoSheetOndasTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ondas'**
+  String get meteoSheetOndasTitulo;
+
+  /// No description provided for @meteoSheetVelocidadeRealTws.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade real (TWS)'**
+  String get meteoSheetVelocidadeRealTws;
+
+  /// No description provided for @meteoSheetDirecaoRealTwd.
+  ///
+  /// In pt, this message translates to:
+  /// **'Direção real (TWD)'**
+  String get meteoSheetDirecaoRealTwd;
+
+  /// No description provided for @meteoSheetAnguloRealTwa.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ângulo real (TWA)'**
+  String get meteoSheetAnguloRealTwa;
+
+  /// No description provided for @meteoSheetVelocidadeAparenteAws.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade aparente (AWS)'**
+  String get meteoSheetVelocidadeAparenteAws;
+
+  /// No description provided for @meteoSheetAnguloAparenteAwa.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ângulo aparente (AWA)'**
+  String get meteoSheetAnguloAparenteAwa;
+
+  /// No description provided for @meteoSheetRajadas.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rajadas'**
+  String get meteoSheetRajadas;
+
+  /// No description provided for @meteoSheetVelocidadeRealSog.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade Real (SOG)'**
+  String get meteoSheetVelocidadeRealSog;
+
+  /// No description provided for @meteoSheetDirecaoRealCog.
+  ///
+  /// In pt, this message translates to:
+  /// **'Direção Real (COG)'**
+  String get meteoSheetDirecaoRealCog;
+
+  /// No description provided for @meteoSheetVelocidadeAparenteStw.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade Aparente (STW)'**
+  String get meteoSheetVelocidadeAparenteStw;
+
+  /// No description provided for @meteoSheetAnguloAparenteCtw.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ângulo Aparente (CTW)'**
+  String get meteoSheetAnguloAparenteCtw;
+
+  /// No description provided for @meteoSheetNuvens.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nuvens'**
+  String get meteoSheetNuvens;
+
+  /// No description provided for @meteoSheetChuva.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chuva'**
+  String get meteoSheetChuva;
+
+  /// No description provided for @meteoSheetAlturaCombinada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Altura combinada'**
+  String get meteoSheetAlturaCombinada;
+
+  /// No description provided for @meteoSheetVentoAltura.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vento — altura'**
+  String get meteoSheetVentoAltura;
+
+  /// No description provided for @meteoSheetVentoDirecao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vento — direção'**
+  String get meteoSheetVentoDirecao;
+
+  /// No description provided for @meteoSheetVentoPeriodo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vento — período'**
+  String get meteoSheetVentoPeriodo;
+
+  /// No description provided for @meteoSheetSwellAltura.
+  ///
+  /// In pt, this message translates to:
+  /// **'Swell — altura'**
+  String get meteoSheetSwellAltura;
+
+  /// No description provided for @meteoSheetSwellDirecao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Swell — direção'**
+  String get meteoSheetSwellDirecao;
+
+  /// No description provided for @meteoSheetSwellPeriodo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Swell — período'**
+  String get meteoSheetSwellPeriodo;
 }
 
 class _AppLocalizationsDelegate

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/models/wave_forecast.dart';
 import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/fase_lua.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Card de tábua de marés — nível do mar atual e as próximas preamares/
 /// baixa-mares, calculadas a partir da série horária de nível do mar da
@@ -48,9 +49,9 @@ class MareCard extends StatelessWidget {
               children: [
                 const Icon(Icons.waves, color: Colors.teal, size: 18),
                 const SizedBox(width: 8),
-                const Text(
-                  'Maré',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context).metricaMare,
+                  style: const TextStyle(
                       color: Colors.teal,
                       fontSize: 13,
                       fontWeight: FontWeight.w600),
@@ -58,7 +59,8 @@ class MareCard extends StatelessWidget {
                 const Spacer(),
                 if (nivelAtual != null)
                   Text(
-                    '${nivelAtual.toStringAsFixed(2)} m agora',
+                    AppLocalizations.of(context)
+                        .mareNivelAgora(nivelAtual.toStringAsFixed(2)),
                     style: TextStyle(color: corRotulo(context), fontSize: 12),
                   ),
                 if (onTap != null) ...[
@@ -162,7 +164,9 @@ class _EventoMareChip extends StatelessWidget {
             color: alta ? Colors.teal.shade700 : Colors.blueGrey,
           ),
           Text(
-            alta ? 'Preamar' : 'Baixa-mar',
+            alta
+                ? AppLocalizations.of(context).marePreamar
+                : AppLocalizations.of(context).mareBaixaMar,
             style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,

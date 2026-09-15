@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:atlas/features/widgets/base_meteorology_card.dart';
+import 'package:atlas/l10n/gen/app_localizations.dart';
 import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/tendencia_pressao.dart';
 import '../../metereologia/domain/models/previsao_tempo.dart';
@@ -24,6 +25,11 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
   String get loadingMessage => 'Carregando previsão do tempo...';
 
   @override
+  Widget buildLoading(BuildContext context) =>
+      Text(AppLocalizations.of(context).ventoCarregando,
+          style: const TextStyle(fontSize: 18));
+
+  @override
   Widget buildContent(BuildContext context) {
     final atual = previsao.atual!;
     final proximas = previsao.proximasHoras;
@@ -32,36 +38,37 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildHeader(atual, corRot),
+        _buildHeader(context, atual, corRot),
         const Divider(height: 28),
         SizedBox(
-            width: double.infinity, child: _buildVentoPrincipal(atual, corRot)),
+            width: double.infinity,
+            child: _buildVentoPrincipal(context, atual, corRot)),
         const SizedBox(height: 16),
         const Divider(height: 1),
         const SizedBox(height: 12),
-        _buildTemperaturaSecundaria(atual, corRot),
-        _buildTendenciaPressao(corRot),
+        _buildTemperaturaSecundaria(context, atual, corRot),
+        _buildTendenciaPressao(context, corRot),
         if (proximas.isNotEmpty) ...[
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 12),
-          _buildTimeline(proximas, corRot),
+          _buildTimeline(context, proximas, corRot),
         ],
       ],
     );
   }
 
-  Widget _buildHeader(PrevisaoTempoAtual atual, Color corRot) {
+  Widget _buildHeader(BuildContext context, PrevisaoTempoAtual atual, Color corRot) {
     final d = atual.horario.day.toString().padLeft(2, '0');
     final mo = atual.horario.month.toString().padLeft(2, '0');
     return Row(
       children: [
         const Icon(Icons.cloud_outlined, color: Colors.blueGrey, size: 26),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: Text(
-            'Clima Atual',
-            style: TextStyle(
+            AppLocalizations.of(context).ventoClimaAtual,
+            style: const TextStyle(
                 fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey),
             overflow: TextOverflow.ellipsis,
           ),
@@ -71,12 +78,12 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
     );
   }
 
-  Widget _buildVentoPrincipal(PrevisaoTempoAtual atual, Color corRot) {
+  Widget _buildVentoPrincipal(BuildContext context, PrevisaoTempoAtual atual, Color corRot) {
     final velocidade = atual.velocidadeVento;
     return Column(
       children: [
         Text(
-          'VELOCIDADE DO VENTO',
+          AppLocalizations.of(context).ventoVelocidadeTitulo,
           style: TextStyle(
               color: corRot,
               fontSize: 11,
@@ -103,12 +110,12 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
           ),
         ),
         const SizedBox(height: 10),
-        _buildBarraIntensidade(velocidade),
+        _buildBarraIntensidade(context, velocidade),
         const SizedBox(height: 12),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Direção: ${atual.direcaoVento}°',
+            Text(AppLocalizations.of(context).ventoDirecao(atual.direcaoVento),
                 style: TextStyle(
                     color: corRot,
                     fontSize: 13,
@@ -124,7 +131,7 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
     );
   }
 
-  Widget _buildBarraIntensidade(double velocidade) {
+  Widget _buildBarraIntensidade(BuildContext context, double velocidade) {
     final cor = _corIntensidade(velocidade);
     final fracao = (velocidade / 60).clamp(0.0, 1.0);
     return SizedBox(
@@ -141,19 +148,20 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
             ),
           ),
           const SizedBox(height: 4),
-          Text(_labelIntensidade(velocidade),
+          Text(_labelIntensidade(context, velocidade),
               style: TextStyle(color: cor, fontSize: 12, fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
 
-  Widget _buildTemperaturaSecundaria(PrevisaoTempoAtual atual, Color corRot) {
+  Widget _buildTemperaturaSecundaria(BuildContext context, PrevisaoTempoAtual atual, Color corRot) {
     return Row(
       children: [
         Icon(Icons.thermostat, size: 18, color: corRot),
         const SizedBox(width: 8),
-        Text('Temperatura', style: TextStyle(color: corRot, fontSize: 13)),
+        Text(AppLocalizations.of(context).labelTemperatura,
+            style: TextStyle(color: corRot, fontSize: 13)),
         const Spacer(),
         Text('${atual.temperatura.toStringAsFixed(1)} °C',
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
@@ -165,7 +173,7 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
   /// citados por pescadores: pressão caindo costuma anteceder mudança de
   /// tempo (peixe mais ativo). Sem 3h de dado suficiente (ex: logo depois
   /// de abrir o app), fica em branco em vez de mostrar algo incerto.
-  Widget _buildTendenciaPressao(Color corRot) {
+  Widget _buildTendenciaPressao(BuildContext context, Color corRot) {
     final tendencia = calcularTendenciaPressao(
       previsao.horaria
           .map((h) => (horario: h.horario, pressaoHpa: h.pressao))
@@ -193,7 +201,8 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
         children: [
           Icon(Icons.speed, size: 18, color: corRot),
           const SizedBox(width: 8),
-          Text('Pressão', style: TextStyle(color: corRot, fontSize: 13)),
+          Text(AppLocalizations.of(context).labelPressao,
+              style: TextStyle(color: corRot, fontSize: 13)),
           const Spacer(),
           Icon(icone, size: 16, color: cor),
           const SizedBox(width: 4),
@@ -206,7 +215,7 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
     );
   }
 
-  Widget _buildTimeline(List<PrevisaoTempoHoraria> proximas, Color corRot) {
+  Widget _buildTimeline(BuildContext context, List<PrevisaoTempoHoraria> proximas, Color corRot) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -214,7 +223,7 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
           children: [
             Icon(Icons.schedule, size: 15, color: corRot),
             const SizedBox(width: 6),
-            Text('Previsão horária',
+            Text(AppLocalizations.of(context).ventoPrevisaoHoraria,
                 style: TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600, color: corRot)),
             const Spacer(),
@@ -244,12 +253,13 @@ class CondicoesVentoCard extends BaseMeteorologyCard {
     return Colors.redAccent;
   }
 
-  String _labelIntensidade(double kmh) {
-    if (kmh < 10) return 'Calmo';
-    if (kmh < 20) return 'Leve';
-    if (kmh < 30) return 'Moderado';
-    if (kmh < 45) return 'Forte';
-    return 'Muito forte';
+  String _labelIntensidade(BuildContext context, double kmh) {
+    final l10n = AppLocalizations.of(context);
+    if (kmh < 10) return l10n.ventoIntensidadeCalmo;
+    if (kmh < 20) return l10n.ventoIntensidadeLeve;
+    if (kmh < 30) return l10n.ventoIntensidadeModerado;
+    if (kmh < 45) return l10n.ventoIntensidadeForte;
+    return l10n.ventoIntensidadeMuitoForte;
   }
 }
 

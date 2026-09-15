@@ -1219,4 +1219,217 @@ class AppLocalizationsIt extends AppLocalizations {
   String posicaoErroGenerico(String erro) {
     return '❌ Errore: $erro';
   }
+
+  @override
+  String get profundidadeCarregando => 'Caricamento profondità...';
+
+  @override
+  String get pontoEmTerra => 'Punto sulla terraferma';
+
+  @override
+  String get sstCarregando => 'Caricamento temperatura dell\'acqua...';
+
+  @override
+  String get sstSuperficieDoMar => 'Superficie del mare';
+
+  @override
+  String mareNivelAgora(String nivel) {
+    return '$nivel m ora';
+  }
+
+  @override
+  String get marePreamar => 'Alta marea';
+
+  @override
+  String get mareBaixaMar => 'Bassa marea';
+
+  @override
+  String get luaLabel => 'Luna';
+
+  @override
+  String luaIluminadaCiclo(int pct, int dia) {
+    return '$pct% illuminata · giorno $dia del ciclo';
+  }
+
+  @override
+  String get luaNascer => 'Sorge';
+
+  @override
+  String get luaPor => 'Tramonta';
+
+  @override
+  String get luaProximasFases => 'PROSSIME FASI';
+
+  @override
+  String get luaHoje => 'oggi';
+
+  @override
+  String luaEmDias(int d) {
+    return 'tra ${d}g';
+  }
+
+  @override
+  String get solunarTitulo => 'Tabella Solunare';
+
+  @override
+  String get solunarSubtitulo =>
+      'Periodi di maggiore attività alimentare, in base alla posizione della luna';
+
+  @override
+  String get ventoCarregando => 'Caricamento previsioni meteo...';
+
+  @override
+  String get ventoClimaAtual => 'Meteo Attuale';
+
+  @override
+  String get ventoVelocidadeTitulo => 'VELOCITÀ DEL VENTO';
+
+  @override
+  String ventoDirecao(int graus) {
+    return 'Direzione: $graus°';
+  }
+
+  @override
+  String get labelTemperatura => 'Temperatura';
+
+  @override
+  String get labelPressao => 'Pressione';
+
+  @override
+  String get ventoPrevisaoHoraria => 'Previsioni orarie';
+
+  @override
+  String get ventoIntensidadeCalmo => 'Calmo';
+
+  @override
+  String get ventoIntensidadeLeve => 'Leggero';
+
+  @override
+  String get ventoIntensidadeModerado => 'Moderato';
+
+  @override
+  String get ventoIntensidadeForte => 'Forte';
+
+  @override
+  String get ventoIntensidadeMuitoForte => 'Molto forte';
+
+  @override
+  String get ondaCondicoesAtuais => 'Condizioni Attuali';
+
+  @override
+  String get ondaAlturaTitulo => 'ALTEZZA DELL\'ONDA';
+
+  @override
+  String ondaPeriodo(String n) {
+    return 'Periodo $n s';
+  }
+
+  @override
+  String get ondaCorrenteTitulo => 'CORRENTE';
+
+  @override
+  String get ondaSemDados => 'Nessun dato';
+
+  @override
+  String get ondaSwellPrefixo => 'Mareggiata';
+
+  @override
+  String ondaDirecaoOnda(int graus) {
+    return 'Dir. onda $graus°';
+  }
+
+  @override
+  String get ondaAlturaCalmo => 'Calmo';
+
+  @override
+  String get ondaAlturaLeve => 'Leggero';
+
+  @override
+  String get ondaAlturaModerado => 'Moderato';
+
+  @override
+  String get ondaAlturaAgitado => 'Mosso';
+
+  @override
+  String get ondaAlturaMuitoAgitado => 'Molto mosso';
+
+  @override
+  String get ondaAlturaTempestuoso => 'Tempestoso';
+
+  @override
+  String get meteoSheetPosicaoFallback => 'Posizione';
+
+  @override
+  String get meteoSheetSemDados => 'Nessun dato meteorologico';
+
+  @override
+  String get meteoSheetVentoTitulo => 'Vento';
+
+  @override
+  String get meteoSheetMovimentoTitulo => 'Movimento';
+
+  @override
+  String get meteoSheetAtmosferaTitulo => 'Atmosfera';
+
+  @override
+  String get meteoSheetOndasTitulo => 'Onde';
+
+  @override
+  String get meteoSheetVelocidadeRealTws => 'Velocità reale del vento (TWS)';
+
+  @override
+  String get meteoSheetDirecaoRealTwd => 'Direzione reale del vento (TWD)';
+
+  @override
+  String get meteoSheetAnguloRealTwa => 'Angolo reale del vento (TWA)';
+
+  @override
+  String get meteoSheetVelocidadeAparenteAws =>
+      'Velocità apparente del vento (AWS)';
+
+  @override
+  String get meteoSheetAnguloAparenteAwa => 'Angolo apparente del vento (AWA)';
+
+  @override
+  String get meteoSheetRajadas => 'Raffiche';
+
+  @override
+  String get meteoSheetVelocidadeRealSog => 'Velocità sul fondo (SOG)';
+
+  @override
+  String get meteoSheetDirecaoRealCog => 'Rotta sul fondo (COG)';
+
+  @override
+  String get meteoSheetVelocidadeAparenteStw =>
+      'Velocità attraverso l\'acqua (STW)';
+
+  @override
+  String get meteoSheetAnguloAparenteCtw => 'Rotta attraverso l\'acqua (CTW)';
+
+  @override
+  String get meteoSheetNuvens => 'Nuvole';
+
+  @override
+  String get meteoSheetChuva => 'Pioggia';
+
+  @override
+  String get meteoSheetAlturaCombinada => 'Altezza combinata';
+
+  @override
+  String get meteoSheetVentoAltura => 'Vento — altezza';
+
+  @override
+  String get meteoSheetVentoDirecao => 'Vento — direzione';
+
+  @override
+  String get meteoSheetVentoPeriodo => 'Vento — periodo';
+
+  @override
+  String get meteoSheetSwellAltura => 'Swell — altezza';
+
+  @override
+  String get meteoSheetSwellDirecao => 'Swell — direzione';
+
+  @override
+  String get meteoSheetSwellPeriodo => 'Swell — periodo';
 }

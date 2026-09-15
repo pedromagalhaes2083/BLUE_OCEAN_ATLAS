@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'base_meteorology_card.dart';
 import '../../core/utils/cor_tema.dart';
+import '../../l10n/gen/app_localizations.dart';
 import '../metereologia/domain/models/leitura_profundidade.dart';
 
 /// Card com a profundidade (batimetria GEBCO2020) num ponto. Se o ponto
@@ -53,9 +54,9 @@ class ProfundidadeCard extends BaseMeteorologyCard {
         ] else ...[
           const Icon(Icons.terrain, size: 40, color: Colors.brown),
           const SizedBox(height: 8),
-          const Text(
-            'Ponto em terra',
-            style: TextStyle(color: Colors.brown),
+          Text(
+            AppLocalizations.of(context).pontoEmTerra,
+            style: const TextStyle(color: Colors.brown),
             textAlign: TextAlign.center,
           ),
         ],

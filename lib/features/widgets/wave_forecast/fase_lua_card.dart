@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/fase_lua.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../metereologia/domain/models/dia_lunar.dart';
 
 /// Card de fase da lua — fase atual (calculada localmente, sem rede, ver
@@ -51,9 +52,9 @@ class FaseLuaCard extends StatelessWidget {
                   const Icon(Icons.nightlight_round,
                       color: Colors.deepPurple, size: 18),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Lua',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context).luaLabel,
+                    style: const TextStyle(
                         color: Colors.deepPurple,
                         fontSize: 13,
                         fontWeight: FontWeight.w600),
@@ -80,8 +81,9 @@ class FaseLuaCard extends StatelessWidget {
                               fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          '${(faseAtual.fracaoIluminada * 100).round()}% iluminada'
-                          ' · dia ${faseAtual.idadeDias.floor() + 1} do ciclo',
+                          AppLocalizations.of(context).luaIluminadaCiclo(
+                              (faseAtual.fracaoIluminada * 100).round(),
+                              faseAtual.idadeDias.floor() + 1),
                           style:
                               TextStyle(fontSize: 12, color: corRotulo(context)),
                         ),
@@ -98,7 +100,7 @@ class FaseLuaCard extends StatelessWidget {
                       Expanded(
                         child: _HorarioLua(
                           icone: Icons.arrow_upward,
-                          rotulo: 'Nascer',
+                          rotulo: AppLocalizations.of(context).luaNascer,
                           horario: diaHoje!.nascer!,
                         ),
                       ),
@@ -106,7 +108,7 @@ class FaseLuaCard extends StatelessWidget {
                       Expanded(
                         child: _HorarioLua(
                           icone: Icons.arrow_downward,
-                          rotulo: 'Pôr',
+                          rotulo: AppLocalizations.of(context).luaPor,
                           horario: diaHoje!.poesta!,
                         ),
                       ),
@@ -115,7 +117,7 @@ class FaseLuaCard extends StatelessWidget {
               ],
               if (proximasFases.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Text('PRÓXIMAS FASES',
+                Text(AppLocalizations.of(context).luaProximasFases,
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -208,7 +210,9 @@ class _ProximaFaseChip extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 12, fontWeight: FontWeight.bold, height: 1)),
           Text(
-            dias < 1 ? 'hoje' : 'em ${dias.round()}d',
+            dias < 1
+                ? AppLocalizations.of(context).luaHoje
+                : AppLocalizations.of(context).luaEmDias(dias.round()),
             style: TextStyle(fontSize: 10, color: corRotulo(context)),
           ),
         ],

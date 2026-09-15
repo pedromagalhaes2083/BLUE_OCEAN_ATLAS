@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/tabela_solunar.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Card da tabela solunar — períodos de maior/menor atividade de
 /// alimentação dos peixes (ver `core/utils/tabela_solunar.dart`), já
@@ -16,6 +17,7 @@ class TabelaSolunarCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (periodos.isEmpty) return const SizedBox.shrink();
 
+    final l10n = AppLocalizations.of(context);
     final escuro = Theme.of(context).brightness == Brightness.dark;
     final corCard = Color.alphaBlend(
       const Color(0xFFFFF3E0).withValues(alpha: escuro ? 0.18 : 1.0),
@@ -37,9 +39,9 @@ class TabelaSolunarCard extends StatelessWidget {
                 const Icon(Icons.set_meal_outlined,
                     color: Colors.deepOrange, size: 18),
                 const SizedBox(width: 8),
-                const Text(
-                  'Tabela Solunar',
-                  style: TextStyle(
+                Text(
+                  l10n.solunarTitulo,
+                  style: const TextStyle(
                       color: Colors.deepOrange,
                       fontSize: 13,
                       fontWeight: FontWeight.w600),
@@ -48,7 +50,7 @@ class TabelaSolunarCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Períodos de maior atividade de alimentação, segundo a posição da lua',
+              l10n.solunarSubtitulo,
               style: TextStyle(fontSize: 11, color: corRotulo(context)),
             ),
             const SizedBox(height: 14),

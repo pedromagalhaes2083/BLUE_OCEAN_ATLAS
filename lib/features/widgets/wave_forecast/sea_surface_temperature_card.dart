@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:atlas/features/widgets/base_meteorology_card.dart';
+import 'package:atlas/l10n/gen/app_localizations.dart';
 import '../../../core/models/wave_forecast.dart';
 import '../../../core/utils/cor_tema.dart';
 
@@ -56,15 +57,15 @@ class SeaSurfaceTemperatureCard extends BaseMeteorologyCard {
         ] else ...[
           const Icon(Icons.terrain, size: 40, color: Colors.brown),
           const SizedBox(height: 8),
-          const Text(
-            'Ponto em terra',
-            style: TextStyle(color: Colors.brown),
+          Text(
+            AppLocalizations.of(context).pontoEmTerra,
+            style: const TextStyle(color: Colors.brown),
             textAlign: TextAlign.center,
           ),
         ],
         const SizedBox(height: 8),
         Text(
-          'Superfície do mar',
+          AppLocalizations.of(context).sstSuperficieDoMar,
           style: TextStyle(color: corRotulo(context), fontSize: 12),
           textAlign: TextAlign.center,
         ),
