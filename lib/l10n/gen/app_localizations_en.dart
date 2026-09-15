@@ -2224,4 +2224,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String mareCardTipoLabel(String tipo) {
     return '$tipo Tide';
   }
+
+  @override
+  String get mapaCamadaTrilhaViagemTitulo => 'Trip trail';
+
+  @override
+  String get mapaCamadaTrilhaViagemSubtitulo =>
+      'Current trip\'s track, updated live';
+
+  @override
+  String get mapaTrilhaSemViagemAtiva =>
+      'No trip in progress to show the trail';
 }

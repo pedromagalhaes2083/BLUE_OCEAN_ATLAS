@@ -787,5 +787,9 @@
   "fluxoRodape": "Ceci est une chaîne d'influence possible, pas une relation déterministe : chaque étape dépend de facteurs locaux (bathymétrie, topographie, régime des courants de la région) que la marée seule n'explique pas.",
 
   "mareCardTipoLabel": "Marée de {tipo}",
-  "@mareCardTipoLabel": {"placeholders": {"tipo": {"type": "String"}}}
+  "@mareCardTipoLabel": {"placeholders": {"tipo": {"type": "String"}}},
+
+  "mapaCamadaTrilhaViagemTitulo": "Trace du voyage",
+  "mapaCamadaTrilhaViagemSubtitulo": "Trajet du voyage en cours, mis à jour en direct",
+  "mapaTrilhaSemViagemAtiva": "Aucun voyage en cours pour afficher le trace"
 }

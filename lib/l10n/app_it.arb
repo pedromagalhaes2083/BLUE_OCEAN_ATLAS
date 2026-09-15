@@ -787,5 +787,9 @@
   "fluxoRodape": "Questa è una possibile catena di influenza, non una relazione deterministica: ogni fase dipende da fattori locali (batimetria, topografia, regime delle correnti della regione) che la marea da sola non spiega.",
 
   "mareCardTipoLabel": "Marea di {tipo}",
-  "@mareCardTipoLabel": {"placeholders": {"tipo": {"type": "String"}}}
+  "@mareCardTipoLabel": {"placeholders": {"tipo": {"type": "String"}}},
+
+  "mapaCamadaTrilhaViagemTitulo": "Tracciato del viaggio",
+  "mapaCamadaTrilhaViagemSubtitulo": "Percorso del viaggio in corso, aggiornato in tempo reale",
+  "mapaTrilhaSemViagemAtiva": "Nessun viaggio in corso per mostrare il tracciato"
 }

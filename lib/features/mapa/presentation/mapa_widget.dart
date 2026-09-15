@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -220,6 +221,17 @@ class MapaWidgetState extends State<MapaWidget> {
   bool _mostrarIndiceProdutividade = false;
   List<IndiceProdutividadeBlueOcean> _indicePontos = [];
 
+  // ── Trilha ao vivo da viagem em andamento ────────────────────────────────
+  // Diferente de `widget.rota` (uma trilha estática passada de fora, ex: a
+  // tela de Histórico de Localizações) — esta consulta a viagem em
+  // andamento (status = 'em_andamento') e o próprio histórico gravado por
+  // `LocationTrackingService` periodicamente, atualizando sozinha enquanto
+  // a camada estiver ligada, pra acompanhar o trajeto em tempo real (dentro
+  // do intervalo de gravação) sem precisar sair do mapa.
+  bool _mostrarTrilhaViagem = false;
+  List<LatLng> _pontosTrilhaViagem = [];
+  Timer? _trilhaViagemTimer;
+
   // ── Sobreposição de imagem (PNG georreferenciado) ────────────────────────
   bool _overlayAtiva = false;
   bool _overlayValidada = false;
@@ -357,6 +369,7 @@ class MapaWidgetState extends State<MapaWidget> {
 
   @override
   void dispose() {
+    _trilhaViagemTimer?.cancel();
     _mbtiles.close();
     _nomePontoController.dispose();
     _nomeRotaController.dispose();
@@ -912,6 +925,74 @@ class MapaWidgetState extends State<MapaWidget> {
 
   void _alternarCurvasProfundidade() {
     setState(() => _mostrarCurvasProfundidade = !_mostrarCurvasProfundidade);
+  }
+
+  // ── Trilha ao vivo da viagem em andamento ────────────────────────────────
+
+  /// Liga/desliga a camada. Ligar já busca a trilha na hora e passa a
+  /// atualizar sozinha a cada 60s (best-effort — o intervalo de gravação
+  /// real de `LocationTrackingService` costuma ser bem maior, então a
+  /// atualização só reflete pontos novos quando eles realmente chegarem no
+  /// banco; a busca a cada 60s só garante que a linha aparece assim que o
+  /// próximo ponto for gravado, sem exigir sair e voltar ao mapa).
+  void _alternarTrilhaViagem() {
+    if (_mostrarTrilhaViagem) {
+      _trilhaViagemTimer?.cancel();
+      _trilhaViagemTimer = null;
+      setState(() {
+        _mostrarTrilhaViagem = false;
+        _pontosTrilhaViagem = [];
+      });
+      return;
+    }
+    setState(() => _mostrarTrilhaViagem = true);
+    _carregarTrilhaViagem();
+    _trilhaViagemTimer = Timer.periodic(
+        const Duration(seconds: 60), (_) => _carregarTrilhaViagem());
+  }
+
+  Future<void> _carregarTrilhaViagem() async {
+    try {
+      final viagens = await DatabaseHelper.instance.queryWhere(
+        'viagem',
+        where: 'status = ?',
+        whereArgs: ['em_andamento'],
+      );
+      if (!mounted) return;
+      if (viagens.isEmpty) {
+        _trilhaViagemTimer?.cancel();
+        _trilhaViagemTimer = null;
+        setState(() {
+          _mostrarTrilhaViagem = false;
+          _pontosTrilhaViagem = [];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text(AppLocalizations.of(context).mapaTrilhaSemViagemAtiva)),
+        );
+        return;
+      }
+
+      final viagemId = viagens.first['id'] as int;
+      final historico = await DatabaseHelper.instance.queryWhere(
+        'localizacao_historico',
+        where: 'viagem_id = ?',
+        whereArgs: [viagemId],
+        orderBy: 'data_hora ASC',
+      );
+      if (!mounted) return;
+      setState(() {
+        _pontosTrilhaViagem = historico
+            .map((item) => LatLng(
+                  (item['latitude'] as num).toDouble(),
+                  (item['longitude'] as num).toDouble(),
+                ))
+            .toList();
+      });
+    } catch (e) {
+      debugPrint('Erro ao carregar trilha da viagem em andamento: $e');
+    }
   }
 
   // ── Clorofila-a (NOAA CoastWatch, ERDDAP) ────────────────────────────────
@@ -1515,6 +1596,13 @@ class MapaWidgetState extends State<MapaWidget> {
                     subtitulo: l10n.mapaCamadaCurvasSubtitulo,
                     ativo: _mostrarCurvasProfundidade,
                     onTap: !_camadaRuas ? null : _alternarCurvasProfundidade,
+                  ),
+                  _itemMenuToggle(
+                    icone: Icons.route,
+                    titulo: l10n.mapaCamadaTrilhaViagemTitulo,
+                    subtitulo: l10n.mapaCamadaTrilhaViagemSubtitulo,
+                    ativo: _mostrarTrilhaViagem,
+                    onTap: _alternarTrilhaViagem,
                   ),
                   _itemMenuToggle(
                     icone: Icons.thermostat,
@@ -2466,6 +2554,36 @@ class MapaWidgetState extends State<MapaWidget> {
                 ),
               );
             }).toList(),
+          ),
+        // Trilha ao vivo da viagem em andamento — atualiza sozinha enquanto
+        // a camada estiver ligada (ver _alternarTrilhaViagem). Cor distinta
+        // (azul) da rota estática passada de fora (_rota, vermelha).
+        if (_mostrarTrilhaViagem && _pontosTrilhaViagem.length > 1)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _pontosTrilhaViagem,
+                strokeWidth: 4,
+                color: Colors.blue,
+              ),
+            ],
+          ),
+        if (_mostrarTrilhaViagem && _pontosTrilhaViagem.isNotEmpty)
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: _pontosTrilhaViagem.last,
+                width: 20,
+                height: 20,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            ],
           ),
         // Rota do histórico de GPS — linha ligando os pontos na ordem
         // cronológica, ao estilo Waze/Google Maps, sobre a carta náutica.

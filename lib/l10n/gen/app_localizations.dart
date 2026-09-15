@@ -3879,6 +3879,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Maré de {tipo}'**
   String mareCardTipoLabel(String tipo);
+
+  /// No description provided for @mapaCamadaTrilhaViagemTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trilha da viagem'**
+  String get mapaCamadaTrilhaViagemTitulo;
+
+  /// No description provided for @mapaCamadaTrilhaViagemSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trajeto da viagem em andamento, atualizado ao vivo'**
+  String get mapaCamadaTrilhaViagemSubtitulo;
+
+  /// No description provided for @mapaTrilhaSemViagemAtiva.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma viagem em andamento para mostrar a trilha'**
+  String get mapaTrilhaSemViagemAtiva;
 }
 
 class _AppLocalizationsDelegate

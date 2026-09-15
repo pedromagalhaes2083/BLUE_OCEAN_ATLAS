@@ -787,5 +787,9 @@
   "fluxoRodape": "This is a possible chain of influence, not a deterministic relationship: each step depends on local factors (bathymetry, topography, the region's current patterns) that the tide alone doesn't explain.",
 
   "mareCardTipoLabel": "{tipo} Tide",
-  "@mareCardTipoLabel": {"placeholders": {"tipo": {"type": "String"}}}
+  "@mareCardTipoLabel": {"placeholders": {"tipo": {"type": "String"}}},
+
+  "mapaCamadaTrilhaViagemTitulo": "Trip trail",
+  "mapaCamadaTrilhaViagemSubtitulo": "Current trip's track, updated live",
+  "mapaTrilhaSemViagemAtiva": "No trip in progress to show the trail"
 }

@@ -2250,4 +2250,15 @@ class AppLocalizationsIt extends AppLocalizations {
   String mareCardTipoLabel(String tipo) {
     return 'Marea di $tipo';
   }
+
+  @override
+  String get mapaCamadaTrilhaViagemTitulo => 'Tracciato del viaggio';
+
+  @override
+  String get mapaCamadaTrilhaViagemSubtitulo =>
+      'Percorso del viaggio in corso, aggiornato in tempo reale';
+
+  @override
+  String get mapaTrilhaSemViagemAtiva =>
+      'Nessun viaggio in corso per mostrare il tracciato';
 }

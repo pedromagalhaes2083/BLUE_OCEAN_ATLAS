@@ -788,5 +788,9 @@
   "fluxoRodape": "Essa é uma cadeia de influência possível, não uma relação determinística: cada etapa depende de fatores locais (batimetria, topografia, regime de correntes da região) que a maré sozinha não explica.",
 
   "mareCardTipoLabel": "Maré de {tipo}",
-  "@mareCardTipoLabel": {"placeholders": {"tipo": {"type": "String"}}}
+  "@mareCardTipoLabel": {"placeholders": {"tipo": {"type": "String"}}},
+
+  "mapaCamadaTrilhaViagemTitulo": "Trilha da viagem",
+  "mapaCamadaTrilhaViagemSubtitulo": "Trajeto da viagem em andamento, atualizado ao vivo",
+  "mapaTrilhaSemViagemAtiva": "Nenhuma viagem em andamento para mostrar a trilha"
 }
