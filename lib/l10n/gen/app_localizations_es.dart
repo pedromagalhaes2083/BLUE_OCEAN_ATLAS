@@ -1703,4 +1703,76 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get mareEPescaAvisoSecundario =>
       'Utilice la marea como uno de los indicadores dentro de un análisis integrado.';
+
+  @override
+  String get producaoHistoricoTitulo => 'Historial de Producción';
+
+  @override
+  String get producaoHistoricoTooltipPorPonto => 'Producción por punto';
+
+  @override
+  String get producaoHistoricoTooltipVerMapa => 'Ver en el mapa';
+
+  @override
+  String get producaoHistoricoTooltipExportarCsv => 'Exportar como CSV';
+
+  @override
+  String producaoHistoricoErroCarregarPrefixo(String erro) {
+    return 'Error al cargar la producción: $erro';
+  }
+
+  @override
+  String producaoHistoricoErroExportarPrefixo(String erro) {
+    return 'Error al exportar: $erro';
+  }
+
+  @override
+  String get producaoHistoricoCsvCabecalho =>
+      'Fecha/Hora,Especie,Clasificación,Cantidad (un.),Cantidad (kg),Latitud,Longitud,Observación';
+
+  @override
+  String producaoHistoricoCompartilharTexto(String kg) {
+    return 'Historial de producción — $kg kg';
+  }
+
+  @override
+  String get producaoHistoricoNenhumRegistro =>
+      'Aún no hay registros de producción';
+
+  @override
+  String producaoHistoricoTotalResumo(String kg, int n) {
+    return 'Total: $kg kg en $n registro(s)';
+  }
+
+  @override
+  String producaoHistoricoClassificacaoEUnidades(
+      String classificacao, int unidades) {
+    return 'Clasificación $classificacao kg · $unidades un.';
+  }
+
+  @override
+  String get producaoPorPontoTitulo => 'Producción por Punto';
+
+  @override
+  String producaoPorPontoErroCarregarPrefixo(String erro) {
+    return 'Error al cargar: $erro';
+  }
+
+  @override
+  String get producaoPorPontoVazioTitulo =>
+      'Aún no hay producción asociada a un punto marcado';
+
+  @override
+  String get producaoPorPontoVazioDescricao =>
+      'Registre capturas con coordenada y marque puntos en el mapa para ver aquí los puntos más productivos';
+
+  @override
+  String producaoPorPontoTotalRegistros(int n) {
+    return '$n registro(s)';
+  }
+
+  @override
+  String producaoPorPontoEspecieDestaque(String especie) {
+    return ' · $especie destacada';
+  }
 }

@@ -589,5 +589,32 @@
   "mareEPescaEntendaQuadratura": "Understand neap tides",
   "mareEPescaImportante": "Important",
   "mareEPescaAvisoPrincipal": "The tide phase should not be used in isolation to determine a fishing area. The environment's response varies with location, depth, topography, current patterns, temperature, food availability, wind and other oceanographic factors.",
-  "mareEPescaAvisoSecundario": "Use the tide as one of the indicators within an integrated analysis."
+  "mareEPescaAvisoSecundario": "Use the tide as one of the indicators within an integrated analysis.",
+
+  "producaoHistoricoTitulo": "Production History",
+  "producaoHistoricoTooltipPorPonto": "Production by point",
+  "producaoHistoricoTooltipVerMapa": "View on map",
+  "producaoHistoricoTooltipExportarCsv": "Export as CSV",
+  "producaoHistoricoErroCarregarPrefixo": "Error loading production: {erro}",
+  "@producaoHistoricoErroCarregarPrefixo": {"placeholders": {"erro": {"type": "String"}}},
+  "producaoHistoricoErroExportarPrefixo": "Error exporting: {erro}",
+  "@producaoHistoricoErroExportarPrefixo": {"placeholders": {"erro": {"type": "String"}}},
+  "producaoHistoricoCsvCabecalho": "Date/Time,Species,Classification,Quantity (units),Quantity (kg),Latitude,Longitude,Note",
+  "producaoHistoricoCompartilharTexto": "Production history — {kg} kg",
+  "@producaoHistoricoCompartilharTexto": {"placeholders": {"kg": {"type": "String"}}},
+  "producaoHistoricoNenhumRegistro": "No production records yet",
+  "producaoHistoricoTotalResumo": "Total: {kg} kg in {n} record(s)",
+  "@producaoHistoricoTotalResumo": {"placeholders": {"kg": {"type": "String"}, "n": {"type": "int"}}},
+  "producaoHistoricoClassificacaoEUnidades": "Classification {classificacao} kg · {unidades} un.",
+  "@producaoHistoricoClassificacaoEUnidades": {"placeholders": {"classificacao": {"type": "String"}, "unidades": {"type": "int"}}},
+
+  "producaoPorPontoTitulo": "Production by Point",
+  "producaoPorPontoErroCarregarPrefixo": "Error loading: {erro}",
+  "@producaoPorPontoErroCarregarPrefixo": {"placeholders": {"erro": {"type": "String"}}},
+  "producaoPorPontoVazioTitulo": "No production linked to a marked point yet",
+  "producaoPorPontoVazioDescricao": "Record catches with coordinates and mark points on the map to see the most productive points here",
+  "producaoPorPontoTotalRegistros": "{n} record(s)",
+  "@producaoPorPontoTotalRegistros": {"placeholders": {"n": {"type": "int"}}},
+  "producaoPorPontoEspecieDestaque": " · {especie} in the lead",
+  "@producaoPorPontoEspecieDestaque": {"placeholders": {"especie": {"type": "String"}}}
 }

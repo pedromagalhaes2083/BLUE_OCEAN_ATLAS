@@ -1688,4 +1688,75 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mareEPescaAvisoSecundario =>
       'Use the tide as one of the indicators within an integrated analysis.';
+
+  @override
+  String get producaoHistoricoTitulo => 'Production History';
+
+  @override
+  String get producaoHistoricoTooltipPorPonto => 'Production by point';
+
+  @override
+  String get producaoHistoricoTooltipVerMapa => 'View on map';
+
+  @override
+  String get producaoHistoricoTooltipExportarCsv => 'Export as CSV';
+
+  @override
+  String producaoHistoricoErroCarregarPrefixo(String erro) {
+    return 'Error loading production: $erro';
+  }
+
+  @override
+  String producaoHistoricoErroExportarPrefixo(String erro) {
+    return 'Error exporting: $erro';
+  }
+
+  @override
+  String get producaoHistoricoCsvCabecalho =>
+      'Date/Time,Species,Classification,Quantity (units),Quantity (kg),Latitude,Longitude,Note';
+
+  @override
+  String producaoHistoricoCompartilharTexto(String kg) {
+    return 'Production history — $kg kg';
+  }
+
+  @override
+  String get producaoHistoricoNenhumRegistro => 'No production records yet';
+
+  @override
+  String producaoHistoricoTotalResumo(String kg, int n) {
+    return 'Total: $kg kg in $n record(s)';
+  }
+
+  @override
+  String producaoHistoricoClassificacaoEUnidades(
+      String classificacao, int unidades) {
+    return 'Classification $classificacao kg · $unidades un.';
+  }
+
+  @override
+  String get producaoPorPontoTitulo => 'Production by Point';
+
+  @override
+  String producaoPorPontoErroCarregarPrefixo(String erro) {
+    return 'Error loading: $erro';
+  }
+
+  @override
+  String get producaoPorPontoVazioTitulo =>
+      'No production linked to a marked point yet';
+
+  @override
+  String get producaoPorPontoVazioDescricao =>
+      'Record catches with coordinates and mark points on the map to see the most productive points here';
+
+  @override
+  String producaoPorPontoTotalRegistros(int n) {
+    return '$n record(s)';
+  }
+
+  @override
+  String producaoPorPontoEspecieDestaque(String especie) {
+    return ' · $especie in the lead';
+  }
 }

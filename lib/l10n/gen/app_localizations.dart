@@ -2960,6 +2960,109 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Utilize a maré como um dos indicadores dentro de uma análise integrada.'**
   String get mareEPescaAvisoSecundario;
+
+  /// No description provided for @producaoHistoricoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Histórico de Produção'**
+  String get producaoHistoricoTitulo;
+
+  /// No description provided for @producaoHistoricoTooltipPorPonto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Produção por ponto'**
+  String get producaoHistoricoTooltipPorPonto;
+
+  /// No description provided for @producaoHistoricoTooltipVerMapa.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver no mapa'**
+  String get producaoHistoricoTooltipVerMapa;
+
+  /// No description provided for @producaoHistoricoTooltipExportarCsv.
+  ///
+  /// In pt, this message translates to:
+  /// **'Exportar como CSV'**
+  String get producaoHistoricoTooltipExportarCsv;
+
+  /// No description provided for @producaoHistoricoErroCarregarPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar produção: {erro}'**
+  String producaoHistoricoErroCarregarPrefixo(String erro);
+
+  /// No description provided for @producaoHistoricoErroExportarPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao exportar: {erro}'**
+  String producaoHistoricoErroExportarPrefixo(String erro);
+
+  /// No description provided for @producaoHistoricoCsvCabecalho.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data/Hora,Espécie,Classificação,Quantidade (un.),Quantidade (kg),Latitude,Longitude,Observação'**
+  String get producaoHistoricoCsvCabecalho;
+
+  /// No description provided for @producaoHistoricoCompartilharTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Histórico de produção — {kg} kg'**
+  String producaoHistoricoCompartilharTexto(String kg);
+
+  /// No description provided for @producaoHistoricoNenhumRegistro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum registro de produção ainda'**
+  String get producaoHistoricoNenhumRegistro;
+
+  /// No description provided for @producaoHistoricoTotalResumo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Total: {kg} kg em {n} registro(s)'**
+  String producaoHistoricoTotalResumo(String kg, int n);
+
+  /// No description provided for @producaoHistoricoClassificacaoEUnidades.
+  ///
+  /// In pt, this message translates to:
+  /// **'Classificação {classificacao} kg · {unidades} un.'**
+  String producaoHistoricoClassificacaoEUnidades(
+      String classificacao, int unidades);
+
+  /// No description provided for @producaoPorPontoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Produção por Ponto'**
+  String get producaoPorPontoTitulo;
+
+  /// No description provided for @producaoPorPontoErroCarregarPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar: {erro}'**
+  String producaoPorPontoErroCarregarPrefixo(String erro);
+
+  /// No description provided for @producaoPorPontoVazioTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma produção associada a um ponto marcado ainda'**
+  String get producaoPorPontoVazioTitulo;
+
+  /// No description provided for @producaoPorPontoVazioDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registre capturas com coordenada e marque pontos no mapa para ver aqui os pontos mais produtivos'**
+  String get producaoPorPontoVazioDescricao;
+
+  /// No description provided for @producaoPorPontoTotalRegistros.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n} registro(s)'**
+  String producaoPorPontoTotalRegistros(int n);
+
+  /// No description provided for @producaoPorPontoEspecieDestaque.
+  ///
+  /// In pt, this message translates to:
+  /// **' · {especie} em destaque'**
+  String producaoPorPontoEspecieDestaque(String especie);
 }
 
 class _AppLocalizationsDelegate

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/database/database_helper.dart';
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/domain/models/ponto_marcado.dart';
 import '../domain/models/producao_registro.dart';
 import '../domain/services/producao_pontos_analyzer.dart';
@@ -52,7 +53,8 @@ class _ProducaoPorPontoScreenState extends State<ProducaoPorPontoScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _erro = 'Erro ao carregar: $e';
+        _erro = AppLocalizations.of(context)
+            .producaoPorPontoErroCarregarPrefixo('$e');
         _carregando = false;
       });
     }
@@ -61,7 +63,8 @@ class _ProducaoPorPontoScreenState extends State<ProducaoPorPontoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Produção por Ponto')),
+      appBar: AppBar(
+          title: Text(AppLocalizations.of(context).producaoPorPontoTitulo)),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())
           : _erro != null
@@ -83,6 +86,7 @@ class _ProducaoPorPontoScreenState extends State<ProducaoPorPontoScreen> {
 
   Widget _buildVazio(BuildContext context) {
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -92,14 +96,13 @@ class _ProducaoPorPontoScreenState extends State<ProducaoPorPontoScreen> {
             Icon(Icons.query_stats, size: 80, color: onSurfaceVariant),
             const SizedBox(height: 16),
             Text(
-              'Nenhuma produção associada a um ponto marcado ainda',
+              l10n.producaoPorPontoVazioTitulo,
               textAlign: TextAlign.center,
               style: TextStyle(color: onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             Text(
-              'Registre capturas com coordenada e marque pontos no mapa '
-              'para ver aqui os pontos mais produtivos',
+              l10n.producaoPorPontoVazioDescricao,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: onSurfaceVariant),
             ),
@@ -133,6 +136,7 @@ class _RankingTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     final cor = _corPosicao(context);
+    final l10n = AppLocalizations.of(context);
     final especieTop = item.porEspecie.entries.isEmpty
         ? null
         : (item.porEspecie.entries.toList()
@@ -170,7 +174,7 @@ class _RankingTile extends StatelessWidget {
                 Text(
                   item.ponto.nome?.isNotEmpty == true
                       ? item.ponto.nome!
-                      : 'Ponto marcado',
+                      : l10n.mapaPontoMarcadoTitulo,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style:
@@ -184,8 +188,10 @@ class _RankingTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${item.totalRegistros} registro(s)'
-                  '${especieTop != null ? ' · ${especieTop.key} em destaque' : ''}',
+                  l10n.producaoPorPontoTotalRegistros(item.totalRegistros) +
+                      (especieTop != null
+                          ? l10n.producaoPorPontoEspecieDestaque(especieTop.key)
+                          : ''),
                   style: TextStyle(fontSize: 12, color: onSurfaceVariant),
                 ),
               ],

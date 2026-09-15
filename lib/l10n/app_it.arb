@@ -589,5 +589,32 @@
   "mareEPescaEntendaQuadratura": "Scopri le maree di quadratura",
   "mareEPescaImportante": "Importante",
   "mareEPescaAvisoPrincipal": "La fase di marea non deve essere utilizzata da sola per determinare un'area di pesca. La risposta dell'ambiente varia in base a posizione, profondità, topografia, regime delle correnti, temperatura, disponibilità di cibo, vento e altri fattori oceanografici.",
-  "mareEPescaAvisoSecundario": "Usa la marea come uno degli indicatori all'interno di un'analisi integrata."
+  "mareEPescaAvisoSecundario": "Usa la marea come uno degli indicatori all'interno di un'analisi integrata.",
+
+  "producaoHistoricoTitulo": "Storico Produzione",
+  "producaoHistoricoTooltipPorPonto": "Produzione per punto",
+  "producaoHistoricoTooltipVerMapa": "Visualizza sulla mappa",
+  "producaoHistoricoTooltipExportarCsv": "Esporta come CSV",
+  "producaoHistoricoErroCarregarPrefixo": "Errore nel caricamento della produzione: {erro}",
+  "@producaoHistoricoErroCarregarPrefixo": {"placeholders": {"erro": {"type": "String"}}},
+  "producaoHistoricoErroExportarPrefixo": "Errore nell'esportazione: {erro}",
+  "@producaoHistoricoErroExportarPrefixo": {"placeholders": {"erro": {"type": "String"}}},
+  "producaoHistoricoCsvCabecalho": "Data/Ora,Specie,Classificazione,Quantità (un.),Quantità (kg),Latitudine,Longitudine,Nota",
+  "producaoHistoricoCompartilharTexto": "Storico produzione — {kg} kg",
+  "@producaoHistoricoCompartilharTexto": {"placeholders": {"kg": {"type": "String"}}},
+  "producaoHistoricoNenhumRegistro": "Nessun registro di produzione ancora",
+  "producaoHistoricoTotalResumo": "Totale: {kg} kg in {n} registrazione(i)",
+  "@producaoHistoricoTotalResumo": {"placeholders": {"kg": {"type": "String"}, "n": {"type": "int"}}},
+  "producaoHistoricoClassificacaoEUnidades": "Classificazione {classificacao} kg · {unidades} un.",
+  "@producaoHistoricoClassificacaoEUnidades": {"placeholders": {"classificacao": {"type": "String"}, "unidades": {"type": "int"}}},
+
+  "producaoPorPontoTitulo": "Produzione per Punto",
+  "producaoPorPontoErroCarregarPrefixo": "Errore nel caricamento: {erro}",
+  "@producaoPorPontoErroCarregarPrefixo": {"placeholders": {"erro": {"type": "String"}}},
+  "producaoPorPontoVazioTitulo": "Nessuna produzione associata a un punto salvato ancora",
+  "producaoPorPontoVazioDescricao": "Registra le catture con coordinate e salva punti sulla mappa per vedere qui i punti più produttivi",
+  "producaoPorPontoTotalRegistros": "{n} registrazione(i)",
+  "@producaoPorPontoTotalRegistros": {"placeholders": {"n": {"type": "int"}}},
+  "producaoPorPontoEspecieDestaque": " · {especie} in evidenza",
+  "@producaoPorPontoEspecieDestaque": {"placeholders": {"especie": {"type": "String"}}}
 }

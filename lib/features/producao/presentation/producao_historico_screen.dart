@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/especies_comuns.dart';
 import '../domain/models/producao_registro.dart';
@@ -80,7 +81,9 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar produção: $e')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .producaoHistoricoErroCarregarPrefixo('$e'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -99,8 +102,9 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
   }
 
   Future<void> _exportarCsv() async {
+    final l10n = AppLocalizations.of(context);
     final linhas = <String>[
-      'Data/Hora,Espécie,Classificação,Quantidade (un.),Quantidade (kg),Latitude,Longitude,Observação',
+      l10n.producaoHistoricoCsvCabecalho,
       ..._registros.map((r) => [
             _csvCampo(_formatarDataHora(r.dataHora)),
             _csvCampo(r.especie),
@@ -122,25 +126,28 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
       if (!mounted) return;
       await Share.shareXFiles(
         [XFile(arquivo.path)],
-        text: 'Histórico de produção — ${_totalKg.toStringAsFixed(1)} kg',
+        text: l10n.producaoHistoricoCompartilharTexto(_totalKg.toStringAsFixed(1)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao exportar: $e')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .producaoHistoricoErroExportarPrefixo('$e'))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Histórico de Produção'),
+        title: Text(l10n.producaoHistoricoTitulo),
         actions: [
           IconButton(
             icon: const Icon(Icons.query_stats),
-            tooltip: 'Produção por ponto',
+            tooltip: l10n.producaoHistoricoTooltipPorPonto,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -151,13 +158,13 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
           if (_registrosComCoordenada.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.map_outlined),
-              tooltip: 'Ver no mapa',
+              tooltip: l10n.producaoHistoricoTooltipVerMapa,
               onPressed: _verNoMapa,
             ),
           if (_registros.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.ios_share),
-              tooltip: 'Exportar como CSV',
+              tooltip: l10n.producaoHistoricoTooltipExportarCsv,
               onPressed: _exportarCsv,
             ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _carregar),
@@ -174,7 +181,7 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
                           size: 80,
                           color: Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(height: 16),
-                      const Text('Nenhum registro de produção ainda'),
+                      Text(l10n.producaoHistoricoNenhumRegistro),
                     ],
                   ),
                 )
@@ -207,7 +214,8 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
                 Icon(Icons.set_meal, color: colorScheme.onPrimaryContainer),
                 const SizedBox(width: 8),
                 Text(
-                  'Total: ${_totalKg.toStringAsFixed(1)} kg em ${_registros.length} registro(s)',
+                  AppLocalizations.of(context).producaoHistoricoTotalResumo(
+                      _totalKg.toStringAsFixed(1), _registros.length),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -251,7 +259,8 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
             Text(_formatarDataHora(r.dataHora)),
             if (r.classificacao != null && r.quantidadeUnidades != null)
               Text(
-                'Classificação ${r.classificacao!.label} kg · ${r.quantidadeUnidades} un.',
+                AppLocalizations.of(context).producaoHistoricoClassificacaoEUnidades(
+                    r.classificacao!.label, r.quantidadeUnidades!),
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             if (r.observacao != null)

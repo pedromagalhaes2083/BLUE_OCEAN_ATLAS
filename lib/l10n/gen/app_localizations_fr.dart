@@ -1714,4 +1714,76 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get mareEPescaAvisoSecundario =>
       'Utilisez la marée comme l\'un des indicateurs dans une analyse intégrée.';
+
+  @override
+  String get producaoHistoricoTitulo => 'Historique de Production';
+
+  @override
+  String get producaoHistoricoTooltipPorPonto => 'Production par point';
+
+  @override
+  String get producaoHistoricoTooltipVerMapa => 'Voir sur la carte';
+
+  @override
+  String get producaoHistoricoTooltipExportarCsv => 'Exporter en CSV';
+
+  @override
+  String producaoHistoricoErroCarregarPrefixo(String erro) {
+    return 'Erreur lors du chargement de la production : $erro';
+  }
+
+  @override
+  String producaoHistoricoErroExportarPrefixo(String erro) {
+    return 'Erreur lors de l\'exportation : $erro';
+  }
+
+  @override
+  String get producaoHistoricoCsvCabecalho =>
+      'Date/Heure,Espèce,Classification,Quantité (un.),Quantité (kg),Latitude,Longitude,Remarque';
+
+  @override
+  String producaoHistoricoCompartilharTexto(String kg) {
+    return 'Historique de production — $kg kg';
+  }
+
+  @override
+  String get producaoHistoricoNenhumRegistro =>
+      'Aucun enregistrement de production pour l\'instant';
+
+  @override
+  String producaoHistoricoTotalResumo(String kg, int n) {
+    return 'Total : $kg kg en $n enregistrement(s)';
+  }
+
+  @override
+  String producaoHistoricoClassificacaoEUnidades(
+      String classificacao, int unidades) {
+    return 'Classification $classificacao kg · $unidades un.';
+  }
+
+  @override
+  String get producaoPorPontoTitulo => 'Production par Point';
+
+  @override
+  String producaoPorPontoErroCarregarPrefixo(String erro) {
+    return 'Erreur lors du chargement : $erro';
+  }
+
+  @override
+  String get producaoPorPontoVazioTitulo =>
+      'Aucune production associée à un point marqué pour l\'instant';
+
+  @override
+  String get producaoPorPontoVazioDescricao =>
+      'Enregistrez des captures avec coordonnées et marquez des points sur la carte pour voir ici les points les plus productifs';
+
+  @override
+  String producaoPorPontoTotalRegistros(int n) {
+    return '$n enregistrement(s)';
+  }
+
+  @override
+  String producaoPorPontoEspecieDestaque(String especie) {
+    return ' · $especie en tête';
+  }
 }
