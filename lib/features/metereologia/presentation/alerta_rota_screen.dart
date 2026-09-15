@@ -12,6 +12,7 @@ import '../../../core/services/location_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/domain/models/ponto_marcado.dart';
 import '../data/previsao_tempo_repository.dart';
 import '../data/wave_forecast_repository.dart';
@@ -115,7 +116,8 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
       await _buscarCondicoesNoPonto();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erroPosicao = 'Erro ao obter posição: $e');
+      setState(() => _erroPosicao =
+          AppLocalizations.of(context).alertaRotaErroPosicaoPrefixo('$e'));
     } finally {
       if (mounted) setState(() => _carregandoPosicao = false);
     }
@@ -136,11 +138,12 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
   /// usado pra posição real do GPS. Só pra teste/planejamento: nunca é
   /// enviada a lugar nenhum, fica só no estado local da tela.
   Future<void> _simularComPontoMarcado() async {
+    final l10n = AppLocalizations.of(context);
     final maps = await DatabaseHelper.instance.query('ponto_marcado');
     if (!mounted) return;
     if (maps.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nenhum ponto marcado ainda')),
+        SnackBar(content: Text(l10n.alertaRotaNenhumPontoMarcado)),
       );
       return;
     }
@@ -150,7 +153,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
     final pontoEscolhido = await showDialog<PontoMarcado>(
       context: context,
       builder: (dialogContext) => SimpleDialog(
-        title: const Text('Simular a partir de qual ponto?'),
+        title: Text(l10n.alertaRotaSimularDialogTitulo),
         children: pontos
             .map((p) => SimpleDialogOption(
                   onPressed: () => Navigator.pop(dialogContext, p),
@@ -159,7 +162,9 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        p.nome?.isNotEmpty == true ? p.nome! : 'Ponto marcado',
+                        p.nome?.isNotEmpty == true
+                            ? p.nome!
+                            : l10n.mapaPontoMarcadoTitulo,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 2),
@@ -198,8 +203,9 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
     setState(() {
       _posicao = posicaoSimulada;
       _emSimulacao = true;
-      _nomePontoSimulado =
-          pontoEscolhido.nome?.isNotEmpty == true ? pontoEscolhido.nome! : 'Ponto marcado';
+      _nomePontoSimulado = pontoEscolhido.nome?.isNotEmpty == true
+          ? pontoEscolhido.nome!
+          : l10n.mapaPontoMarcadoTitulo;
       _erroPosicao = null;
     });
     await _buscarCondicoesNoPonto();
@@ -207,11 +213,12 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
 
   Future<double?> _escolherRumoSimulado() async {
     var rumo = 0.0;
+    final l10n = AppLocalizations.of(context);
     return showDialog<double>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Rumo simulado'),
+          title: Text(l10n.alertaRotaRumoSimuladoTitulo),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -230,11 +237,11 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
+              child: Text(l10n.cancelar),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, rumo),
-              child: const Text('Simular'),
+              child: Text(l10n.alertaRotaBotaoSimular),
             ),
           ],
         ),
@@ -312,11 +319,12 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
   }
 
   String _labelVento(double kmh) {
-    if (kmh < 10) return 'Calmo';
-    if (kmh < 20) return 'Leve';
-    if (kmh < 30) return 'Moderado';
-    if (kmh < 45) return 'Forte';
-    return 'Muito forte';
+    final l10n = AppLocalizations.of(context);
+    if (kmh < 10) return l10n.ventoIntensidadeCalmo;
+    if (kmh < 20) return l10n.ventoIntensidadeLeve;
+    if (kmh < 30) return l10n.ventoIntensidadeModerado;
+    if (kmh < 45) return l10n.ventoIntensidadeForte;
+    return l10n.ventoIntensidadeMuitoForte;
   }
 
   Color _corCorrente(double nos) {
@@ -328,11 +336,12 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
   }
 
   String _labelCorrente(double nos) {
-    if (nos < 0.5) return 'Fraca';
-    if (nos < 1.0) return 'Moderada';
-    if (nos < 1.5) return 'Forte';
-    if (nos < 2.0) return 'Muito forte';
-    return 'Extrema';
+    final l10n = AppLocalizations.of(context);
+    if (nos < 0.5) return l10n.alertaRotaCorrenteFraca;
+    if (nos < 1.0) return l10n.alertaRotaCorrenteModerada;
+    if (nos < 1.5) return l10n.alertaRotaCorrenteForte;
+    if (nos < 2.0) return l10n.alertaRotaCorrenteMuitoForte;
+    return l10n.alertaRotaCorrenteExtrema;
   }
 
   // Mesmas faixas usadas em CondicoesAtuaisCard (altura de onda) —
@@ -346,23 +355,25 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
   }
 
   String _labelAltura(double m) {
-    if (m < 0.5) return 'Calmo';
-    if (m < 1.0) return 'Leve';
-    if (m < 2.0) return 'Moderado';
-    if (m < 3.0) return 'Agitado';
-    if (m < 4.0) return 'Muito agitado';
-    return 'Tempestuoso';
+    final l10n = AppLocalizations.of(context);
+    if (m < 0.5) return l10n.ondaAlturaCalmo;
+    if (m < 1.0) return l10n.ondaAlturaLeve;
+    if (m < 2.0) return l10n.ondaAlturaModerado;
+    if (m < 3.0) return l10n.ondaAlturaAgitado;
+    if (m < 4.0) return l10n.ondaAlturaMuitoAgitado;
+    return l10n.ondaAlturaTempestuoso;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alerta de Rota'),
+        title: Text(l10n.alertaRotaTitulo),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_active_outlined),
-            tooltip: 'Configurar alertas',
+            tooltip: l10n.alertaRotaTooltipConfigurar,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AlertaConfigScreen()),
@@ -370,12 +381,12 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.science_outlined),
-            tooltip: 'Simular com ponto marcado',
+            tooltip: l10n.alertaRotaTooltipSimular,
             onPressed: _simularComPontoMarcado,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Atualizar',
+            tooltip: l10n.viagemAtualizarTooltip,
             onPressed: _carregandoPosicao ? null : _atualizar,
           ),
         ],
@@ -424,7 +435,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
             else ...[
               if (_ventoKmh != null) _buildAlertaCard(
                 icon: Icons.air,
-                titulo: 'Vento à frente',
+                titulo: l10n.alertaRotaVentoTitulo,
                 valor: '${_ventoKmh!.toStringAsFixed(0)} km/h',
                 direcaoGraus: _ventoDirecaoGraus,
                 cor: _corVento(_ventoKmh!),
@@ -433,7 +444,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
               const SizedBox(height: 12),
               if (_correnteNos != null) _buildAlertaCard(
                 icon: Icons.water,
-                titulo: 'Corrente à frente',
+                titulo: l10n.alertaRotaCorrenteTitulo,
                 valor: '${_correnteNos!.toStringAsFixed(1)} nós',
                 direcaoGraus: _correnteDirecaoGraus,
                 cor: _corCorrente(_correnteNos!),
@@ -442,10 +453,10 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
               const SizedBox(height: 12),
               if (_ondaAlturaM != null) _buildAlertaCard(
                 icon: Icons.waves,
-                titulo: 'Onda à frente',
+                titulo: l10n.alertaRotaOndaTitulo,
                 valor: '${_ondaAlturaM!.toStringAsFixed(1)} m',
                 subtitulo: _ondaPeriodoS != null
-                    ? 'Período ${_ondaPeriodoS!.toStringAsFixed(1)} s'
+                    ? l10n.ondaPeriodo(_ondaPeriodoS!.toStringAsFixed(1))
                     : null,
                 direcaoGraus: _ondaDirecaoGraus,
                 cor: _corAltura(_ondaAlturaM!),
@@ -454,10 +465,10 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
               const SizedBox(height: 12),
               if (_swellAlturaM != null) _buildAlertaCard(
                 icon: Icons.tsunami_outlined,
-                titulo: 'Swell à frente',
+                titulo: l10n.alertaRotaSwellTitulo,
                 valor: '${_swellAlturaM!.toStringAsFixed(1)} m',
                 subtitulo: _swellPeriodoS != null
-                    ? 'Período ${_swellPeriodoS!.toStringAsFixed(1)} s'
+                    ? l10n.ondaPeriodo(_swellPeriodoS!.toStringAsFixed(1))
                     : null,
                 direcaoGraus: _swellDirecaoGraus,
                 cor: _corAltura(_swellAlturaM!),
@@ -485,6 +496,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
   Widget _buildBussolaCard() {
     final heading = _headingMagnetico;
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    final l10n = AppLocalizations.of(context);
 
     return Card(
       elevation: 2,
@@ -497,8 +509,8 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
             Icon(Icons.explore_outlined,
                 size: 18, color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: 4),
-            const Text('Bússola',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(l10n.alertaRotaBussolaTitulo,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             const SizedBox(height: 12),
             if (heading != null) ...[
               Text(
@@ -517,7 +529,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
               const Text('—',
                   style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
               const SizedBox(height: 2),
-              Text('Sem sinal',
+              Text(l10n.alertaRotaSemSinal,
                   style: TextStyle(fontSize: 12, color: onSurfaceVariant)),
             ],
           ],
@@ -527,6 +539,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
   }
 
   Widget _buildAlcanceCard() {
+    final l10n = AppLocalizations.of(context);
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -540,10 +553,10 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
                 Icon(Icons.social_distance_outlined,
                     color: Theme.of(context).colorScheme.primary, size: 20),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Alcance do alerta',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    l10n.alertaRotaAlcanceTitulo,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -595,8 +608,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
               ],
             ),
             Text(
-              'Distância à frente da embarcação, no rumo atual, onde as '
-              'condições são checadas.',
+              l10n.alertaRotaAlcanceDescricao,
               style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -623,8 +635,9 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Rumo ${_posicao!.heading.toStringAsFixed(0)}° · '
-                      '${_alcanceMn.toStringAsFixed(0)} mn à frente'),
+                  Text(AppLocalizations.of(context).alertaRotaRumoEAlcance(
+                      _posicao!.heading.toStringAsFixed(0),
+                      _alcanceMn.toStringAsFixed(0))),
                   const SizedBox(height: 4),
                   Text(
                     formatarCoordenadasDMSCompacta(
@@ -715,6 +728,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
 
   Widget _buildSemRumoCard() {
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    final l10n = AppLocalizations.of(context);
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -725,8 +739,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
             Icon(Icons.explore_off_outlined, size: 48, color: onSurfaceVariant),
             const SizedBox(height: 12),
             Text(
-              'Rumo indisponível — a embarcação precisa estar em movimento '
-              'para o GPS calcular um rumo válido.',
+              l10n.alertaRotaSemRumoDescricao,
               textAlign: TextAlign.center,
               style: TextStyle(color: onSurfaceVariant),
             ),
@@ -734,7 +747,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
             OutlinedButton.icon(
               onPressed: _simularComPontoMarcado,
               icon: const Icon(Icons.science_outlined, size: 18),
-              label: const Text('Simular com ponto marcado'),
+              label: Text(l10n.alertaRotaTooltipSimular),
             ),
           ],
         ),
@@ -758,8 +771,9 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Simulação ativa — usando "$_nomePontoSimulado" com rumo '
-                '${_posicao!.heading.toStringAsFixed(0)}° (não é o GPS real)',
+                AppLocalizations.of(context).alertaRotaSimulacaoAtiva(
+                    _nomePontoSimulado ?? '',
+                    _posicao!.heading.toStringAsFixed(0)),
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -768,7 +782,7 @@ class _AlertaRotaScreenState extends State<AlertaRotaScreen> {
             ),
             TextButton(
               onPressed: _atualizar,
-              child: const Text('Sair'),
+              child: Text(AppLocalizations.of(context).sair),
             ),
           ],
         ),

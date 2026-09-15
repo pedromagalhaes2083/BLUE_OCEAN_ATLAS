@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/config/limiares_alerta.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Tela pra configurar quando o app deve disparar a notificação de
 /// "condição severa à frente" (ver `AlertaCondicaoNotificationService`) —
@@ -48,26 +49,23 @@ class _AlertaConfigScreenState extends State<AlertaConfigScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurar Alertas')),
+      appBar: AppBar(title: Text(l10n.alertaConfigTitulo)),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Text(
-                  'Escolha a partir de que ponto cada condição no caminho '
-                  'da embarcação dispara uma notificação (com vibração). '
-                  'Vale tanto pra checagem manual em "Alerta de Rota" '
-                  'quanto pro rastreamento em segundo plano durante uma '
-                  'viagem.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                Text(
+                  l10n.alertaConfigDescricao,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 20),
                 _CardLimiar(
                   icon: Icons.air,
-                  titulo: 'Vento',
-                  subtitulo: 'Alerta quando o vento à frente passar de',
+                  titulo: l10n.alertaConfigVentoTitulo,
+                  subtitulo: l10n.alertaConfigVentoSubtitulo,
                   ativo: _limiares.ventoAtivo,
                   onAtivoChanged: (v) =>
                       _atualizar(_limiares.copyWith(ventoAtivo: v)),
@@ -84,8 +82,8 @@ class _AlertaConfigScreenState extends State<AlertaConfigScreen> {
                 const SizedBox(height: 16),
                 _CardLimiar(
                   icon: Icons.waves_outlined,
-                  titulo: 'Altura de onda e swell',
-                  subtitulo: 'Alerta quando onda ou swell passarem de',
+                  titulo: l10n.alertaConfigOndaTitulo,
+                  subtitulo: l10n.alertaConfigOndaSubtitulo,
                   ativo: _limiares.ondaAtivo,
                   onAtivoChanged: (v) =>
                       _atualizar(_limiares.copyWith(ondaAtivo: v)),
@@ -103,8 +101,8 @@ class _AlertaConfigScreenState extends State<AlertaConfigScreen> {
                 const SizedBox(height: 16),
                 _CardLimiar(
                   icon: Icons.water_outlined,
-                  titulo: 'Corrente de maré',
-                  subtitulo: 'Alerta quando a corrente passar de',
+                  titulo: l10n.alertaConfigCorrenteTitulo,
+                  subtitulo: l10n.alertaConfigCorrenteSubtitulo,
                   ativo: _limiares.correnteAtivo,
                   onAtivoChanged: (v) =>
                       _atualizar(_limiares.copyWith(correnteAtivo: v)),
@@ -122,8 +120,8 @@ class _AlertaConfigScreenState extends State<AlertaConfigScreen> {
                 const SizedBox(height: 16),
                 _CardLimiar(
                   icon: Icons.thermostat_outlined,
-                  titulo: 'Temperatura da água',
-                  subtitulo: 'Alerta quando a temperatura passar de',
+                  titulo: l10n.alertaConfigTemperaturaTitulo,
+                  subtitulo: l10n.alertaConfigTemperaturaSubtitulo,
                   ativo: _limiares.temperaturaAtivo,
                   onAtivoChanged: (v) =>
                       _atualizar(_limiares.copyWith(temperaturaAtivo: v)),

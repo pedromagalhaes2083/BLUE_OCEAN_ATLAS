@@ -1429,4 +1429,119 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get meteoSheetSwellPeriodo => 'Swell — período';
+
+  @override
+  String get alertaConfigTitulo => 'Configurar Alertas';
+
+  @override
+  String get alertaConfigDescricao =>
+      'Elija a partir de qué punto cada condición en el camino de la embarcación dispara una notificación (con vibración). Aplica tanto a la comprobación manual en \"Alerta de Ruta\" como al seguimiento en segundo plano durante un viaje.';
+
+  @override
+  String get alertaConfigVentoTitulo => 'Viento';
+
+  @override
+  String get alertaConfigVentoSubtitulo =>
+      'Alerta cuando el viento por delante supere';
+
+  @override
+  String get alertaConfigOndaTitulo => 'Altura de ola y swell';
+
+  @override
+  String get alertaConfigOndaSubtitulo =>
+      'Alerta cuando la ola o el swell superen';
+
+  @override
+  String get alertaConfigCorrenteTitulo => 'Corriente de marea';
+
+  @override
+  String get alertaConfigCorrenteSubtitulo =>
+      'Alerta cuando la corriente supere';
+
+  @override
+  String get alertaConfigTemperaturaTitulo => 'Temperatura del agua';
+
+  @override
+  String get alertaConfigTemperaturaSubtitulo =>
+      'Alerta cuando la temperatura supere';
+
+  @override
+  String get alertaRotaTitulo => 'Alerta de Ruta';
+
+  @override
+  String get alertaRotaTooltipConfigurar => 'Configurar alertas';
+
+  @override
+  String get alertaRotaTooltipSimular => 'Simular con punto marcado';
+
+  @override
+  String alertaRotaErroPosicaoPrefixo(String erro) {
+    return 'Error al obtener la posición: $erro';
+  }
+
+  @override
+  String get alertaRotaNenhumPontoMarcado => 'Aún no hay puntos marcados';
+
+  @override
+  String get alertaRotaSimularDialogTitulo => '¿Simular a partir de qué punto?';
+
+  @override
+  String get alertaRotaRumoSimuladoTitulo => 'Rumbo simulado';
+
+  @override
+  String get alertaRotaBotaoSimular => 'Simular';
+
+  @override
+  String get alertaRotaVentoTitulo => 'Viento por delante';
+
+  @override
+  String get alertaRotaCorrenteTitulo => 'Corriente por delante';
+
+  @override
+  String get alertaRotaOndaTitulo => 'Ola por delante';
+
+  @override
+  String get alertaRotaSwellTitulo => 'Swell por delante';
+
+  @override
+  String get alertaRotaBussolaTitulo => 'Brújula';
+
+  @override
+  String get alertaRotaSemSinal => 'Sin señal';
+
+  @override
+  String get alertaRotaAlcanceTitulo => 'Alcance de la alerta';
+
+  @override
+  String get alertaRotaAlcanceDescricao =>
+      'Distancia por delante de la embarcación, en el rumbo actual, donde se comprueban las condiciones.';
+
+  @override
+  String alertaRotaRumoEAlcance(String rumo, String alcance) {
+    return 'Rumbo $rumo° · $alcance mn por delante';
+  }
+
+  @override
+  String get alertaRotaSemRumoDescricao =>
+      'Rumbo no disponible — la embarcación debe estar en movimiento para que el GPS calcule un rumbo válido.';
+
+  @override
+  String alertaRotaSimulacaoAtiva(String nome, String rumo) {
+    return 'Simulación activa — usando \"$nome\" con rumbo $rumo° (no es el GPS real)';
+  }
+
+  @override
+  String get alertaRotaCorrenteFraca => 'Débil';
+
+  @override
+  String get alertaRotaCorrenteModerada => 'Moderada';
+
+  @override
+  String get alertaRotaCorrenteForte => 'Fuerte';
+
+  @override
+  String get alertaRotaCorrenteMuitoForte => 'Muy fuerte';
+
+  @override
+  String get alertaRotaCorrenteExtrema => 'Extrema';
 }

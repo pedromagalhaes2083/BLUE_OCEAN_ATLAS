@@ -2486,6 +2486,210 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Swell — período'**
   String get meteoSheetSwellPeriodo;
+
+  /// No description provided for @alertaConfigTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configurar Alertas'**
+  String get alertaConfigTitulo;
+
+  /// No description provided for @alertaConfigDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha a partir de que ponto cada condição no caminho da embarcação dispara uma notificação (com vibração). Vale tanto pra checagem manual em \"Alerta de Rota\" quanto pro rastreamento em segundo plano durante uma viagem.'**
+  String get alertaConfigDescricao;
+
+  /// No description provided for @alertaConfigVentoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vento'**
+  String get alertaConfigVentoTitulo;
+
+  /// No description provided for @alertaConfigVentoSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alerta quando o vento à frente passar de'**
+  String get alertaConfigVentoSubtitulo;
+
+  /// No description provided for @alertaConfigOndaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Altura de onda e swell'**
+  String get alertaConfigOndaTitulo;
+
+  /// No description provided for @alertaConfigOndaSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alerta quando onda ou swell passarem de'**
+  String get alertaConfigOndaSubtitulo;
+
+  /// No description provided for @alertaConfigCorrenteTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Corrente de maré'**
+  String get alertaConfigCorrenteTitulo;
+
+  /// No description provided for @alertaConfigCorrenteSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alerta quando a corrente passar de'**
+  String get alertaConfigCorrenteSubtitulo;
+
+  /// No description provided for @alertaConfigTemperaturaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Temperatura da água'**
+  String get alertaConfigTemperaturaTitulo;
+
+  /// No description provided for @alertaConfigTemperaturaSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alerta quando a temperatura passar de'**
+  String get alertaConfigTemperaturaSubtitulo;
+
+  /// No description provided for @alertaRotaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alerta de Rota'**
+  String get alertaRotaTitulo;
+
+  /// No description provided for @alertaRotaTooltipConfigurar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configurar alertas'**
+  String get alertaRotaTooltipConfigurar;
+
+  /// No description provided for @alertaRotaTooltipSimular.
+  ///
+  /// In pt, this message translates to:
+  /// **'Simular com ponto marcado'**
+  String get alertaRotaTooltipSimular;
+
+  /// No description provided for @alertaRotaErroPosicaoPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao obter posição: {erro}'**
+  String alertaRotaErroPosicaoPrefixo(String erro);
+
+  /// No description provided for @alertaRotaNenhumPontoMarcado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum ponto marcado ainda'**
+  String get alertaRotaNenhumPontoMarcado;
+
+  /// No description provided for @alertaRotaSimularDialogTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Simular a partir de qual ponto?'**
+  String get alertaRotaSimularDialogTitulo;
+
+  /// No description provided for @alertaRotaRumoSimuladoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rumo simulado'**
+  String get alertaRotaRumoSimuladoTitulo;
+
+  /// No description provided for @alertaRotaBotaoSimular.
+  ///
+  /// In pt, this message translates to:
+  /// **'Simular'**
+  String get alertaRotaBotaoSimular;
+
+  /// No description provided for @alertaRotaVentoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vento à frente'**
+  String get alertaRotaVentoTitulo;
+
+  /// No description provided for @alertaRotaCorrenteTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Corrente à frente'**
+  String get alertaRotaCorrenteTitulo;
+
+  /// No description provided for @alertaRotaOndaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Onda à frente'**
+  String get alertaRotaOndaTitulo;
+
+  /// No description provided for @alertaRotaSwellTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Swell à frente'**
+  String get alertaRotaSwellTitulo;
+
+  /// No description provided for @alertaRotaBussolaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bússola'**
+  String get alertaRotaBussolaTitulo;
+
+  /// No description provided for @alertaRotaSemSinal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem sinal'**
+  String get alertaRotaSemSinal;
+
+  /// No description provided for @alertaRotaAlcanceTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alcance do alerta'**
+  String get alertaRotaAlcanceTitulo;
+
+  /// No description provided for @alertaRotaAlcanceDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Distância à frente da embarcação, no rumo atual, onde as condições são checadas.'**
+  String get alertaRotaAlcanceDescricao;
+
+  /// No description provided for @alertaRotaRumoEAlcance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rumo {rumo}° · {alcance} mn à frente'**
+  String alertaRotaRumoEAlcance(String rumo, String alcance);
+
+  /// No description provided for @alertaRotaSemRumoDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rumo indisponível — a embarcação precisa estar em movimento para o GPS calcular um rumo válido.'**
+  String get alertaRotaSemRumoDescricao;
+
+  /// No description provided for @alertaRotaSimulacaoAtiva.
+  ///
+  /// In pt, this message translates to:
+  /// **'Simulação ativa — usando \"{nome}\" com rumo {rumo}° (não é o GPS real)'**
+  String alertaRotaSimulacaoAtiva(String nome, String rumo);
+
+  /// No description provided for @alertaRotaCorrenteFraca.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fraca'**
+  String get alertaRotaCorrenteFraca;
+
+  /// No description provided for @alertaRotaCorrenteModerada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Moderada'**
+  String get alertaRotaCorrenteModerada;
+
+  /// No description provided for @alertaRotaCorrenteForte.
+  ///
+  /// In pt, this message translates to:
+  /// **'Forte'**
+  String get alertaRotaCorrenteForte;
+
+  /// No description provided for @alertaRotaCorrenteMuitoForte.
+  ///
+  /// In pt, this message translates to:
+  /// **'Muito forte'**
+  String get alertaRotaCorrenteMuitoForte;
+
+  /// No description provided for @alertaRotaCorrenteExtrema.
+  ///
+  /// In pt, this message translates to:
+  /// **'Extrema'**
+  String get alertaRotaCorrenteExtrema;
 }
 
 class _AppLocalizationsDelegate
