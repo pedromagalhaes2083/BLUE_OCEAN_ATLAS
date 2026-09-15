@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../l10n/gen/app_localizations.dart';
 
 /// Lista os pedidos de carta náutica já feitos pelo mestre — hoje só
 /// registrados localmente, já que não existe (ainda) integração com um
@@ -38,7 +39,7 @@ class _MinhasSolicitacoesScreenState extends State<MinhasSolicitacoesScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar solicitações: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).minhasSolicitacoesErro('$e'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -47,9 +48,10 @@ class _MinhasSolicitacoesScreenState extends State<MinhasSolicitacoesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Minhas Solicitações'),
+        title: Text(l10n.minhasSolicitacoesTitulo),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _carregar),
         ],
@@ -57,13 +59,13 @@ class _MinhasSolicitacoesScreenState extends State<MinhasSolicitacoesScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _solicitacoes.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.list_alt, size: 80, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('Nenhuma solicitação de carta ainda'),
+                      const Icon(Icons.list_alt, size: 80, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(l10n.minhasSolicitacoesVazio),
                     ],
                   ),
                 )
@@ -87,11 +89,12 @@ class _MinhasSolicitacoesScreenState extends State<MinhasSolicitacoesScreen> {
                             '${item['latitude_texto']}\n${item['longitude_texto']}',
                           ),
                           subtitle: Text(
-                            'Pedido em ${DateFormat('dd/MM/yyyy HH:mm').format(data)}',
+                            l10n.minhasSolicitacoesPedidoEm(
+                                DateFormat('dd/MM/yyyy HH:mm').format(data)),
                           ),
                           isThreeLine: true,
                           trailing: Chip(
-                            label: const Text('Pendente'),
+                            label: Text(l10n.minhasSolicitacoesPendente),
                             backgroundColor: Colors.orange.withValues(alpha: 0.15),
                             labelStyle: TextStyle(
                               color: Theme.of(context).brightness ==

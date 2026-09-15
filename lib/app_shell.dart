@@ -5,6 +5,7 @@ import 'core/services/recomendacao_notification_service.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/cartas/presentation/cartas_screen.dart';
 import 'features/mapa/presentation/mapa_screen.dart';
+import 'l10n/gen/app_localizations.dart';
 
 class AppShell extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -61,18 +62,19 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: _buildCurrentScreen(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
         selectedItemColor: Colors.blue[700],
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Cartas'),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.home), label: l10n.shellHome),
+          BottomNavigationBarItem(icon: const Icon(Icons.map), label: l10n.shellCartasTab),
           BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
-            label: 'Mapa',
+            icon: const Icon(Icons.explore),
+            label: l10n.dashboardMapa,
           ),
         ],
       ),

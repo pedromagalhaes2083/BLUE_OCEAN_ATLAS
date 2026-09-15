@@ -6,6 +6,7 @@ import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/contexto_viagem_service.dart';
 import '../../../core/services/localizacao_reporter_service.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../data/embarcacao_local_lookup.dart';
 import '../domain/models/embarcacao.dart';
 
@@ -54,7 +55,7 @@ class _EmbarcacaoConfiguracaoScreenState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar embarcação: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).embarcacaoErroCarregar('$e'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -72,12 +73,14 @@ class _EmbarcacaoConfiguracaoScreenState
     await _carregar();
     if (!mounted) return;
     setState(() => _sincronizando = false);
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           encontrou
-              ? 'Embarcação sincronizada com a viagem ativa.'
-              : 'Nenhuma viagem ativa encontrada na plataforma agora.',
+              ? l10n.embarcacaoSincronizadaSucesso
+              : l10n.dashboardNenhumaViagemEncontrada,
         ),
         duration: const Duration(seconds: 4),
       ),
@@ -90,8 +93,8 @@ class _EmbarcacaoConfiguracaoScreenState
     if (!mounted) return;
     setState(() => _testandoEnvio = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Teste disparado — veja o resultado no console/log')),
+      SnackBar(
+          content: Text(AppLocalizations.of(context).embarcacaoConfigTesteDisparado)),
     );
   }
 
@@ -99,7 +102,7 @@ class _EmbarcacaoConfiguracaoScreenState
     if (_embarcacaoId == null) return;
     Clipboard.setData(ClipboardData(text: _embarcacaoId!));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ID copiado para a área de transferência')),
+      SnackBar(content: Text(AppLocalizations.of(context).configIdCopiado)),
     );
   }
 
@@ -111,9 +114,10 @@ class _EmbarcacaoConfiguracaoScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Embarcação'),
+        title: Text(l10n.embarcacaoTitulo),
         actions: [
           IconButton(
             onPressed: _sincronizando ? null : _sincronizar,
@@ -124,7 +128,7 @@ class _EmbarcacaoConfiguracaoScreenState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.sync),
-            tooltip: 'Sincronizar com a viagem ativa',
+            tooltip: l10n.embarcacaoConfigTooltipSincronizar,
           ),
         ],
       ),
@@ -137,6 +141,7 @@ class _EmbarcacaoConfiguracaoScreenState
   }
 
   Widget _buildSemEmbarcacao() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -147,15 +152,13 @@ class _EmbarcacaoConfiguracaoScreenState
                 size: 80,
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
-            const Text(
-              'Nenhuma embarcação vinculada',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            Text(
+              l10n.dashboardNenhumaEmbarcacaoTitulo,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
-              'A embarcação é vinculada automaticamente a partir da sua '
-              'viagem ativa na plataforma. Toque em sincronizar para buscar '
-              'de novo.',
+              l10n.embarcacaoConfigSemEmbarcacaoTexto,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -172,7 +175,7 @@ class _EmbarcacaoConfiguracaoScreenState
                           strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.sync),
-              label: const Text('Sincronizar'),
+              label: Text(l10n.sincronizar),
             ),
           ],
         ),
@@ -181,6 +184,7 @@ class _EmbarcacaoConfiguracaoScreenState
   }
 
   Widget _buildDetalhes(Embarcacao embarcacao) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -211,7 +215,7 @@ class _EmbarcacaoConfiguracaoScreenState
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20),
                     child: Text(
-                      'Vinculada pela viagem ativa na plataforma.',
+                      l10n.embarcacaoConfigVinculadaTexto,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
@@ -224,10 +228,10 @@ class _EmbarcacaoConfiguracaoScreenState
                       onTap: _copiarId,
                       borderRadius: BorderRadius.circular(12),
                       child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'ID Embarcação',
-                          prefixIcon: Icon(Icons.tag, size: 20),
-                          suffixIcon: Icon(Icons.copy, size: 18),
+                        decoration: InputDecoration(
+                          labelText: l10n.embarcacaoConfigIdLabel,
+                          prefixIcon: const Icon(Icons.tag, size: 20),
+                          suffixIcon: const Icon(Icons.copy, size: 18),
                         ),
                         child: Text(
                           _embarcacaoId!,
@@ -240,23 +244,23 @@ class _EmbarcacaoConfiguracaoScreenState
                   ],
                   _linhaDetalhe(
                     Icons.ac_unit,
-                    'Capacidade de gelo',
+                    l10n.embarcacaoConfigCapacidadeGelo,
                     embarcacao.capacidadeGeloKg == null
                         ? '—'
                         : '${_formatarNumero(embarcacao.capacidadeGeloKg! / _kgPorTonelada)} t',
                   ),
                   _linhaDetalhe(
                     Icons.local_gas_station,
-                    'Capacidade de diesel',
+                    l10n.embarcacaoConfigCapacidadeDiesel,
                     embarcacao.capacidadeDieselLitros == null
                         ? '—'
                         : '${_formatarNumero(embarcacao.capacidadeDieselLitros!)} L',
                   ),
-                  _linhaDetalhe(Icons.settings, 'Motor usado',
+                  _linhaDetalhe(Icons.settings, l10n.embarcacaoConfigMotorUsado,
                       embarcacao.motorUsado ?? '—'),
-                  _linhaDetalhe(Icons.groups, 'Número de tripulantes',
+                  _linhaDetalhe(Icons.groups, l10n.embarcacaoConfigNumeroTripulantes,
                       embarcacao.numeroTripulantes?.toString() ?? '—'),
-                  _linhaDetalhe(Icons.badge, 'ID Mestre / Capitão',
+                  _linhaDetalhe(Icons.badge, l10n.embarcacaoIdMestre,
                       embarcacao.mestreId ?? '—'),
                   const SizedBox(height: 24),
                   OutlinedButton.icon(
@@ -268,7 +272,7 @@ class _EmbarcacaoConfiguracaoScreenState
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.send, size: 18),
-                    label: const Text('Testar envio de localização'),
+                    label: Text(l10n.embarcacaoConfigTestarEnvio),
                   ),
                 ],
               ),

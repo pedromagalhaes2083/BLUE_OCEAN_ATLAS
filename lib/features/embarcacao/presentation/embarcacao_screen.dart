@@ -7,6 +7,7 @@ import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/services/contexto_viagem_service.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../data/embarcacao_local_lookup.dart';
 import '../domain/models/embarcacao.dart';
@@ -65,7 +66,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar embarcação: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).embarcacaoErroCarregar('$e'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -82,12 +83,13 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
     await _carregar();
     if (!mounted) return;
     setState(() => _sincronizando = false);
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           encontrou
-              ? 'Embarcação sincronizada com a viagem ativa.'
-              : 'Nenhuma viagem ativa encontrada na plataforma agora.',
+              ? l10n.embarcacaoSincronizadaSucesso
+              : l10n.dashboardNenhumaViagemEncontrada,
         ),
         duration: const Duration(seconds: 4),
       ),
@@ -105,7 +107,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
     if (_embarcacaoId == null) return;
     Clipboard.setData(ClipboardData(text: _embarcacaoId!));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ID copiado para a área de transferência')),
+      SnackBar(content: Text(AppLocalizations.of(context).configIdCopiado)),
     );
   }
 
@@ -185,7 +187,8 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  embarcacao.dono ?? 'Sem proprietário cadastrado',
+                  embarcacao.dono ??
+                      AppLocalizations.of(context).embarcacaoSemProprietario,
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
@@ -194,7 +197,9 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
                   runSpacing: 8,
                   children: [
                     _buildChip(
-                      embarcacao.ativo ? 'Ativa' : 'Inativa',
+                      embarcacao.ativo
+                          ? AppLocalizations.of(context).embarcacaoAtiva
+                          : AppLocalizations.of(context).embarcacaoInativa,
                       embarcacao.ativo
                           ? Colors.greenAccent.shade400
                           : Colors.white.withValues(alpha: 0.2),
@@ -297,10 +302,11 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
     // "shade50", que ficava lavado demais em cima de um card escuro) — a
     // cor do ícone acompanha, mais clara no escuro pra manter contraste.
     final escuro = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('CAPACIDADES E TRIPULAÇÃO'),
+        _buildSectionTitle(l10n.embarcacaoCapacidadesTitulo),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -314,7 +320,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
               iconBg: Colors.indigo.withValues(alpha: 0.15),
               iconColor: escuro ? Colors.indigo.shade200 : Colors.indigo.shade700,
               valor: '${embarcacao.quantidadeUrnas}',
-              label: 'Urnas',
+              label: l10n.embarcacaoUrnas,
             ),
             _buildStatTile(
               icon: Icons.ac_unit,
@@ -322,7 +328,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
               iconColor:
                   escuro ? Colors.lightBlue.shade200 : Colors.lightBlue.shade700,
               valor: _formatarGelo(embarcacao.capacidadeGeloKg),
-              label: 'Gelo',
+              label: l10n.embarcacaoGelo,
             ),
             _buildStatTile(
               icon: Icons.local_gas_station,
@@ -331,14 +337,14 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
               valor: embarcacao.capacidadeDieselLitros == null
                   ? '--'
                   : '${_formatarNumero(embarcacao.capacidadeDieselLitros!)} L',
-              label: 'Diesel',
+              label: l10n.embarcacaoDiesel,
             ),
             _buildStatTile(
               icon: Icons.groups,
               iconBg: Colors.green.withValues(alpha: 0.15),
               iconColor: escuro ? Colors.green.shade200 : Colors.green.shade700,
               valor: embarcacao.numeroTripulantes?.toString() ?? '--',
-              label: 'Tripulantes',
+              label: l10n.embarcacaoTripulantes,
             ),
           ],
         ),
@@ -379,10 +385,11 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
   }
 
   Widget _buildDetalhes(Embarcacao embarcacao) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('DETALHES'),
+        _buildSectionTitle(l10n.embarcacaoDetalhesTitulo),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
@@ -398,10 +405,10 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
           ),
           child: Column(
             children: [
-              _buildDetalheRow(Icons.settings, 'Motor Usado', embarcacao.motorUsado ?? '--'),
+              _buildDetalheRow(Icons.settings, l10n.embarcacaoMotorUsado, embarcacao.motorUsado ?? '--'),
               _buildDetalheRow(
                 Icons.badge,
-                'ID Mestre / Capitão',
+                l10n.embarcacaoIdMestre,
                 embarcacao.mestreId ?? '--',
                 ultimo: true,
               ),
@@ -417,7 +424,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('ID DE RASTREIO'),
+        _buildSectionTitle(AppLocalizations.of(context).embarcacaoIdRastreio),
         InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: _copiarId,
@@ -474,6 +481,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
   }
 
   Widget _buildVazio() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -484,14 +492,13 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
                 size: 100,
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 20),
-            const Text(
-              'Nenhuma embarcação vinculada',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            Text(
+              l10n.dashboardNenhumaEmbarcacaoTitulo,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
             Text(
-              'A embarcação é vinculada automaticamente a partir da sua '
-              'viagem ativa na plataforma.',
+              l10n.embarcacaoVinculacaoAutomatica,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -508,7 +515,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
                           strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.sync),
-              label: const Text('Sincronizar'),
+              label: Text(l10n.sincronizar),
             ),
           ],
         ),
@@ -517,6 +524,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
   }
 
   Widget _buildBarraAcoes() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
@@ -549,7 +557,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.sync),
-                label: const Text('Sincronizar'),
+                label: Text(l10n.sincronizar),
               ),
             ),
             const SizedBox(width: 12),
@@ -563,7 +571,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
                 ),
                 onPressed: _rastrear,
                 icon: const Icon(Icons.map),
-                label: const Text('Rastrear'),
+                label: Text(l10n.embarcacaoRastrear),
               ),
             ),
           ],
@@ -576,7 +584,7 @@ class _EmbarcacaoScreenState extends State<EmbarcacaoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Minha Embarcação'),
+        title: Text(AppLocalizations.of(context).embarcacaoTitulo),
         actions: [
           IconButton(onPressed: _carregar, icon: const Icon(Icons.refresh)),
         ],

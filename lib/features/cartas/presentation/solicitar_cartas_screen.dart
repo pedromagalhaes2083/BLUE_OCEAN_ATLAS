@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:atlas/core/database/database_helper.dart';
+import 'package:atlas/l10n/gen/app_localizations.dart';
 import '../../widgets/seletor_coordenada_widget.dart';
 import 'minhas_solicitacoes_screen.dart';
 
@@ -45,8 +46,8 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Solicitação registrada! Veja em "Minhas Solicitações".'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).solicitarCartaSucesso),
           backgroundColor: Colors.green,
         ),
       );
@@ -56,7 +57,7 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao solicitar carta: $e'),
+          content: Text(AppLocalizations.of(context).solicitarCartaErro('$e')),
           backgroundColor: Colors.red,
         ),
       );
@@ -65,13 +66,14 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Solicitar Carta Náutica'),
+        title: Text(l10n.solicitarCartaTitulo),
         actions: [
           IconButton(
             icon: const Icon(Icons.list_alt),
-            tooltip: 'Minhas solicitações',
+            tooltip: l10n.minhasSolicitacoesTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -87,14 +89,14 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Coordenada Geográfica',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              l10n.solicitarCartaCoordenadaGeografica,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Gire os seletores como no relógio para ajustar graus e minutos',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              l10n.solicitarCartaInstrucao,
+              style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 16),
             SeletorCoordenadaWidget(
@@ -113,9 +115,9 @@ class _SolicitarCartaScreenState extends State<SolicitarCartaScreen> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: const Text(
-                'SOLICITAR CARTA NÁUTICA',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              child: Text(
+                l10n.solicitarCartaBotao,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ],

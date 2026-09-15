@@ -846,4 +846,153 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get mapaSalvarRota => 'Enregistrer l\'itinéraire';
+
+  @override
+  String get shellHome => 'Accueil';
+
+  @override
+  String get shellCartasTab => 'Cartes';
+
+  @override
+  String cartasSemConexao(String horario) {
+    return 'Pas de connexion — affichage de la dernière liste synchronisée à $horario';
+  }
+
+  @override
+  String get cartasDataDesconhecida => 'date inconnue';
+
+  @override
+  String get minhasSolicitacoesTooltip => 'Mes demandes';
+
+  @override
+  String get minhasSolicitacoesTitulo => 'Mes Demandes';
+
+  @override
+  String minhasSolicitacoesErro(String erro) {
+    return 'Erreur lors du chargement des demandes : $erro';
+  }
+
+  @override
+  String get minhasSolicitacoesVazio =>
+      'Aucune demande de carte pour l\'instant';
+
+  @override
+  String minhasSolicitacoesPedidoEm(String data) {
+    return 'Demandée le $data';
+  }
+
+  @override
+  String get minhasSolicitacoesPendente => 'En attente';
+
+  @override
+  String get solicitarCartaTitulo => 'Demander une Carte Nautique';
+
+  @override
+  String get solicitarCartaCoordenadaGeografica => 'Coordonnée Géographique';
+
+  @override
+  String get solicitarCartaInstrucao =>
+      'Tournez les sélecteurs comme une horloge pour ajuster les degrés et les minutes';
+
+  @override
+  String get solicitarCartaBotao => 'DEMANDER LA CARTE NAUTIQUE';
+
+  @override
+  String get solicitarCartaSucesso =>
+      'Demande enregistrée ! Consultez « Mes Demandes ».';
+
+  @override
+  String solicitarCartaErro(String erro) {
+    return 'Erreur lors de la demande de carte : $erro';
+  }
+
+  @override
+  String get embarcacaoTitulo => 'Mon Embarcation';
+
+  @override
+  String embarcacaoErroCarregar(String erro) {
+    return 'Erreur lors du chargement de l\'embarcation : $erro';
+  }
+
+  @override
+  String get embarcacaoSincronizadaSucesso =>
+      'Embarcation synchronisée avec le voyage actif.';
+
+  @override
+  String get embarcacaoSemProprietario => 'Aucun propriétaire enregistré';
+
+  @override
+  String get embarcacaoAtiva => 'Active';
+
+  @override
+  String get embarcacaoInativa => 'Inactive';
+
+  @override
+  String get embarcacaoCapacidadesTitulo => 'CAPACITÉS ET ÉQUIPAGE';
+
+  @override
+  String get embarcacaoUrnas => 'Cales';
+
+  @override
+  String get embarcacaoGelo => 'Glace';
+
+  @override
+  String get embarcacaoDiesel => 'Diesel';
+
+  @override
+  String get embarcacaoTripulantes => 'Équipage';
+
+  @override
+  String get embarcacaoDetalhesTitulo => 'DÉTAILS';
+
+  @override
+  String get embarcacaoMotorUsado => 'Moteur Utilisé';
+
+  @override
+  String get embarcacaoIdMestre => 'ID Patron/Capitaine';
+
+  @override
+  String get embarcacaoIdRastreio => 'ID DE SUIVI';
+
+  @override
+  String get embarcacaoVinculacaoAutomatica =>
+      'L\'embarcation est liée automatiquement à partir de votre voyage actif sur la plateforme.';
+
+  @override
+  String get embarcacaoRastrear => 'Suivre';
+
+  @override
+  String get embarcacaoConfigTooltipSincronizar =>
+      'Synchroniser avec le voyage actif';
+
+  @override
+  String get embarcacaoConfigTesteDisparado =>
+      'Test lancé — voir le résultat dans la console/le journal';
+
+  @override
+  String get embarcacaoConfigSemEmbarcacaoTexto =>
+      'L\'embarcation est liée automatiquement à partir de votre voyage actif sur la plateforme. Touchez synchroniser pour la récupérer à nouveau.';
+
+  @override
+  String get embarcacaoConfigVinculadaTexto =>
+      'Liée par le voyage actif sur la plateforme.';
+
+  @override
+  String get embarcacaoConfigIdLabel => 'ID de l\'Embarcation';
+
+  @override
+  String get embarcacaoConfigCapacidadeGelo => 'Capacité de glace';
+
+  @override
+  String get embarcacaoConfigCapacidadeDiesel => 'Capacité de diesel';
+
+  @override
+  String get embarcacaoConfigMotorUsado => 'Moteur utilisé';
+
+  @override
+  String get embarcacaoConfigNumeroTripulantes =>
+      'Nombre de membres d\'équipage';
+
+  @override
+  String get embarcacaoConfigTestarEnvio => 'Tester l\'envoi de position';
 }

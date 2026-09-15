@@ -1484,6 +1484,264 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Salvar rota'**
   String get mapaSalvarRota;
+
+  /// No description provided for @shellHome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Home'**
+  String get shellHome;
+
+  /// No description provided for @shellCartasTab.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cartas'**
+  String get shellCartasTab;
+
+  /// No description provided for @cartasSemConexao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão — mostrando a última lista sincronizada em {horario}'**
+  String cartasSemConexao(String horario);
+
+  /// No description provided for @cartasDataDesconhecida.
+  ///
+  /// In pt, this message translates to:
+  /// **'data desconhecida'**
+  String get cartasDataDesconhecida;
+
+  /// No description provided for @minhasSolicitacoesTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minhas solicitações'**
+  String get minhasSolicitacoesTooltip;
+
+  /// No description provided for @minhasSolicitacoesTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minhas Solicitações'**
+  String get minhasSolicitacoesTitulo;
+
+  /// No description provided for @minhasSolicitacoesErro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar solicitações: {erro}'**
+  String minhasSolicitacoesErro(String erro);
+
+  /// No description provided for @minhasSolicitacoesVazio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma solicitação de carta ainda'**
+  String get minhasSolicitacoesVazio;
+
+  /// No description provided for @minhasSolicitacoesPedidoEm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pedido em {data}'**
+  String minhasSolicitacoesPedidoEm(String data);
+
+  /// No description provided for @minhasSolicitacoesPendente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pendente'**
+  String get minhasSolicitacoesPendente;
+
+  /// No description provided for @solicitarCartaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Solicitar Carta Náutica'**
+  String get solicitarCartaTitulo;
+
+  /// No description provided for @solicitarCartaCoordenadaGeografica.
+  ///
+  /// In pt, this message translates to:
+  /// **'Coordenada Geográfica'**
+  String get solicitarCartaCoordenadaGeografica;
+
+  /// No description provided for @solicitarCartaInstrucao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gire os seletores como no relógio para ajustar graus e minutos'**
+  String get solicitarCartaInstrucao;
+
+  /// No description provided for @solicitarCartaBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'SOLICITAR CARTA NÁUTICA'**
+  String get solicitarCartaBotao;
+
+  /// No description provided for @solicitarCartaSucesso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Solicitação registrada! Veja em \"Minhas Solicitações\".'**
+  String get solicitarCartaSucesso;
+
+  /// No description provided for @solicitarCartaErro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao solicitar carta: {erro}'**
+  String solicitarCartaErro(String erro);
+
+  /// No description provided for @embarcacaoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minha Embarcação'**
+  String get embarcacaoTitulo;
+
+  /// No description provided for @embarcacaoErroCarregar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar embarcação: {erro}'**
+  String embarcacaoErroCarregar(String erro);
+
+  /// No description provided for @embarcacaoSincronizadaSucesso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Embarcação sincronizada com a viagem ativa.'**
+  String get embarcacaoSincronizadaSucesso;
+
+  /// No description provided for @embarcacaoSemProprietario.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem proprietário cadastrado'**
+  String get embarcacaoSemProprietario;
+
+  /// No description provided for @embarcacaoAtiva.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativa'**
+  String get embarcacaoAtiva;
+
+  /// No description provided for @embarcacaoInativa.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inativa'**
+  String get embarcacaoInativa;
+
+  /// No description provided for @embarcacaoCapacidadesTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'CAPACIDADES E TRIPULAÇÃO'**
+  String get embarcacaoCapacidadesTitulo;
+
+  /// No description provided for @embarcacaoUrnas.
+  ///
+  /// In pt, this message translates to:
+  /// **'Urnas'**
+  String get embarcacaoUrnas;
+
+  /// No description provided for @embarcacaoGelo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gelo'**
+  String get embarcacaoGelo;
+
+  /// No description provided for @embarcacaoDiesel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diesel'**
+  String get embarcacaoDiesel;
+
+  /// No description provided for @embarcacaoTripulantes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tripulantes'**
+  String get embarcacaoTripulantes;
+
+  /// No description provided for @embarcacaoDetalhesTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'DETALHES'**
+  String get embarcacaoDetalhesTitulo;
+
+  /// No description provided for @embarcacaoMotorUsado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Motor Usado'**
+  String get embarcacaoMotorUsado;
+
+  /// No description provided for @embarcacaoIdMestre.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID Mestre / Capitão'**
+  String get embarcacaoIdMestre;
+
+  /// No description provided for @embarcacaoIdRastreio.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID DE RASTREIO'**
+  String get embarcacaoIdRastreio;
+
+  /// No description provided for @embarcacaoVinculacaoAutomatica.
+  ///
+  /// In pt, this message translates to:
+  /// **'A embarcação é vinculada automaticamente a partir da sua viagem ativa na plataforma.'**
+  String get embarcacaoVinculacaoAutomatica;
+
+  /// No description provided for @embarcacaoRastrear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rastrear'**
+  String get embarcacaoRastrear;
+
+  /// No description provided for @embarcacaoConfigTooltipSincronizar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sincronizar com a viagem ativa'**
+  String get embarcacaoConfigTooltipSincronizar;
+
+  /// No description provided for @embarcacaoConfigTesteDisparado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Teste disparado — veja o resultado no console/log'**
+  String get embarcacaoConfigTesteDisparado;
+
+  /// No description provided for @embarcacaoConfigSemEmbarcacaoTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'A embarcação é vinculada automaticamente a partir da sua viagem ativa na plataforma. Toque em sincronizar para buscar de novo.'**
+  String get embarcacaoConfigSemEmbarcacaoTexto;
+
+  /// No description provided for @embarcacaoConfigVinculadaTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vinculada pela viagem ativa na plataforma.'**
+  String get embarcacaoConfigVinculadaTexto;
+
+  /// No description provided for @embarcacaoConfigIdLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID Embarcação'**
+  String get embarcacaoConfigIdLabel;
+
+  /// No description provided for @embarcacaoConfigCapacidadeGelo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Capacidade de gelo'**
+  String get embarcacaoConfigCapacidadeGelo;
+
+  /// No description provided for @embarcacaoConfigCapacidadeDiesel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Capacidade de diesel'**
+  String get embarcacaoConfigCapacidadeDiesel;
+
+  /// No description provided for @embarcacaoConfigMotorUsado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Motor usado'**
+  String get embarcacaoConfigMotorUsado;
+
+  /// No description provided for @embarcacaoConfigNumeroTripulantes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Número de tripulantes'**
+  String get embarcacaoConfigNumeroTripulantes;
+
+  /// No description provided for @embarcacaoConfigTestarEnvio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Testar envio de localização'**
+  String get embarcacaoConfigTestarEnvio;
 }
 
 class _AppLocalizationsDelegate

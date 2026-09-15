@@ -836,4 +836,150 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapaSalvarRota => 'Save route';
+
+  @override
+  String get shellHome => 'Home';
+
+  @override
+  String get shellCartasTab => 'Charts';
+
+  @override
+  String cartasSemConexao(String horario) {
+    return 'No connection — showing the last list synced at $horario';
+  }
+
+  @override
+  String get cartasDataDesconhecida => 'unknown date';
+
+  @override
+  String get minhasSolicitacoesTooltip => 'My requests';
+
+  @override
+  String get minhasSolicitacoesTitulo => 'My Requests';
+
+  @override
+  String minhasSolicitacoesErro(String erro) {
+    return 'Error loading requests: $erro';
+  }
+
+  @override
+  String get minhasSolicitacoesVazio => 'No chart requests yet';
+
+  @override
+  String minhasSolicitacoesPedidoEm(String data) {
+    return 'Requested on $data';
+  }
+
+  @override
+  String get minhasSolicitacoesPendente => 'Pending';
+
+  @override
+  String get solicitarCartaTitulo => 'Request Nautical Chart';
+
+  @override
+  String get solicitarCartaCoordenadaGeografica => 'Geographic Coordinate';
+
+  @override
+  String get solicitarCartaInstrucao =>
+      'Turn the dials like a clock to adjust degrees and minutes';
+
+  @override
+  String get solicitarCartaBotao => 'REQUEST NAUTICAL CHART';
+
+  @override
+  String get solicitarCartaSucesso =>
+      'Request submitted! Check \"My Requests\".';
+
+  @override
+  String solicitarCartaErro(String erro) {
+    return 'Error requesting chart: $erro';
+  }
+
+  @override
+  String get embarcacaoTitulo => 'My Vessel';
+
+  @override
+  String embarcacaoErroCarregar(String erro) {
+    return 'Error loading vessel: $erro';
+  }
+
+  @override
+  String get embarcacaoSincronizadaSucesso =>
+      'Vessel synced with the active trip.';
+
+  @override
+  String get embarcacaoSemProprietario => 'No owner on record';
+
+  @override
+  String get embarcacaoAtiva => 'Active';
+
+  @override
+  String get embarcacaoInativa => 'Inactive';
+
+  @override
+  String get embarcacaoCapacidadesTitulo => 'CAPACITIES AND CREW';
+
+  @override
+  String get embarcacaoUrnas => 'Holds';
+
+  @override
+  String get embarcacaoGelo => 'Ice';
+
+  @override
+  String get embarcacaoDiesel => 'Diesel';
+
+  @override
+  String get embarcacaoTripulantes => 'Crew';
+
+  @override
+  String get embarcacaoDetalhesTitulo => 'DETAILS';
+
+  @override
+  String get embarcacaoMotorUsado => 'Engine Used';
+
+  @override
+  String get embarcacaoIdMestre => 'Master/Captain ID';
+
+  @override
+  String get embarcacaoIdRastreio => 'TRACKING ID';
+
+  @override
+  String get embarcacaoVinculacaoAutomatica =>
+      'The vessel is linked automatically from your active trip on the platform.';
+
+  @override
+  String get embarcacaoRastrear => 'Track';
+
+  @override
+  String get embarcacaoConfigTooltipSincronizar => 'Sync with the active trip';
+
+  @override
+  String get embarcacaoConfigTesteDisparado =>
+      'Test triggered — check the result in the console/log';
+
+  @override
+  String get embarcacaoConfigSemEmbarcacaoTexto =>
+      'The vessel is linked automatically from your active trip on the platform. Tap sync to fetch it again.';
+
+  @override
+  String get embarcacaoConfigVinculadaTexto =>
+      'Linked from the active trip on the platform.';
+
+  @override
+  String get embarcacaoConfigIdLabel => 'Vessel ID';
+
+  @override
+  String get embarcacaoConfigCapacidadeGelo => 'Ice capacity';
+
+  @override
+  String get embarcacaoConfigCapacidadeDiesel => 'Diesel capacity';
+
+  @override
+  String get embarcacaoConfigMotorUsado => 'Engine used';
+
+  @override
+  String get embarcacaoConfigNumeroTripulantes => 'Number of crew';
+
+  @override
+  String get embarcacaoConfigTestarEnvio => 'Test location reporting';
 }

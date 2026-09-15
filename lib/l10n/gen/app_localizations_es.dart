@@ -841,4 +841,151 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get mapaSalvarRota => 'Guardar ruta';
+
+  @override
+  String get shellHome => 'Inicio';
+
+  @override
+  String get shellCartasTab => 'Cartas';
+
+  @override
+  String cartasSemConexao(String horario) {
+    return 'Sin conexión — mostrando la última lista sincronizada a las $horario';
+  }
+
+  @override
+  String get cartasDataDesconhecida => 'fecha desconocida';
+
+  @override
+  String get minhasSolicitacoesTooltip => 'Mis solicitudes';
+
+  @override
+  String get minhasSolicitacoesTitulo => 'Mis Solicitudes';
+
+  @override
+  String minhasSolicitacoesErro(String erro) {
+    return 'Error al cargar las solicitudes: $erro';
+  }
+
+  @override
+  String get minhasSolicitacoesVazio => 'Ninguna solicitud de carta todavía';
+
+  @override
+  String minhasSolicitacoesPedidoEm(String data) {
+    return 'Solicitado el $data';
+  }
+
+  @override
+  String get minhasSolicitacoesPendente => 'Pendiente';
+
+  @override
+  String get solicitarCartaTitulo => 'Solicitar Carta Náutica';
+
+  @override
+  String get solicitarCartaCoordenadaGeografica => 'Coordenada Geográfica';
+
+  @override
+  String get solicitarCartaInstrucao =>
+      'Gire los selectores como un reloj para ajustar grados y minutos';
+
+  @override
+  String get solicitarCartaBotao => 'SOLICITAR CARTA NÁUTICA';
+
+  @override
+  String get solicitarCartaSucesso =>
+      '¡Solicitud registrada! Véala en \"Mis Solicitudes\".';
+
+  @override
+  String solicitarCartaErro(String erro) {
+    return 'Error al solicitar la carta: $erro';
+  }
+
+  @override
+  String get embarcacaoTitulo => 'Mi Embarcación';
+
+  @override
+  String embarcacaoErroCarregar(String erro) {
+    return 'Error al cargar la embarcación: $erro';
+  }
+
+  @override
+  String get embarcacaoSincronizadaSucesso =>
+      'Embarcación sincronizada con el viaje activo.';
+
+  @override
+  String get embarcacaoSemProprietario => 'Sin propietario registrado';
+
+  @override
+  String get embarcacaoAtiva => 'Activa';
+
+  @override
+  String get embarcacaoInativa => 'Inactiva';
+
+  @override
+  String get embarcacaoCapacidadesTitulo => 'CAPACIDADES Y TRIPULACIÓN';
+
+  @override
+  String get embarcacaoUrnas => 'Cajas';
+
+  @override
+  String get embarcacaoGelo => 'Hielo';
+
+  @override
+  String get embarcacaoDiesel => 'Diésel';
+
+  @override
+  String get embarcacaoTripulantes => 'Tripulantes';
+
+  @override
+  String get embarcacaoDetalhesTitulo => 'DETALLES';
+
+  @override
+  String get embarcacaoMotorUsado => 'Motor Usado';
+
+  @override
+  String get embarcacaoIdMestre => 'ID de Patrón/Capitán';
+
+  @override
+  String get embarcacaoIdRastreio => 'ID DE SEGUIMIENTO';
+
+  @override
+  String get embarcacaoVinculacaoAutomatica =>
+      'La embarcación se vincula automáticamente a partir de su viaje activo en la plataforma.';
+
+  @override
+  String get embarcacaoRastrear => 'Rastrear';
+
+  @override
+  String get embarcacaoConfigTooltipSincronizar =>
+      'Sincronizar con el viaje activo';
+
+  @override
+  String get embarcacaoConfigTesteDisparado =>
+      'Prueba iniciada — vea el resultado en la consola/registro';
+
+  @override
+  String get embarcacaoConfigSemEmbarcacaoTexto =>
+      'La embarcación se vincula automáticamente a partir de su viaje activo en la plataforma. Toque sincronizar para buscarla de nuevo.';
+
+  @override
+  String get embarcacaoConfigVinculadaTexto =>
+      'Vinculada por el viaje activo en la plataforma.';
+
+  @override
+  String get embarcacaoConfigIdLabel => 'ID de la Embarcación';
+
+  @override
+  String get embarcacaoConfigCapacidadeGelo => 'Capacidad de hielo';
+
+  @override
+  String get embarcacaoConfigCapacidadeDiesel => 'Capacidad de diésel';
+
+  @override
+  String get embarcacaoConfigMotorUsado => 'Motor usado';
+
+  @override
+  String get embarcacaoConfigNumeroTripulantes => 'Número de tripulantes';
+
+  @override
+  String get embarcacaoConfigTestarEnvio => 'Probar envío de ubicación';
 }

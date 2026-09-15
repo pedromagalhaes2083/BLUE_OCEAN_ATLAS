@@ -3,6 +3,7 @@ import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/utils/erro_amigavel.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../recomendacao/data/recomendacao_repository.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_card.dart';
@@ -110,7 +111,7 @@ class _CartasScreenState extends State<CartasScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cartas Náuticas'),
+        title: Text(AppLocalizations.of(context).drawerCartasNauticas),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -150,7 +151,7 @@ class _CartasScreenState extends State<CartasScreen> {
               ElevatedButton.icon(
                 onPressed: _carregarRecomendacoes,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Tentar novamente'),
+                label: Text(AppLocalizations.of(context).dashboardTentarNovamente),
               ),
             ],
           ),
@@ -180,7 +181,7 @@ class _CartasScreenState extends State<CartasScreen> {
     final horario = _cacheEm != null
         ? '${_cacheEm!.day.toString().padLeft(2, '0')}/${_cacheEm!.month.toString().padLeft(2, '0')} '
             '${_cacheEm!.hour.toString().padLeft(2, '0')}:${_cacheEm!.minute.toString().padLeft(2, '0')}'
-        : 'data desconhecida';
+        : AppLocalizations.of(context).cartasDataDesconhecida;
     return Card(
       color: Colors.amber.withValues(alpha: 0.15),
       elevation: 0,
@@ -196,7 +197,7 @@ class _CartasScreenState extends State<CartasScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Sem conexão — mostrando a última lista sincronizada em $horario',
+                AppLocalizations.of(context).cartasSemConexao(horario),
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

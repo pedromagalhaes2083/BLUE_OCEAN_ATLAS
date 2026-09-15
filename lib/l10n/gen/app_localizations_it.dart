@@ -843,4 +843,152 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get mapaSalvarRota => 'Salva rotta';
+
+  @override
+  String get shellHome => 'Home';
+
+  @override
+  String get shellCartasTab => 'Carte';
+
+  @override
+  String cartasSemConexao(String horario) {
+    return 'Nessuna connessione — mostra l\'ultimo elenco sincronizzato alle $horario';
+  }
+
+  @override
+  String get cartasDataDesconhecida => 'data sconosciuta';
+
+  @override
+  String get minhasSolicitacoesTooltip => 'Le mie richieste';
+
+  @override
+  String get minhasSolicitacoesTitulo => 'Le Mie Richieste';
+
+  @override
+  String minhasSolicitacoesErro(String erro) {
+    return 'Errore nel caricare le richieste: $erro';
+  }
+
+  @override
+  String get minhasSolicitacoesVazio => 'Ancora nessuna richiesta di carta';
+
+  @override
+  String minhasSolicitacoesPedidoEm(String data) {
+    return 'Richiesta il $data';
+  }
+
+  @override
+  String get minhasSolicitacoesPendente => 'In attesa';
+
+  @override
+  String get solicitarCartaTitulo => 'Richiedi Carta Nautica';
+
+  @override
+  String get solicitarCartaCoordenadaGeografica => 'Coordinata Geografica';
+
+  @override
+  String get solicitarCartaInstrucao =>
+      'Ruota i selettori come un orologio per regolare gradi e minuti';
+
+  @override
+  String get solicitarCartaBotao => 'RICHIEDI CARTA NAUTICA';
+
+  @override
+  String get solicitarCartaSucesso =>
+      'Richiesta registrata! Guardala in \"Le Mie Richieste\".';
+
+  @override
+  String solicitarCartaErro(String erro) {
+    return 'Errore nella richiesta della carta: $erro';
+  }
+
+  @override
+  String get embarcacaoTitulo => 'La Mia Imbarcazione';
+
+  @override
+  String embarcacaoErroCarregar(String erro) {
+    return 'Errore nel caricare l\'imbarcazione: $erro';
+  }
+
+  @override
+  String get embarcacaoSincronizadaSucesso =>
+      'Imbarcazione sincronizzata con il viaggio attivo.';
+
+  @override
+  String get embarcacaoSemProprietario => 'Nessun proprietario registrato';
+
+  @override
+  String get embarcacaoAtiva => 'Attiva';
+
+  @override
+  String get embarcacaoInativa => 'Inattiva';
+
+  @override
+  String get embarcacaoCapacidadesTitulo => 'CAPACITÀ ED EQUIPAGGIO';
+
+  @override
+  String get embarcacaoUrnas => 'Stive';
+
+  @override
+  String get embarcacaoGelo => 'Ghiaccio';
+
+  @override
+  String get embarcacaoDiesel => 'Gasolio';
+
+  @override
+  String get embarcacaoTripulantes => 'Equipaggio';
+
+  @override
+  String get embarcacaoDetalhesTitulo => 'DETTAGLI';
+
+  @override
+  String get embarcacaoMotorUsado => 'Motore Usato';
+
+  @override
+  String get embarcacaoIdMestre => 'ID Comandante/Capitano';
+
+  @override
+  String get embarcacaoIdRastreio => 'ID DI TRACCIAMENTO';
+
+  @override
+  String get embarcacaoVinculacaoAutomatica =>
+      'L\'imbarcazione viene collegata automaticamente dal tuo viaggio attivo sulla piattaforma.';
+
+  @override
+  String get embarcacaoRastrear => 'Traccia';
+
+  @override
+  String get embarcacaoConfigTooltipSincronizar =>
+      'Sincronizza con il viaggio attivo';
+
+  @override
+  String get embarcacaoConfigTesteDisparado =>
+      'Test avviato — controlla il risultato nella console/log';
+
+  @override
+  String get embarcacaoConfigSemEmbarcacaoTexto =>
+      'L\'imbarcazione viene collegata automaticamente dal tuo viaggio attivo sulla piattaforma. Tocca sincronizza per recuperarla di nuovo.';
+
+  @override
+  String get embarcacaoConfigVinculadaTexto =>
+      'Collegata dal viaggio attivo sulla piattaforma.';
+
+  @override
+  String get embarcacaoConfigIdLabel => 'ID Imbarcazione';
+
+  @override
+  String get embarcacaoConfigCapacidadeGelo => 'Capacità di ghiaccio';
+
+  @override
+  String get embarcacaoConfigCapacidadeDiesel => 'Capacità di gasolio';
+
+  @override
+  String get embarcacaoConfigMotorUsado => 'Motore usato';
+
+  @override
+  String get embarcacaoConfigNumeroTripulantes =>
+      'Numero di membri dell\'equipaggio';
+
+  @override
+  String get embarcacaoConfigTestarEnvio => 'Testa l\'invio della posizione';
 }
