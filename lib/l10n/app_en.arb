@@ -616,5 +616,23 @@
   "producaoPorPontoTotalRegistros": "{n} record(s)",
   "@producaoPorPontoTotalRegistros": {"placeholders": {"n": {"type": "int"}}},
   "producaoPorPontoEspecieDestaque": " · {especie} in the lead",
-  "@producaoPorPontoEspecieDestaque": {"placeholders": {"especie": {"type": "String"}}}
+  "@producaoPorPontoEspecieDestaque": {"placeholders": {"especie": {"type": "String"}}},
+
+  "meusPontosTitulo": "My Points",
+  "meusPontosNenhumTituloERecomendacao": "No marked points or recommendations yet",
+  "meusPontosSecaoPontosMarcados": "MARKED POINTS",
+  "meusPontosSecaoRecomendacoes": "RECOMMENDATIONS",
+  "meusPontosDataDesconhecida": "unknown date",
+  "meusPontosBannerOffline": "No connection — showing the last recommendations synced at {horario}",
+  "@meusPontosBannerOffline": {"placeholders": {"horario": {"type": "String"}}},
+  "meusPontosMarcadoEm": "Marked on",
+  "meusPontosProducaoAqui": "Production here",
+  "meusPontosProducaoAquiValor": "{kg} kg ({n} record(s))",
+  "@meusPontosProducaoAquiValor": {"placeholders": {"kg": {"type": "String"}, "n": {"type": "int"}}},
+  "meusPontosConsultarAqui": "Check conditions here",
+  "meusPontosMareEPescaAqui": "Tide and Fishing here",
+
+  "mapaScreenTituloFallback": "Map",
+  "mapaRotaProducao": "Production Route",
+  "mapaSstLabel": "SST"
 }

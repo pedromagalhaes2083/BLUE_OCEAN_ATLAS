@@ -617,5 +617,23 @@
   "producaoPorPontoTotalRegistros": "{n} registro(s)",
   "@producaoPorPontoTotalRegistros": {"placeholders": {"n": {"type": "int"}}},
   "producaoPorPontoEspecieDestaque": " · {especie} em destaque",
-  "@producaoPorPontoEspecieDestaque": {"placeholders": {"especie": {"type": "String"}}}
+  "@producaoPorPontoEspecieDestaque": {"placeholders": {"especie": {"type": "String"}}},
+
+  "meusPontosTitulo": "Meus Pontos",
+  "meusPontosNenhumTituloERecomendacao": "Nenhum ponto marcado nem recomendação ainda",
+  "meusPontosSecaoPontosMarcados": "PONTOS MARCADOS",
+  "meusPontosSecaoRecomendacoes": "RECOMENDAÇÕES",
+  "meusPontosDataDesconhecida": "data desconhecida",
+  "meusPontosBannerOffline": "Sem conexão — mostrando as últimas recomendações sincronizadas em {horario}",
+  "@meusPontosBannerOffline": {"placeholders": {"horario": {"type": "String"}}},
+  "meusPontosMarcadoEm": "Marcado em",
+  "meusPontosProducaoAqui": "Produção aqui",
+  "meusPontosProducaoAquiValor": "{kg} kg ({n} registro(s))",
+  "@meusPontosProducaoAquiValor": {"placeholders": {"kg": {"type": "String"}, "n": {"type": "int"}}},
+  "meusPontosConsultarAqui": "Consultar aqui",
+  "meusPontosMareEPescaAqui": "Maré e Pesca aqui",
+
+  "mapaScreenTituloFallback": "Mapa",
+  "mapaRotaProducao": "Rota de Produção",
+  "mapaSstLabel": "SST"
 }

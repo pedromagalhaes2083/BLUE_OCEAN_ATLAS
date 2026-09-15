@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../l10n/gen/app_localizations.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../producao/domain/models/producao_registro.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
@@ -41,20 +42,23 @@ class MapaScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(
           modoPlanejarRota
-              ? (rotaParaEditar != null ? 'Editar Rota' : 'Nova Rota Planejada')
+              ? (rotaParaEditar != null
+                  ? l10n.mapaEditarRota
+                  : l10n.mapaNovaRotaPlanejada)
               : recomendacao != null
                   ? recomendacao!.titulo.isEmpty
-                      ? 'Recomendação'
+                      ? l10n.mapaRecomendacaoFallback
                       : recomendacao!.titulo
                   : producaoPontos != null
-                      ? 'Rota de Produção'
+                      ? l10n.mapaRotaProducao
                       : rota != null
-                          ? 'Rota do histórico'
-                          : 'Mapa',
+                          ? l10n.mapaRotaHistorico
+                          : l10n.mapaScreenTituloFallback,
         ),
       ),
       body: Stack(
@@ -153,9 +157,9 @@ class _SstFlutuanteState extends State<_SstFlutuante> {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Text(
-                    'SST',
-                    style: TextStyle(color: Colors.white70, fontSize: 11),
+                  Text(
+                    AppLocalizations.of(context).mapaSstLabel,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
                   ),
                 ],
               ),

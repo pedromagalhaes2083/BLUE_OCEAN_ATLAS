@@ -1777,4 +1777,51 @@ class AppLocalizationsIt extends AppLocalizations {
   String producaoPorPontoEspecieDestaque(String especie) {
     return ' · $especie in evidenza';
   }
+
+  @override
+  String get meusPontosTitulo => 'I Miei Punti';
+
+  @override
+  String get meusPontosNenhumTituloERecomendacao =>
+      'Nessun punto salvato né raccomandazione ancora';
+
+  @override
+  String get meusPontosSecaoPontosMarcados => 'PUNTI SALVATI';
+
+  @override
+  String get meusPontosSecaoRecomendacoes => 'RACCOMANDAZIONI';
+
+  @override
+  String get meusPontosDataDesconhecida => 'data sconosciuta';
+
+  @override
+  String meusPontosBannerOffline(String horario) {
+    return 'Nessuna connessione — vengono mostrate le ultime raccomandazioni sincronizzate alle $horario';
+  }
+
+  @override
+  String get meusPontosMarcadoEm => 'Salvato il';
+
+  @override
+  String get meusPontosProducaoAqui => 'Produzione qui';
+
+  @override
+  String meusPontosProducaoAquiValor(String kg, int n) {
+    return '$kg kg ($n registrazione(i))';
+  }
+
+  @override
+  String get meusPontosConsultarAqui => 'Consulta qui';
+
+  @override
+  String get meusPontosMareEPescaAqui => 'Marea e Pesca qui';
+
+  @override
+  String get mapaScreenTituloFallback => 'Mappa';
+
+  @override
+  String get mapaRotaProducao => 'Rotta di Produzione';
+
+  @override
+  String get mapaSstLabel => 'SST';
 }

@@ -5,6 +5,7 @@ import '../../../core/database/database_helper.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../cartas/presentation/solicitar_cartas_screen.dart';
 import '../../metereologia/presentation/condicoes_ponto_screen.dart';
 import '../../metereologia/presentation/mare_pesca_atum_screen.dart';
@@ -188,7 +189,7 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meus Pontos'),
+        title: Text(AppLocalizations.of(context).meusPontosTitulo),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _carregar),
         ],
@@ -198,6 +199,7 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     if (_carregando) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -225,7 +227,7 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
               ElevatedButton.icon(
                 onPressed: _carregar,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Tentar novamente'),
+                label: Text(l10n.dashboardTentarNovamente),
               ),
             ],
           ),
@@ -244,8 +246,8 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
                   size: 64,
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(height: 16),
-              const Text(
-                'Nenhum ponto marcado nem recomendação ainda',
+              Text(
+                l10n.meusPontosNenhumTituloERecomendacao,
                 textAlign: TextAlign.center,
               ),
             ],
@@ -269,7 +271,7 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Text(
-                'PONTOS MARCADOS',
+                l10n.meusPontosSecaoPontosMarcados,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -291,7 +293,7 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Text(
-                'RECOMENDAÇÕES',
+                l10n.meusPontosSecaoRecomendacoes,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -314,10 +316,11 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
   }
 
   Widget _buildBannerOffline() {
+    final l10n = AppLocalizations.of(context);
     final horario = _cacheEm != null
         ? '${_cacheEm!.day.toString().padLeft(2, '0')}/${_cacheEm!.month.toString().padLeft(2, '0')} '
             '${_cacheEm!.hour.toString().padLeft(2, '0')}:${_cacheEm!.minute.toString().padLeft(2, '0')}'
-        : 'data desconhecida';
+        : l10n.meusPontosDataDesconhecida;
     return Card(
       color: Colors.amber.withValues(alpha: 0.15),
       elevation: 0,
@@ -333,7 +336,7 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Sem conexão — mostrando as últimas recomendações sincronizadas em $horario',
+                l10n.meusPontosBannerOffline(horario),
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -371,6 +374,7 @@ class _DetalhePontoMarcado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -380,7 +384,9 @@ class _DetalhePontoMarcado extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                ponto.nome?.isNotEmpty == true ? ponto.nome! : 'Ponto marcado',
+                ponto.nome?.isNotEmpty == true
+                    ? ponto.nome!
+                    : l10n.mapaPontoMarcadoTitulo,
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
@@ -389,26 +395,26 @@ class _DetalhePontoMarcado extends StatelessWidget {
         const SizedBox(height: 14),
         LinhaInfoPonto(
           icon: Icons.explore_outlined,
-          label: 'Coordenadas',
+          label: l10n.mapaLabelCoordenadas,
           valor: formatarCoordenadasDMS(ponto.latitude, ponto.longitude),
         ),
         const Divider(height: 20),
         LinhaInfoPonto(
           icon: Icons.event_outlined,
-          label: 'Marcado em',
+          label: l10n.meusPontosMarcadoEm,
           valor: formatarDataHora(ponto.dataCriacao),
         ),
         if (distanciaNm != null && rumoGraus != null) ...[
           const Divider(height: 20),
           LinhaInfoPonto(
             icon: Icons.social_distance_outlined,
-            label: 'Distância',
+            label: l10n.mapaLabelDistancia,
             valor: '${distanciaNm!.toStringAsFixed(1)} mn',
           ),
           const SizedBox(height: 8),
           LinhaInfoPonto(
             icon: Icons.navigation_outlined,
-            label: 'Rumo',
+            label: l10n.mapaLabelRumo,
             valor: '${rumoGraus!.toStringAsFixed(0)}°',
           ),
         ],
@@ -416,9 +422,9 @@ class _DetalhePontoMarcado extends StatelessWidget {
           const Divider(height: 20),
           LinhaInfoPonto(
             icon: Icons.set_meal_outlined,
-            label: 'Produção aqui',
-            valor: '${producao!.totalKg.toStringAsFixed(1)} kg'
-                ' (${producao!.totalRegistros} registro(s))',
+            label: l10n.meusPontosProducaoAqui,
+            valor: l10n.meusPontosProducaoAquiValor(
+                producao!.totalKg.toStringAsFixed(1), producao!.totalRegistros),
           ),
         ],
         const Divider(height: 20),
@@ -441,7 +447,7 @@ class _DetalhePontoMarcado extends StatelessWidget {
               );
             },
             icon: const Icon(Icons.map_outlined, size: 18),
-            label: const Text('Solicitar Carta'),
+            label: Text(l10n.drawerSolicitarCarta),
           ),
         ),
         const SizedBox(height: 8),
@@ -462,7 +468,7 @@ class _DetalhePontoMarcado extends StatelessWidget {
               );
             },
             icon: const Icon(Icons.water_outlined, size: 18),
-            label: const Text('Consultar aqui'),
+            label: Text(l10n.meusPontosConsultarAqui),
           ),
         ),
         const SizedBox(height: 8),
@@ -483,7 +489,7 @@ class _DetalhePontoMarcado extends StatelessWidget {
               );
             },
             icon: const Icon(Icons.phishing, size: 18),
-            label: const Text('Maré e Pesca aqui'),
+            label: Text(l10n.meusPontosMareEPescaAqui),
           ),
         ),
         const SizedBox(height: 8),
@@ -495,7 +501,7 @@ class _DetalhePontoMarcado extends StatelessWidget {
               onRemovido();
             },
             icon: const Icon(Icons.delete_outline, color: Colors.red),
-            label: const Text('Remover', style: TextStyle(color: Colors.red)),
+            label: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
           ),
         ),
       ],

@@ -1759,4 +1759,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String producaoPorPontoEspecieDestaque(String especie) {
     return ' · $especie in the lead';
   }
+
+  @override
+  String get meusPontosTitulo => 'My Points';
+
+  @override
+  String get meusPontosNenhumTituloERecomendacao =>
+      'No marked points or recommendations yet';
+
+  @override
+  String get meusPontosSecaoPontosMarcados => 'MARKED POINTS';
+
+  @override
+  String get meusPontosSecaoRecomendacoes => 'RECOMMENDATIONS';
+
+  @override
+  String get meusPontosDataDesconhecida => 'unknown date';
+
+  @override
+  String meusPontosBannerOffline(String horario) {
+    return 'No connection — showing the last recommendations synced at $horario';
+  }
+
+  @override
+  String get meusPontosMarcadoEm => 'Marked on';
+
+  @override
+  String get meusPontosProducaoAqui => 'Production here';
+
+  @override
+  String meusPontosProducaoAquiValor(String kg, int n) {
+    return '$kg kg ($n record(s))';
+  }
+
+  @override
+  String get meusPontosConsultarAqui => 'Check conditions here';
+
+  @override
+  String get meusPontosMareEPescaAqui => 'Tide and Fishing here';
+
+  @override
+  String get mapaScreenTituloFallback => 'Map';
+
+  @override
+  String get mapaRotaProducao => 'Production Route';
+
+  @override
+  String get mapaSstLabel => 'SST';
 }

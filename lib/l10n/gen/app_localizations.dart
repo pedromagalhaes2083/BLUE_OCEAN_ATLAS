@@ -3063,6 +3063,90 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **' · {especie} em destaque'**
   String producaoPorPontoEspecieDestaque(String especie);
+
+  /// No description provided for @meusPontosTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meus Pontos'**
+  String get meusPontosTitulo;
+
+  /// No description provided for @meusPontosNenhumTituloERecomendacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum ponto marcado nem recomendação ainda'**
+  String get meusPontosNenhumTituloERecomendacao;
+
+  /// No description provided for @meusPontosSecaoPontosMarcados.
+  ///
+  /// In pt, this message translates to:
+  /// **'PONTOS MARCADOS'**
+  String get meusPontosSecaoPontosMarcados;
+
+  /// No description provided for @meusPontosSecaoRecomendacoes.
+  ///
+  /// In pt, this message translates to:
+  /// **'RECOMENDAÇÕES'**
+  String get meusPontosSecaoRecomendacoes;
+
+  /// No description provided for @meusPontosDataDesconhecida.
+  ///
+  /// In pt, this message translates to:
+  /// **'data desconhecida'**
+  String get meusPontosDataDesconhecida;
+
+  /// No description provided for @meusPontosBannerOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão — mostrando as últimas recomendações sincronizadas em {horario}'**
+  String meusPontosBannerOffline(String horario);
+
+  /// No description provided for @meusPontosMarcadoEm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcado em'**
+  String get meusPontosMarcadoEm;
+
+  /// No description provided for @meusPontosProducaoAqui.
+  ///
+  /// In pt, this message translates to:
+  /// **'Produção aqui'**
+  String get meusPontosProducaoAqui;
+
+  /// No description provided for @meusPontosProducaoAquiValor.
+  ///
+  /// In pt, this message translates to:
+  /// **'{kg} kg ({n} registro(s))'**
+  String meusPontosProducaoAquiValor(String kg, int n);
+
+  /// No description provided for @meusPontosConsultarAqui.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consultar aqui'**
+  String get meusPontosConsultarAqui;
+
+  /// No description provided for @meusPontosMareEPescaAqui.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré e Pesca aqui'**
+  String get meusPontosMareEPescaAqui;
+
+  /// No description provided for @mapaScreenTituloFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mapa'**
+  String get mapaScreenTituloFallback;
+
+  /// No description provided for @mapaRotaProducao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rota de Produção'**
+  String get mapaRotaProducao;
+
+  /// No description provided for @mapaSstLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'SST'**
+  String get mapaSstLabel;
 }
 
 class _AppLocalizationsDelegate
