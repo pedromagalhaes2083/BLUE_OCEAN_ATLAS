@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../l10n/gen/app_localizations.dart';
+
 class PositionCard extends StatelessWidget {
   final bool isLoadingPosition;
   final String? positionError;
@@ -22,6 +24,7 @@ class PositionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final escuro = Theme.of(context).brightness == Brightness.dark;
     // No claro, mantém a cor neutra original — o tom azul (mesmo dos
@@ -47,7 +50,7 @@ class PositionCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    '📍 Posição Atual',
+                    l10n.posicaoAtualTitulo,
                     style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -57,7 +60,7 @@ class PositionCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     IconButton(
                       icon: Icon(Icons.refresh, color: onContainer),
-                      tooltip: 'Atualizar posição',
+                      tooltip: l10n.posicaoAtualizarTooltip,
                       onPressed: isLoadingPosition ? null : onRefresh,
                       visualDensity: VisualDensity.compact,
                     ),
@@ -86,8 +89,8 @@ class PositionCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 onRefresh != null
-                    ? 'Toque no ícone para atualizar'
-                    : 'Toque no botão para atualizar',
+                    ? l10n.posicaoTocarIcone
+                    : l10n.posicaoTocarBotao,
                 style: TextStyle(color: onContainer.withValues(alpha: 0.75)),
               ),
             ],

@@ -1164,4 +1164,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get metricaMare => 'Tide';
+
+  @override
+  String get condicoesMarTitulo => 'Sea Conditions';
+
+  @override
+  String get condicoesMarAguardandoPosicao =>
+      'Waiting for the vessel\'s current position...';
+
+  @override
+  String get erroBuscarPrevisaoPrefixo => 'Error fetching forecast';
+
+  @override
+  String get condicoesPontoTituloFallback => 'Point Conditions';
+
+  @override
+  String get posicaoAtualTitulo => '📍 Current Position';
+
+  @override
+  String get posicaoAtualizarTooltip => 'Refresh position';
+
+  @override
+  String get posicaoTocarIcone => 'Tap the icon to refresh';
+
+  @override
+  String get posicaoTocarBotao => 'Tap the button to refresh';
+
+  @override
+  String get posicaoErroLocalizacaoDesativada =>
+      '❌ Location is turned off on this device';
+
+  @override
+  String get posicaoErroPermissaoNegadaPermanente =>
+      '❌ Permission permanently denied.\nGo to Settings > Apps';
+
+  @override
+  String get posicaoErroPermissaoNegada => '❌ Location permission denied';
+
+  @override
+  String get posicaoErroTimeout =>
+      '❌ Timed out getting the position.\nTry again in an open area.';
+
+  @override
+  String posicaoErroGenerico(String erro) {
+    return '❌ Error: $erro';
+  }
 }

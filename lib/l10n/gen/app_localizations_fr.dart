@@ -1178,4 +1178,51 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get metricaMare => 'Marée';
+
+  @override
+  String get condicoesMarTitulo => 'Conditions de Mer';
+
+  @override
+  String get condicoesMarAguardandoPosicao =>
+      'En attente de la position actuelle de l\'embarcation...';
+
+  @override
+  String get erroBuscarPrevisaoPrefixo =>
+      'Erreur lors de la récupération des prévisions';
+
+  @override
+  String get condicoesPontoTituloFallback => 'Conditions du Point';
+
+  @override
+  String get posicaoAtualTitulo => '📍 Position Actuelle';
+
+  @override
+  String get posicaoAtualizarTooltip => 'Actualiser la position';
+
+  @override
+  String get posicaoTocarIcone => 'Touchez l\'icône pour actualiser';
+
+  @override
+  String get posicaoTocarBotao => 'Touchez le bouton pour actualiser';
+
+  @override
+  String get posicaoErroLocalizacaoDesativada =>
+      '❌ La localisation est désactivée sur l\'appareil';
+
+  @override
+  String get posicaoErroPermissaoNegadaPermanente =>
+      '❌ Permission refusée définitivement.\nAllez dans Paramètres > Applications';
+
+  @override
+  String get posicaoErroPermissaoNegada =>
+      '❌ Permission de localisation refusée';
+
+  @override
+  String get posicaoErroTimeout =>
+      '❌ Délai dépassé pour obtenir la position.\nRéessayez dans un espace dégagé.';
+
+  @override
+  String posicaoErroGenerico(String erro) {
+    return '❌ Erreur : $erro';
+  }
 }

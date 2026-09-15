@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/services/localizacao_reporter_service.dart';
 import '../../core/utils/coordenadas_format.dart';
+import '../../l10n/gen/app_localizations.dart';
 import 'position_card.dart';
 
 /// Widget autocontido de posição GPS atual: cuida de permissões, loading,
@@ -48,8 +49,8 @@ class PosicaoAtualWidgetState extends State<PosicaoAtualWidget> {
       final servicoAtivado = await Geolocator.isLocationServiceEnabled();
       if (!servicoAtivado) {
         if (!mounted) return;
-        setState(
-            () => _erro = '❌ Localização está desativada no dispositivo');
+        setState(() =>
+            _erro = AppLocalizations.of(context).posicaoErroLocalizacaoDesativada);
         return;
       }
 
@@ -61,13 +62,14 @@ class PosicaoAtualWidgetState extends State<PosicaoAtualWidget> {
       if (permissao == LocationPermission.deniedForever) {
         if (!mounted) return;
         setState(() => _erro =
-            '❌ Permissão negada permanentemente.\nVá em Configurações > Apps');
+            AppLocalizations.of(context).posicaoErroPermissaoNegadaPermanente);
         return;
       }
 
       if (permissao == LocationPermission.denied) {
         if (!mounted) return;
-        setState(() => _erro = '❌ Permissão de localização negada');
+        setState(() =>
+            _erro = AppLocalizations.of(context).posicaoErroPermissaoNegada);
         return;
       }
 
@@ -94,11 +96,10 @@ class PosicaoAtualWidgetState extends State<PosicaoAtualWidget> {
       );
     } on TimeoutException {
       if (!mounted) return;
-      setState(() => _erro =
-          '❌ Tempo esgotado ao obter a posição.\nTente novamente em área aberta.');
+      setState(() => _erro = AppLocalizations.of(context).posicaoErroTimeout);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erro = '❌ Erro: $e');
+      setState(() => _erro = AppLocalizations.of(context).posicaoErroGenerico('$e'));
     } finally {
       if (mounted) setState(() => _carregando = false);
     }

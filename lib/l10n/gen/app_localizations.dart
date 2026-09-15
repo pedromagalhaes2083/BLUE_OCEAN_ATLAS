@@ -2012,6 +2012,84 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Maré'**
   String get metricaMare;
+
+  /// No description provided for @condicoesMarTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Condições do Mar'**
+  String get condicoesMarTitulo;
+
+  /// No description provided for @condicoesMarAguardandoPosicao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando posição atual da embarcação...'**
+  String get condicoesMarAguardandoPosicao;
+
+  /// No description provided for @erroBuscarPrevisaoPrefixo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao buscar previsão'**
+  String get erroBuscarPrevisaoPrefixo;
+
+  /// No description provided for @condicoesPontoTituloFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Condições do Ponto'**
+  String get condicoesPontoTituloFallback;
+
+  /// No description provided for @posicaoAtualTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'📍 Posição Atual'**
+  String get posicaoAtualTitulo;
+
+  /// No description provided for @posicaoAtualizarTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar posição'**
+  String get posicaoAtualizarTooltip;
+
+  /// No description provided for @posicaoTocarIcone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no ícone para atualizar'**
+  String get posicaoTocarIcone;
+
+  /// No description provided for @posicaoTocarBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no botão para atualizar'**
+  String get posicaoTocarBotao;
+
+  /// No description provided for @posicaoErroLocalizacaoDesativada.
+  ///
+  /// In pt, this message translates to:
+  /// **'❌ Localização está desativada no dispositivo'**
+  String get posicaoErroLocalizacaoDesativada;
+
+  /// No description provided for @posicaoErroPermissaoNegadaPermanente.
+  ///
+  /// In pt, this message translates to:
+  /// **'❌ Permissão negada permanentemente.\nVá em Configurações > Apps'**
+  String get posicaoErroPermissaoNegadaPermanente;
+
+  /// No description provided for @posicaoErroPermissaoNegada.
+  ///
+  /// In pt, this message translates to:
+  /// **'❌ Permissão de localização negada'**
+  String get posicaoErroPermissaoNegada;
+
+  /// No description provided for @posicaoErroTimeout.
+  ///
+  /// In pt, this message translates to:
+  /// **'❌ Tempo esgotado ao obter a posição.\nTente novamente em área aberta.'**
+  String get posicaoErroTimeout;
+
+  /// No description provided for @posicaoErroGenerico.
+  ///
+  /// In pt, this message translates to:
+  /// **'❌ Erro: {erro}'**
+  String posicaoErroGenerico(String erro);
 }
 
 class _AppLocalizationsDelegate

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/erro_amigavel.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../widgets/offline_dados_banner.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
@@ -93,8 +94,8 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() =>
-          _erro = mensagemErroAmigavel(e, prefixo: 'Erro ao buscar previsão'));
+      setState(() => _erro = mensagemErroAmigavel(e,
+          prefixo: AppLocalizations.of(context).erroBuscarPrevisaoPrefixo));
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -102,18 +103,21 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final escuroTelaPonto = Theme.of(context).brightness == Brightness.dark;
     final corPinPonto =
         escuroTelaPonto ? Colors.blue.shade200 : Colors.blue.shade900;
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.nome?.isNotEmpty == true ? widget.nome! : 'Condições do Ponto',
+          widget.nome?.isNotEmpty == true
+              ? widget.nome!
+              : l10n.condicoesPontoTituloFallback,
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Atualizar',
+            tooltip: l10n.viagemAtualizarTooltip,
             onPressed: _carregando ? null : _buscarDadosOceano,
           ),
         ],

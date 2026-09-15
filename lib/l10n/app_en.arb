@@ -400,5 +400,21 @@
   "metricaOnda": "Wave",
   "metricaCorrente": "Current",
   "metricaAgua": "Water",
-  "metricaMare": "Tide"
+  "metricaMare": "Tide",
+
+  "condicoesMarTitulo": "Sea Conditions",
+  "condicoesMarAguardandoPosicao": "Waiting for the vessel's current position...",
+  "erroBuscarPrevisaoPrefixo": "Error fetching forecast",
+  "condicoesPontoTituloFallback": "Point Conditions",
+
+  "posicaoAtualTitulo": "📍 Current Position",
+  "posicaoAtualizarTooltip": "Refresh position",
+  "posicaoTocarIcone": "Tap the icon to refresh",
+  "posicaoTocarBotao": "Tap the button to refresh",
+  "posicaoErroLocalizacaoDesativada": "❌ Location is turned off on this device",
+  "posicaoErroPermissaoNegadaPermanente": "❌ Permission permanently denied.\nGo to Settings > Apps",
+  "posicaoErroPermissaoNegada": "❌ Location permission denied",
+  "posicaoErroTimeout": "❌ Timed out getting the position.\nTry again in an open area.",
+  "posicaoErroGenerico": "❌ Error: {erro}",
+  "@posicaoErroGenerico": {"placeholders": {"erro": {"type": "String"}}}
 }

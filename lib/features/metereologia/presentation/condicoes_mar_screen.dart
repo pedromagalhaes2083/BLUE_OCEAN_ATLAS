@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/fase_lua.dart';
 import '../../../core/utils/tabela_solunar.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../widgets/offline_dados_banner.dart';
 import '../../widgets/posicao_atual_widget.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
@@ -100,8 +101,8 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _erroOceano =
-          mensagemErroAmigavel(e, prefixo: 'Erro ao buscar previsão'));
+      setState(() => _erroOceano = mensagemErroAmigavel(e,
+          prefixo: AppLocalizations.of(context).erroBuscarPrevisaoPrefixo));
     } finally {
       if (mounted) setState(() => _carregandoOceano = false);
     }
@@ -151,8 +152,9 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Condições do Mar')),
+      appBar: AppBar(title: Text(l10n.condicoesMarTitulo)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -179,12 +181,12 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
           ],
           const SizedBox(height: 24),
           if (_lat == null || _lon == null)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Aguardando posição atual da embarcação...',
-                  style: TextStyle(color: Colors.grey),
+                  l10n.condicoesMarAguardandoPosicao,
+                  style: const TextStyle(color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
               ),

@@ -400,5 +400,21 @@
   "metricaOnda": "Onda",
   "metricaCorrente": "Corrente",
   "metricaAgua": "Acqua",
-  "metricaMare": "Marea"
+  "metricaMare": "Marea",
+
+  "condicoesMarTitulo": "Condizioni del Mare",
+  "condicoesMarAguardandoPosicao": "In attesa della posizione attuale dell'imbarcazione...",
+  "erroBuscarPrevisaoPrefixo": "Errore nel recuperare le previsioni",
+  "condicoesPontoTituloFallback": "Condizioni del Punto",
+
+  "posicaoAtualTitulo": "📍 Posizione Attuale",
+  "posicaoAtualizarTooltip": "Aggiorna posizione",
+  "posicaoTocarIcone": "Tocca l'icona per aggiornare",
+  "posicaoTocarBotao": "Tocca il pulsante per aggiornare",
+  "posicaoErroLocalizacaoDesativada": "❌ La localizzazione è disattivata sul dispositivo",
+  "posicaoErroPermissaoNegadaPermanente": "❌ Permesso negato permanentemente.\nVai su Impostazioni > App",
+  "posicaoErroPermissaoNegada": "❌ Permesso di localizzazione negato",
+  "posicaoErroTimeout": "❌ Tempo scaduto nell'ottenere la posizione.\nRiprova in un'area aperta.",
+  "posicaoErroGenerico": "❌ Errore: {erro}",
+  "@posicaoErroGenerico": {"placeholders": {"erro": {"type": "String"}}}
 }
