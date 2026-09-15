@@ -1880,6 +1880,138 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Prec: {m}m'**
   String viagemPrecLabel(String m);
+
+  /// No description provided for @apagar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apagar'**
+  String get apagar;
+
+  /// No description provided for @rotasErroCarregar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar rotas: {erro}'**
+  String rotasErroCarregar(String erro);
+
+  /// No description provided for @rotasApagarTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apagar rota?'**
+  String get rotasApagarTitulo;
+
+  /// No description provided for @rotasApagarTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'\"{nome}\" será removida permanentemente.'**
+  String rotasApagarTexto(String nome);
+
+  /// No description provided for @rotasNovaRota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova rota'**
+  String get rotasNovaRota;
+
+  /// No description provided for @rotasNenhumaAinda.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma rota planejada ainda'**
+  String get rotasNenhumaAinda;
+
+  /// No description provided for @rotasTocarNovaRota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque em \"Nova rota\" para marcar pontos no mapa'**
+  String get rotasTocarNovaRota;
+
+  /// No description provided for @rotasPontosEData.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n, plural, =1{1 ponto} other{{n} pontos}} · {data}'**
+  String rotasPontosEData(int n, String data);
+
+  /// No description provided for @rotasAnalisarTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisar condições da rota'**
+  String get rotasAnalisarTooltip;
+
+  /// No description provided for @rotasEditarTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar rota'**
+  String get rotasEditarTooltip;
+
+  /// No description provided for @rotasApagarTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apagar rota'**
+  String get rotasApagarTooltip;
+
+  /// No description provided for @rotasAnaliseTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Análise: {nome}'**
+  String rotasAnaliseTitulo(String nome);
+
+  /// No description provided for @rotasBuscandoCondicoes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscando condições ao longo da rota...'**
+  String get rotasBuscandoCondicoes;
+
+  /// No description provided for @rotasPontosComCondicaoSevera.
+  ///
+  /// In pt, this message translates to:
+  /// **'{severos} de {total} pontos com condição severa'**
+  String rotasPontosComCondicaoSevera(int severos, int total);
+
+  /// No description provided for @rotasNenhumPontoSevero.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum ponto com condição severa'**
+  String get rotasNenhumPontoSevero;
+
+  /// No description provided for @rotasPontosDistanciaTotal.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n, plural, =1{1 ponto} other{{n} pontos}} · {distancia} mn no total'**
+  String rotasPontosDistanciaTotal(int n, String distancia);
+
+  /// No description provided for @rotasTrechoDesdePonto.
+  ///
+  /// In pt, this message translates to:
+  /// **'+{trecho} mn desde o ponto {indice}'**
+  String rotasTrechoDesdePonto(String trecho, int indice);
+
+  /// No description provided for @metricaVento.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vento'**
+  String get metricaVento;
+
+  /// No description provided for @metricaOnda.
+  ///
+  /// In pt, this message translates to:
+  /// **'Onda'**
+  String get metricaOnda;
+
+  /// No description provided for @metricaCorrente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Corrente'**
+  String get metricaCorrente;
+
+  /// No description provided for @metricaAgua.
+  ///
+  /// In pt, this message translates to:
+  /// **'Água'**
+  String get metricaAgua;
+
+  /// No description provided for @metricaMare.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré'**
+  String get metricaMare;
 }
 
 class _AppLocalizationsDelegate

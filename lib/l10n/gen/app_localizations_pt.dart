@@ -1074,4 +1074,97 @@ class AppLocalizationsPt extends AppLocalizations {
   String viagemPrecLabel(String m) {
     return 'Prec: ${m}m';
   }
+
+  @override
+  String get apagar => 'Apagar';
+
+  @override
+  String rotasErroCarregar(String erro) {
+    return 'Erro ao carregar rotas: $erro';
+  }
+
+  @override
+  String get rotasApagarTitulo => 'Apagar rota?';
+
+  @override
+  String rotasApagarTexto(String nome) {
+    return '\"$nome\" será removida permanentemente.';
+  }
+
+  @override
+  String get rotasNovaRota => 'Nova rota';
+
+  @override
+  String get rotasNenhumaAinda => 'Nenhuma rota planejada ainda';
+
+  @override
+  String get rotasTocarNovaRota =>
+      'Toque em \"Nova rota\" para marcar pontos no mapa';
+
+  @override
+  String rotasPontosEData(int n, String data) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n pontos',
+      one: '1 ponto',
+    );
+    return '$_temp0 · $data';
+  }
+
+  @override
+  String get rotasAnalisarTooltip => 'Analisar condições da rota';
+
+  @override
+  String get rotasEditarTooltip => 'Editar rota';
+
+  @override
+  String get rotasApagarTooltip => 'Apagar rota';
+
+  @override
+  String rotasAnaliseTitulo(String nome) {
+    return 'Análise: $nome';
+  }
+
+  @override
+  String get rotasBuscandoCondicoes => 'Buscando condições ao longo da rota...';
+
+  @override
+  String rotasPontosComCondicaoSevera(int severos, int total) {
+    return '$severos de $total pontos com condição severa';
+  }
+
+  @override
+  String get rotasNenhumPontoSevero => 'Nenhum ponto com condição severa';
+
+  @override
+  String rotasPontosDistanciaTotal(int n, String distancia) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n pontos',
+      one: '1 ponto',
+    );
+    return '$_temp0 · $distancia mn no total';
+  }
+
+  @override
+  String rotasTrechoDesdePonto(String trecho, int indice) {
+    return '+$trecho mn desde o ponto $indice';
+  }
+
+  @override
+  String get metricaVento => 'Vento';
+
+  @override
+  String get metricaOnda => 'Onda';
+
+  @override
+  String get metricaCorrente => 'Corrente';
+
+  @override
+  String get metricaAgua => 'Água';
+
+  @override
+  String get metricaMare => 'Maré';
 }

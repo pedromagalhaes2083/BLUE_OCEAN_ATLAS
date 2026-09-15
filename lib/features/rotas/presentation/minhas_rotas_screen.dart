@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/database/database_helper.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/models/rota_planejada.dart';
 import 'analise_rota_screen.dart';
@@ -57,7 +58,7 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar rotas: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).rotasErroCarregar('$e'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -106,19 +107,20 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
   }
 
   Future<void> _apagarRota(RotaPlanejada rota) async {
+    final l10n = AppLocalizations.of(context);
     final confirmou = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Apagar rota?'),
-        content: Text('"${rota.nome}" será removida permanentemente.'),
+        title: Text(l10n.rotasApagarTitulo),
+        content: Text(l10n.rotasApagarTexto(rota.nome)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancelar),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Apagar', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.apagar, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -137,9 +139,10 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Minhas Rotas'),
+        title: Text(l10n.drawerMinhasRotas),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _carregar),
         ],
@@ -147,7 +150,7 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _criarNovaRota,
         icon: const Icon(Icons.add),
-        label: const Text('Nova rota'),
+        label: Text(l10n.rotasNovaRota),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -158,10 +161,10 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
                     children: [
                       const Icon(Icons.route, size: 80, color: Colors.grey),
                       const SizedBox(height: 16),
-                      const Text('Nenhuma rota planejada ainda'),
+                      Text(l10n.rotasNenhumaAinda),
                       const SizedBox(height: 8),
                       Text(
-                        'Toque em "Nova rota" para marcar pontos no mapa',
+                        l10n.rotasTocarNovaRota,
                         style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 13),
@@ -190,8 +193,8 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
                           ),
                           title: Text(rota.nome),
                           subtitle: Text(
-                            '${rota.pontos.length} pontos · '
-                            '${DateFormat('dd/MM/yyyy HH:mm').format(rota.dataCriacao)}',
+                            l10n.rotasPontosEData(rota.pontos.length,
+                                DateFormat('dd/MM/yyyy HH:mm').format(rota.dataCriacao)),
                           ),
                           onTap: () => _abrirRota(rota),
                           trailing: Row(
@@ -199,17 +202,17 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.health_and_safety_outlined),
-                                tooltip: 'Analisar condições da rota',
+                                tooltip: l10n.rotasAnalisarTooltip,
                                 onPressed: () => _analisarRota(rota),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined),
-                                tooltip: 'Editar rota',
+                                tooltip: l10n.rotasEditarTooltip,
                                 onPressed: () => _editarRota(rota),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline),
-                                tooltip: 'Apagar rota',
+                                tooltip: l10n.rotasApagarTooltip,
                                 onPressed: () => _apagarRota(rota),
                               ),
                             ],

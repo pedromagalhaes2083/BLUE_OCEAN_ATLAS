@@ -7,6 +7,7 @@ import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../../core/utils/severidade_condicoes.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../../metereologia/data/previsao_tempo_repository.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
 
@@ -157,7 +158,8 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Análise: ${widget.nomeRota}')),
+      appBar: AppBar(
+          title: Text(AppLocalizations.of(context).rotasAnaliseTitulo(widget.nomeRota))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -173,6 +175,7 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
   }
 
   Widget _buildResumo() {
+    final l10n = AppLocalizations.of(context);
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     final severos = _pontosSeveros;
     final temSevero = severos.isNotEmpty;
@@ -213,11 +216,11 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
                 Expanded(
                   child: Text(
                     _aindaCarregando
-                        ? 'Buscando condições ao longo da rota...'
+                        ? l10n.rotasBuscandoCondicoes
                         : (temSevero
-                            ? '${severos.length} de ${_condicoes.length} '
-                                'pontos com condição severa'
-                            : 'Nenhum ponto com condição severa'),
+                            ? l10n.rotasPontosComCondicaoSevera(
+                                severos.length, _condicoes.length)
+                            : l10n.rotasNenhumPontoSevero),
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -228,8 +231,8 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              '${_condicoes.length} pontos · '
-              '${_distanciaTotalMn.toStringAsFixed(1)} mn no total',
+              l10n.rotasPontosDistanciaTotal(
+                  _condicoes.length, _distanciaTotalMn.toStringAsFixed(1)),
               style: TextStyle(fontSize: 12, color: onSurfaceVariant),
             ),
           ],
@@ -239,6 +242,7 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
   }
 
   Widget _buildCardPonto(_CondicaoPonto c, {_CondicaoPonto? anterior}) {
+    final l10n = AppLocalizations.of(context);
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     final escuro = Theme.of(context).brightness == Brightness.dark;
     final severo = !c.carregando && c.severo(_limiares);
@@ -294,7 +298,7 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
             if (trecho != null) ...[
               const SizedBox(height: 4),
               Text(
-                '+${trecho.toStringAsFixed(1)} mn desde o ponto ${c.indice}',
+                l10n.rotasTrechoDesdePonto(trecho.toStringAsFixed(1), c.indice),
                 style: TextStyle(fontSize: 11, color: onSurfaceVariant),
               ),
             ],
@@ -337,7 +341,7 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
                     c.ventoKmh != null
                         ? '${c.ventoKmh!.toStringAsFixed(0)} km/h'
                         : '—',
-                    'Vento',
+                    l10n.metricaVento,
                     c.ventoKmh != null &&
                         _limiares.ventoAtivo &&
                         ventoSevero(c.ventoKmh!, _limiares.ventoLimiarKmh),
@@ -347,7 +351,7 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
                     c.ondaAlturaM != null
                         ? '${c.ondaAlturaM!.toStringAsFixed(1)} m'
                         : '—',
-                    'Onda',
+                    l10n.metricaOnda,
                     c.ondaAlturaM != null &&
                         _limiares.ondaAtivo &&
                         alturaSevera(c.ondaAlturaM!, _limiares.ondaLimiarM),
@@ -357,7 +361,7 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
                     c.correnteNos != null
                         ? '${c.correnteNos!.toStringAsFixed(1)} nós'
                         : '—',
-                    'Corrente',
+                    l10n.metricaCorrente,
                     c.correnteNos != null &&
                         _limiares.correnteAtivo &&
                         correnteSevera(
@@ -368,7 +372,7 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
                     c.temperaturaC != null
                         ? '${c.temperaturaC!.toStringAsFixed(1)}°C'
                         : '—',
-                    'Água',
+                    l10n.metricaAgua,
                     c.temperaturaC != null &&
                         _limiares.temperaturaAtivo &&
                         temperaturaSevera(
@@ -376,7 +380,7 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
                   ),
                   if (c.nivelMarM != null)
                     _metrica(Icons.waves, '${c.nivelMarM!.toStringAsFixed(2)} m',
-                        'Maré', false),
+                        l10n.metricaMare, false),
                 ],
               ),
           ],

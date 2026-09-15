@@ -1084,4 +1084,98 @@ class AppLocalizationsFr extends AppLocalizations {
   String viagemPrecLabel(String m) {
     return 'Préc : ${m}m';
   }
+
+  @override
+  String get apagar => 'Supprimer';
+
+  @override
+  String rotasErroCarregar(String erro) {
+    return 'Erreur lors du chargement des itinéraires : $erro';
+  }
+
+  @override
+  String get rotasApagarTitulo => 'Supprimer l\'itinéraire ?';
+
+  @override
+  String rotasApagarTexto(String nome) {
+    return '« $nome » sera définitivement supprimé.';
+  }
+
+  @override
+  String get rotasNovaRota => 'Nouvel itinéraire';
+
+  @override
+  String get rotasNenhumaAinda => 'Aucun itinéraire planifié pour l\'instant';
+
+  @override
+  String get rotasTocarNovaRota =>
+      'Touchez « Nouvel itinéraire » pour marquer des points sur la carte';
+
+  @override
+  String rotasPontosEData(int n, String data) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n points',
+      one: '1 point',
+    );
+    return '$_temp0 · $data';
+  }
+
+  @override
+  String get rotasAnalisarTooltip => 'Analyser les conditions de l\'itinéraire';
+
+  @override
+  String get rotasEditarTooltip => 'Modifier l\'itinéraire';
+
+  @override
+  String get rotasApagarTooltip => 'Supprimer l\'itinéraire';
+
+  @override
+  String rotasAnaliseTitulo(String nome) {
+    return 'Analyse : $nome';
+  }
+
+  @override
+  String get rotasBuscandoCondicoes =>
+      'Récupération des conditions le long de l\'itinéraire...';
+
+  @override
+  String rotasPontosComCondicaoSevera(int severos, int total) {
+    return '$severos sur $total points avec une condition sévère';
+  }
+
+  @override
+  String get rotasNenhumPontoSevero => 'Aucun point avec une condition sévère';
+
+  @override
+  String rotasPontosDistanciaTotal(int n, String distancia) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n points',
+      one: '1 point',
+    );
+    return '$_temp0 · $distancia mn au total';
+  }
+
+  @override
+  String rotasTrechoDesdePonto(String trecho, int indice) {
+    return '+$trecho mn depuis le point $indice';
+  }
+
+  @override
+  String get metricaVento => 'Vent';
+
+  @override
+  String get metricaOnda => 'Vague';
+
+  @override
+  String get metricaCorrente => 'Courant';
+
+  @override
+  String get metricaAgua => 'Eau';
+
+  @override
+  String get metricaMare => 'Marée';
 }
