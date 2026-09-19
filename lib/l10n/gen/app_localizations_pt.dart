@@ -2244,4 +2244,7 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get mapaTrilhaSemViagemAtiva =>
       'Nenhuma viagem em andamento para mostrar a trilha';
+
+  @override
+  String get mapaModoNavegacaoTooltip => 'Modo Navegação';
 }

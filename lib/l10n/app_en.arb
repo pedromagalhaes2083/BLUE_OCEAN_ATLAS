@@ -791,5 +791,7 @@
 
   "mapaCamadaTrilhaViagemTitulo": "Trip trail",
   "mapaCamadaTrilhaViagemSubtitulo": "Current trip's track, updated live",
-  "mapaTrilhaSemViagemAtiva": "No trip in progress to show the trail"
+  "mapaTrilhaSemViagemAtiva": "No trip in progress to show the trail",
+
+  "mapaModoNavegacaoTooltip": "Navigation Mode"
 }

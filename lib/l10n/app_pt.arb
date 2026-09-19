@@ -792,5 +792,7 @@
 
   "mapaCamadaTrilhaViagemTitulo": "Trilha da viagem",
   "mapaCamadaTrilhaViagemSubtitulo": "Trajeto da viagem em andamento, atualizado ao vivo",
-  "mapaTrilhaSemViagemAtiva": "Nenhuma viagem em andamento para mostrar a trilha"
+  "mapaTrilhaSemViagemAtiva": "Nenhuma viagem em andamento para mostrar a trilha",
+
+  "mapaModoNavegacaoTooltip": "Modo Navegação"
 }

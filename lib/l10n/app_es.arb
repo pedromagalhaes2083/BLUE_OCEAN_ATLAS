@@ -791,5 +791,7 @@
 
   "mapaCamadaTrilhaViagemTitulo": "Trayecto del viaje",
   "mapaCamadaTrilhaViagemSubtitulo": "Trayecto del viaje en curso, actualizado en vivo",
-  "mapaTrilhaSemViagemAtiva": "No hay ningún viaje en curso para mostrar el trayecto"
+  "mapaTrilhaSemViagemAtiva": "No hay ningún viaje en curso para mostrar el trayecto",
+
+  "mapaModoNavegacaoTooltip": "Modo Navegación"
 }

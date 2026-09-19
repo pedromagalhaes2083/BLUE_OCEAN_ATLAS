@@ -3897,6 +3897,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nenhuma viagem em andamento para mostrar a trilha'**
   String get mapaTrilhaSemViagemAtiva;
+
+  /// No description provided for @mapaModoNavegacaoTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo Navegação'**
+  String get mapaModoNavegacaoTooltip;
 }
 
 class _AppLocalizationsDelegate

@@ -2235,4 +2235,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mapaTrilhaSemViagemAtiva =>
       'No trip in progress to show the trail';
+
+  @override
+  String get mapaModoNavegacaoTooltip => 'Navigation Mode';
 }

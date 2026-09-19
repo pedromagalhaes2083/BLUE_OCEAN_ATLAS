@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -33,6 +34,7 @@ import '../domain/models/leitura_clorofila.dart';
 import '../domain/models/ponto_marcado.dart';
 import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
+import '../widgets/barco_navegacao_3d.dart';
 import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/download_regiao_dialog.dart';
 import '../widgets/legenda_clorofila.dart';
@@ -232,6 +234,19 @@ class MapaWidgetState extends State<MapaWidget> {
   List<LatLng> _pontosTrilhaViagem = [];
   Timer? _trilhaViagemTimer;
 
+  // ── Modo Navegação (vista estilo Waze, course-up + inclinação) ──────────
+  // GPS e bússola passam a atualizar continuamente (em vez do fix único de
+  // _loadGpsPosition) e o mapa recentraliza + gira sozinho a cada
+  // atualização, mantendo o rumo sempre "pra cima" da tela. O efeito de
+  // inclinação 3D (ver _buildBody) e o modelo 3D do barco (ver
+  // BarcoNavegacao3d) só aparecem enquanto esse modo estiver ativo — o
+  // barco fica parado no centro da tela, é o mapa por baixo dele que gira.
+  static const double _zoomModoNavegacao = 17;
+  bool _modoNavegacao = false;
+  double _navegacaoRumo = 0;
+  StreamSubscription<Position>? _navegacaoPosicaoSub;
+  StreamSubscription<CompassEvent>? _navegacaoBussolaSub;
+
   // ── Sobreposição de imagem (PNG georreferenciado) ────────────────────────
   bool _overlayAtiva = false;
   bool _overlayValidada = false;
@@ -370,6 +385,8 @@ class MapaWidgetState extends State<MapaWidget> {
   @override
   void dispose() {
     _trilhaViagemTimer?.cancel();
+    _navegacaoPosicaoSub?.cancel();
+    _navegacaoBussolaSub?.cancel();
     _mbtiles.close();
     _nomePontoController.dispose();
     _nomeRotaController.dispose();
@@ -993,6 +1010,54 @@ class MapaWidgetState extends State<MapaWidget> {
     } catch (e) {
       debugPrint('Erro ao carregar trilha da viagem em andamento: $e');
     }
+  }
+
+  // ── Modo Navegação (vista estilo Waze) ───────────────────────────────────
+
+  /// Liga/desliga o Modo Navegação. Ligar assina os streams contínuos de
+  /// GPS e bússola (bem diferente do fix único de _loadGpsPosition) e passa
+  /// a recentralizar/girar o mapa a cada atualização, mantendo o rumo atual
+  /// sempre "pra cima" da tela — mesma convenção do modo de navegação do
+  /// Waze/Google Maps. Desligar cancela os streams e devolve o mapa pro
+  /// norte-pra-cima (girado/inclinado não faz sentido fora do modo).
+  void _alternarModoNavegacao() {
+    if (_modoNavegacao) {
+      _navegacaoPosicaoSub?.cancel();
+      _navegacaoBussolaSub?.cancel();
+      _navegacaoPosicaoSub = null;
+      _navegacaoBussolaSub = null;
+      setState(() => _modoNavegacao = false);
+      _mapController.rotate(0);
+      return;
+    }
+
+    setState(() => _modoNavegacao = true);
+    if (_gpsPosition != null) {
+      _mapController.moveAndRotate(
+          _gpsPosition!, _zoomModoNavegacao, -_navegacaoRumo);
+    }
+
+    _navegacaoBussolaSub = FlutterCompass.events?.listen((evento) {
+      final rumo = evento.heading;
+      if (rumo == null || !mounted) return;
+      _navegacaoRumo = rumo;
+      _mapController.moveAndRotate(
+          _mapController.camera.center, _mapController.camera.zoom, -rumo);
+    });
+
+    _navegacaoPosicaoSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      ),
+    ).listen((posicao) {
+      if (!mounted) return;
+      final pos = LatLng(posicao.latitude, posicao.longitude);
+      setState(() => _gpsPosition = pos);
+      _mapController.moveAndRotate(pos, _zoomModoNavegacao, -_navegacaoRumo);
+    }, onError: (e) {
+      debugPrint('Erro no stream de GPS do Modo Navegação: $e');
+    });
   }
 
   // ── Clorofila-a (NOAA CoastWatch, ERDDAP) ────────────────────────────────
@@ -2163,6 +2228,17 @@ class MapaWidgetState extends State<MapaWidget> {
             _buildGpsButton(),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
+              _mode != _MapMode.none)
+            _buildModoNavegacaoButton(),
+          if (_modoNavegacao)
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 90,
+              child: Center(child: BarcoNavegacao3d()),
+            ),
+          if (!_modoMarcarPonto &&
+              !widget.modoPlanejarRota &&
               _consultaPontoAtiva == null &&
               _mostrarClorofila)
             _buildAdicionarPontoClorofilaButton(),
@@ -2270,6 +2346,24 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
+  /// Liga/desliga o Modo Navegação (ver _alternarModoNavegacao) — empilhado
+  /// acima do botão de "Meus Pontos", pra ficar junto dos outros controles
+  /// de posição/GPS.
+  Widget _buildModoNavegacaoButton() {
+    return Positioned(
+      right: 12,
+      bottom: 140,
+      child: FloatingActionButton(
+        heroTag: 'modoNavegacaoFab',
+        backgroundColor: _modoNavegacao ? Colors.blue[700] : null,
+        onPressed: _alternarModoNavegacao,
+        tooltip: AppLocalizations.of(context).mapaModoNavegacaoTooltip,
+        child: Icon(
+            _modoNavegacao ? Icons.navigation : Icons.navigation_outlined),
+      ),
+    );
+  }
+
   /// Abre "Meus Pontos" — lista com todos os pontos marcados manualmente e
   /// os de todas as recomendações juntos, empilhado logo acima do botão de
   /// GPS pra não competir com ele.
@@ -2371,6 +2465,39 @@ class MapaWidgetState extends State<MapaWidget> {
       );
     }
 
+    if (_modoNavegacao) {
+      // Truque de perspectiva (CSS-3D-like) só visual — a carta em si
+      // continua sendo o mesmo mapa 2D de sempre, só "deitado" pra dar a
+      // sensação de câmera de navegação (efeito Waze/Google Maps),
+      // combinado com o giro course-up já aplicado via moveAndRotate (ver
+      // _alternarModoNavegacao). ClipRect evita que a área rotacionada
+      // vaze pra fora dos limites do card.
+      return ClipRect(
+        // Transform.scale por fora (2D puro, sobre o resultado já
+        // projetado) em vez de dentro da mesma matriz 3D — misturar escala
+        // com a entrada de perspectiva na mesma matriz altera o
+        // aprofundamento em Z e a perspectiva "cancela" boa parte do
+        // aumento. Aqui só aumenta o retângulo já inclinado, ancorado na
+        // base, pra preencher o vazio que a inclinação deixa acima da
+        // carta (o topo recua e encolhe).
+        child: Transform.scale(
+          scale: 1.35,
+          alignment: Alignment.bottomCenter,
+          child: Transform(
+            // Pivô na base — o "perto" (onde a embarcação está, perto do
+            // barco 3D sobreposto) fica ancorado no tamanho normal; é o
+            // "longe" (topo, horizonte) que recua e encolhe. Ângulo
+            // negativo é o que produz esse sentido (positivo faz o
+            // oposto: a base encolhe e o topo fica cheio).
+            alignment: Alignment.bottomCenter,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0012)
+              ..rotateX(-0.6),
+            child: _buildFlutterMap(),
+          ),
+        ),
+      );
+    }
     return _buildFlutterMap();
   }
 

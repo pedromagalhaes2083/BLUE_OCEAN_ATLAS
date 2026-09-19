@@ -2261,4 +2261,7 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get mapaTrilhaSemViagemAtiva =>
       'Nessun viaggio in corso per mostrare il tracciato';
+
+  @override
+  String get mapaModoNavegacaoTooltip => 'Modalità Navigazione';
 }

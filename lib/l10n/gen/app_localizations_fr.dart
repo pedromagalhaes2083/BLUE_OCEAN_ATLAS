@@ -2272,4 +2272,7 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get mapaTrilhaSemViagemAtiva =>
       'Aucun voyage en cours pour afficher le trace';
+
+  @override
+  String get mapaModoNavegacaoTooltip => 'Mode Navigation';
 }
