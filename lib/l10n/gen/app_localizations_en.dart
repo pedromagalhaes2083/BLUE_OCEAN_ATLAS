@@ -2238,4 +2238,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapaModoNavegacaoTooltip => 'Navigation Mode';
+
+  @override
+  String get cardinalNorte => 'N';
+
+  @override
+  String get cardinalNordeste => 'NE';
+
+  @override
+  String get cardinalLeste => 'E';
+
+  @override
+  String get cardinalSudeste => 'SE';
+
+  @override
+  String get cardinalSul => 'S';
+
+  @override
+  String get cardinalSudoeste => 'SW';
+
+  @override
+  String get cardinalOeste => 'W';
+
+  @override
+  String get cardinalNoroeste => 'NW';
+
+  @override
+  String get naveRumoSolo => 'Course over ground';
+
+  @override
+  String get naveRumoBussola => 'Heading';
 }

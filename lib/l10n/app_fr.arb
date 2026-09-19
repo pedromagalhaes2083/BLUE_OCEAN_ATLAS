@@ -793,5 +793,16 @@
   "mapaCamadaTrilhaViagemSubtitulo": "Trajet du voyage en cours, mis à jour en direct",
   "mapaTrilhaSemViagemAtiva": "Aucun voyage en cours pour afficher le trace",
 
-  "mapaModoNavegacaoTooltip": "Mode Navigation"
+  "mapaModoNavegacaoTooltip": "Mode Navigation",
+
+  "cardinalNorte": "N",
+  "cardinalNordeste": "NE",
+  "cardinalLeste": "E",
+  "cardinalSudeste": "SE",
+  "cardinalSul": "S",
+  "cardinalSudoeste": "SO",
+  "cardinalOeste": "O",
+  "cardinalNoroeste": "NO",
+  "naveRumoSolo": "Route fond",
+  "naveRumoBussola": "Cap magnétique"
 }

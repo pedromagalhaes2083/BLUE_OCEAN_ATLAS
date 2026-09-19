@@ -2275,4 +2275,34 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get mapaModoNavegacaoTooltip => 'Mode Navigation';
+
+  @override
+  String get cardinalNorte => 'N';
+
+  @override
+  String get cardinalNordeste => 'NE';
+
+  @override
+  String get cardinalLeste => 'E';
+
+  @override
+  String get cardinalSudeste => 'SE';
+
+  @override
+  String get cardinalSul => 'S';
+
+  @override
+  String get cardinalSudoeste => 'SO';
+
+  @override
+  String get cardinalOeste => 'O';
+
+  @override
+  String get cardinalNoroeste => 'NO';
+
+  @override
+  String get naveRumoSolo => 'Route fond';
+
+  @override
+  String get naveRumoBussola => 'Cap magnétique';
 }

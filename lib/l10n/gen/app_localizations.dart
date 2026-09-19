@@ -3903,6 +3903,66 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Modo Navegação'**
   String get mapaModoNavegacaoTooltip;
+
+  /// No description provided for @cardinalNorte.
+  ///
+  /// In pt, this message translates to:
+  /// **'N'**
+  String get cardinalNorte;
+
+  /// No description provided for @cardinalNordeste.
+  ///
+  /// In pt, this message translates to:
+  /// **'NE'**
+  String get cardinalNordeste;
+
+  /// No description provided for @cardinalLeste.
+  ///
+  /// In pt, this message translates to:
+  /// **'L'**
+  String get cardinalLeste;
+
+  /// No description provided for @cardinalSudeste.
+  ///
+  /// In pt, this message translates to:
+  /// **'SE'**
+  String get cardinalSudeste;
+
+  /// No description provided for @cardinalSul.
+  ///
+  /// In pt, this message translates to:
+  /// **'S'**
+  String get cardinalSul;
+
+  /// No description provided for @cardinalSudoeste.
+  ///
+  /// In pt, this message translates to:
+  /// **'SO'**
+  String get cardinalSudoeste;
+
+  /// No description provided for @cardinalOeste.
+  ///
+  /// In pt, this message translates to:
+  /// **'O'**
+  String get cardinalOeste;
+
+  /// No description provided for @cardinalNoroeste.
+  ///
+  /// In pt, this message translates to:
+  /// **'NO'**
+  String get cardinalNoroeste;
+
+  /// No description provided for @naveRumoSolo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rumo sobre o solo'**
+  String get naveRumoSolo;
+
+  /// No description provided for @naveRumoBussola.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rumo magnético'**
+  String get naveRumoBussola;
 }
 
 class _AppLocalizationsDelegate

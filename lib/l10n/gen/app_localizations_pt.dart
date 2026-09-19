@@ -2247,4 +2247,34 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get mapaModoNavegacaoTooltip => 'Modo Navegação';
+
+  @override
+  String get cardinalNorte => 'N';
+
+  @override
+  String get cardinalNordeste => 'NE';
+
+  @override
+  String get cardinalLeste => 'L';
+
+  @override
+  String get cardinalSudeste => 'SE';
+
+  @override
+  String get cardinalSul => 'S';
+
+  @override
+  String get cardinalSudoeste => 'SO';
+
+  @override
+  String get cardinalOeste => 'O';
+
+  @override
+  String get cardinalNoroeste => 'NO';
+
+  @override
+  String get naveRumoSolo => 'Rumo sobre o solo';
+
+  @override
+  String get naveRumoBussola => 'Rumo magnético';
 }

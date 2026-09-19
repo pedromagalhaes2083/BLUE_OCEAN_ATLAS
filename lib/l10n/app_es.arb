@@ -793,5 +793,16 @@
   "mapaCamadaTrilhaViagemSubtitulo": "Trayecto del viaje en curso, actualizado en vivo",
   "mapaTrilhaSemViagemAtiva": "No hay ningún viaje en curso para mostrar el trayecto",
 
-  "mapaModoNavegacaoTooltip": "Modo Navegación"
+  "mapaModoNavegacaoTooltip": "Modo Navegación",
+
+  "cardinalNorte": "N",
+  "cardinalNordeste": "NE",
+  "cardinalLeste": "E",
+  "cardinalSudeste": "SE",
+  "cardinalSul": "S",
+  "cardinalSudoeste": "SO",
+  "cardinalOeste": "O",
+  "cardinalNoroeste": "NO",
+  "naveRumoSolo": "Rumbo sobre el suelo",
+  "naveRumoBussola": "Rumbo magnético"
 }

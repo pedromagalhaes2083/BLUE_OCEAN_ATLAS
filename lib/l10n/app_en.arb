@@ -793,5 +793,16 @@
   "mapaCamadaTrilhaViagemSubtitulo": "Current trip's track, updated live",
   "mapaTrilhaSemViagemAtiva": "No trip in progress to show the trail",
 
-  "mapaModoNavegacaoTooltip": "Navigation Mode"
+  "mapaModoNavegacaoTooltip": "Navigation Mode",
+
+  "cardinalNorte": "N",
+  "cardinalNordeste": "NE",
+  "cardinalLeste": "E",
+  "cardinalSudeste": "SE",
+  "cardinalSul": "S",
+  "cardinalSudoeste": "SW",
+  "cardinalOeste": "W",
+  "cardinalNoroeste": "NW",
+  "naveRumoSolo": "Course over ground",
+  "naveRumoBussola": "Heading"
 }

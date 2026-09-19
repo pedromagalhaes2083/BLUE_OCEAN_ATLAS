@@ -36,6 +36,7 @@ import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
 import '../widgets/barco_navegacao_3d.dart';
 import '../widgets/dados_oceanicos_ponto.dart';
+import '../widgets/compasso_circular.dart';
 import '../widgets/download_regiao_dialog.dart';
 import '../widgets/legenda_clorofila.dart';
 import '../widgets/legenda_grade_temperatura.dart';
@@ -322,6 +323,7 @@ class MapaWidgetState extends State<MapaWidget> {
     _loadPontos();
     _carregarPontosMarcados();
     _carregarOverlayRecomendacao();
+    _iniciarBussolaEPosicaoContinuas();
 
     final rotaEditando = widget.rotaParaEditar;
     if (rotaEditando != null) {
@@ -1012,37 +1014,23 @@ class MapaWidgetState extends State<MapaWidget> {
     }
   }
 
-  // ── Modo Navegação (vista estilo Waze) ───────────────────────────────────
+  // ── Bússola/GPS contínuos + Modo Navegação (vista estilo Waze) ──────────
 
-  /// Liga/desliga o Modo Navegação. Ligar assina os streams contínuos de
-  /// GPS e bússola (bem diferente do fix único de _loadGpsPosition) e passa
-  /// a recentralizar/girar o mapa a cada atualização, mantendo o rumo atual
-  /// sempre "pra cima" da tela — mesma convenção do modo de navegação do
-  /// Waze/Google Maps. Desligar cancela os streams e devolve o mapa pro
-  /// norte-pra-cima (girado/inclinado não faz sentido fora do modo).
-  void _alternarModoNavegacao() {
-    if (_modoNavegacao) {
-      _navegacaoPosicaoSub?.cancel();
-      _navegacaoBussolaSub?.cancel();
-      _navegacaoPosicaoSub = null;
-      _navegacaoBussolaSub = null;
-      setState(() => _modoNavegacao = false);
-      _mapController.rotate(0);
-      return;
-    }
-
-    setState(() => _modoNavegacao = true);
-    if (_gpsPosition != null) {
-      _mapController.moveAndRotate(
-          _gpsPosition!, _zoomModoNavegacao, -_navegacaoRumo);
-    }
-
+  /// Assina os streams contínuos de GPS e bússola assim que o mapa abre —
+  /// bem diferente do fix único de _loadGpsPosition. Roda o tempo todo que
+  /// a tela do mapa estiver aberta (não só no Modo Navegação), porque o
+  /// CompassoCircular fica sempre visível — ver build(). O Modo Navegação
+  /// (_modoNavegacao) só liga/desliga o recentralizar/girar/inclinar o
+  /// mapa em cima desses mesmos dados, sem controlar os streams em si.
+  void _iniciarBussolaEPosicaoContinuas() {
     _navegacaoBussolaSub = FlutterCompass.events?.listen((evento) {
       final rumo = evento.heading;
       if (rumo == null || !mounted) return;
-      _navegacaoRumo = rumo;
-      _mapController.moveAndRotate(
-          _mapController.camera.center, _mapController.camera.zoom, -rumo);
+      setState(() => _navegacaoRumo = rumo);
+      if (_modoNavegacao) {
+        _mapController.moveAndRotate(
+            _mapController.camera.center, _mapController.camera.zoom, -rumo);
+      }
     });
 
     _navegacaoPosicaoSub = Geolocator.getPositionStream(
@@ -1054,10 +1042,29 @@ class MapaWidgetState extends State<MapaWidget> {
       if (!mounted) return;
       final pos = LatLng(posicao.latitude, posicao.longitude);
       setState(() => _gpsPosition = pos);
-      _mapController.moveAndRotate(pos, _zoomModoNavegacao, -_navegacaoRumo);
+      if (_modoNavegacao) {
+        _mapController.moveAndRotate(pos, _zoomModoNavegacao, -_navegacaoRumo);
+      }
     }, onError: (e) {
-      debugPrint('Erro no stream de GPS do Modo Navegação: $e');
+      debugPrint('Erro no stream de GPS/bússola do mapa: $e');
     });
+  }
+
+  /// Liga/desliga só o comportamento de "seguir": recentralizar/girar o
+  /// mapa a cada atualização (course-up, mesma convenção do Waze/Google
+  /// Maps) e a inclinação 3D (ver _buildBody). Os streams de GPS/bússola
+  /// em si já estão rodando desde que o mapa abriu (ver
+  /// _iniciarBussolaEPosicaoContinuas) — desligar aqui só devolve o mapa
+  /// pro norte-pra-cima, sem parar de alimentar o CompassoCircular.
+  void _alternarModoNavegacao() {
+    final ligando = !_modoNavegacao;
+    setState(() => _modoNavegacao = ligando);
+    if (ligando && _gpsPosition != null) {
+      _mapController.moveAndRotate(
+          _gpsPosition!, _zoomModoNavegacao, -_navegacaoRumo);
+    } else if (!ligando) {
+      _mapController.rotate(0);
+    }
   }
 
   // ── Clorofila-a (NOAA CoastWatch, ERDDAP) ────────────────────────────────
@@ -2206,6 +2213,16 @@ class MapaWidgetState extends State<MapaWidget> {
       child: Stack(
         children: [
           Positioned.fill(child: _buildBody()),
+          // Bússola sempre visível (não só no Modo Navegação) — fica acima
+          // da barra com o menu de camadas, empurrando ela pra baixo (ver
+          // _buildTopBar).
+          if (_mode != _MapMode.none)
+            Positioned(
+              top: 8,
+              left: 0,
+              right: 0,
+              child: Center(child: CompassoCircular(rumo: _navegacaoRumo)),
+            ),
           if (_mode != _MapMode.none) _buildTopBar(),
           if (_overlayAtiva && !_modoMarcarPonto && !widget.modoPlanejarRota)
             _buildOverlayOpacidadeControl(),
@@ -2250,7 +2267,9 @@ class MapaWidgetState extends State<MapaWidget> {
   Widget _buildTopBar() {
     final l10n = AppLocalizations.of(context);
     return Positioned(
-      top: 8,
+      // Empurrada pra baixo do CompassoCircular, que agora fica sempre no
+      // topo do mapa (ver build()).
+      top: 150,
       left: 8,
       right: 8,
       child: Material(
@@ -2380,7 +2399,9 @@ class MapaWidgetState extends State<MapaWidget> {
   /// em tempo real, enquanto ela está ligada.
   Widget _buildOverlayOpacidadeControl() {
     return Positioned(
-      top: 56,
+      // Abaixo da barra de topo, que agora fica abaixo do CompassoCircular
+      // (ver build()/_buildTopBar()).
+      top: 198,
       left: 8,
       right: 8,
       child: Material(

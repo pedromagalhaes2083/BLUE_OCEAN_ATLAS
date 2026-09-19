@@ -2260,4 +2260,34 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get mapaModoNavegacaoTooltip => 'Modo Navegación';
+
+  @override
+  String get cardinalNorte => 'N';
+
+  @override
+  String get cardinalNordeste => 'NE';
+
+  @override
+  String get cardinalLeste => 'E';
+
+  @override
+  String get cardinalSudeste => 'SE';
+
+  @override
+  String get cardinalSul => 'S';
+
+  @override
+  String get cardinalSudoeste => 'SO';
+
+  @override
+  String get cardinalOeste => 'O';
+
+  @override
+  String get cardinalNoroeste => 'NO';
+
+  @override
+  String get naveRumoSolo => 'Rumbo sobre el suelo';
+
+  @override
+  String get naveRumoBussola => 'Rumbo magnético';
 }

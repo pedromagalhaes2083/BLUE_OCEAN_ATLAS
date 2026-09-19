@@ -794,5 +794,16 @@
   "mapaCamadaTrilhaViagemSubtitulo": "Trajeto da viagem em andamento, atualizado ao vivo",
   "mapaTrilhaSemViagemAtiva": "Nenhuma viagem em andamento para mostrar a trilha",
 
-  "mapaModoNavegacaoTooltip": "Modo Navegação"
+  "mapaModoNavegacaoTooltip": "Modo Navegação",
+
+  "cardinalNorte": "N",
+  "cardinalNordeste": "NE",
+  "cardinalLeste": "L",
+  "cardinalSudeste": "SE",
+  "cardinalSul": "S",
+  "cardinalSudoeste": "SO",
+  "cardinalOeste": "O",
+  "cardinalNoroeste": "NO",
+  "naveRumoSolo": "Rumo sobre o solo",
+  "naveRumoBussola": "Rumo magnético"
 }
