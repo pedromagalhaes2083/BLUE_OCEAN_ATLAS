@@ -2230,13 +2230,6 @@ class MapaWidgetState extends State<MapaWidget> {
               !widget.modoPlanejarRota &&
               _mode != _MapMode.none)
             _buildModoNavegacaoButton(),
-          if (_modoNavegacao)
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 90,
-              child: Center(child: BarcoNavegacao3d()),
-            ),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
               _consultaPontoAtiva == null &&
@@ -2481,7 +2474,7 @@ class MapaWidgetState extends State<MapaWidget> {
         // base, pra preencher o vazio que a inclinação deixa acima da
         // carta (o topo recua e encolhe).
         child: Transform.scale(
-          scale: 1.35,
+          scale: 1.8,
           alignment: Alignment.bottomCenter,
           child: Transform(
             // Pivô na base — o "perto" (onde a embarcação está, perto do
@@ -2808,18 +2801,23 @@ class MapaWidgetState extends State<MapaWidget> {
                     ))
                 .toList(),
           ),
+        // Barco 3D como marcador de posição — preso à coordenada real do
+        // mundo (não fixo na tela) em qualquer modo, pra sempre refletir a
+        // posição de verdade, mesmo se o usuário arrastar o mapa. No Modo
+        // Navegação, o mapa recentraliza sozinho a cada atualização de GPS
+        // (ver _alternarModoNavegacao), então o marcador acaba ficando
+        // perto do centro de qualquer jeito — só que sem "travar" nada.
+        // O rumo da bússola (só atualizado nesse modo) orbita a câmera ao
+        // redor do modelo, sem mover o ícone em si (ver BarcoNavegacao3d).
         if (_gpsPosition != null)
           MarkerLayer(
             markers: [
               Marker(
                 point: _gpsPosition!,
-                width: 40,
-                height: 40,
-                child: const Icon(
-                  Icons.navigation,
-                  color: Colors.blue,
-                  size: 36,
-                ),
+                width: 70,
+                height: 70,
+                child: BarcoNavegacao3d(
+                    rumo: _modoNavegacao ? _navegacaoRumo : 0, tamanho: 70),
               ),
             ],
           ),
