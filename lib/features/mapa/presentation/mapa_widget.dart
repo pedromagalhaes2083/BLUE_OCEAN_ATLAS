@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -10,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 import '../../../core/database/database_helper.dart';
 import '../../../core/models/sst_ponto.dart';
@@ -23,6 +25,7 @@ import '../../../core/services/street_map_cache_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
+import '../widgets/legenda_grade_temperatura.dart' show corGradeTemperatura;
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../producao/domain/especies_comuns.dart';
 import '../../producao/domain/models/producao_registro.dart';
@@ -39,7 +42,6 @@ import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/compasso_circular.dart';
 import '../widgets/download_regiao_dialog.dart';
 import '../widgets/legenda_clorofila.dart';
-import '../widgets/legenda_grade_temperatura.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
 import '../widgets/street_map_tile_provider.dart';
@@ -112,6 +114,16 @@ class MapaWidget extends StatefulWidget {
   /// em `MinhasRotasScreen`.
   final RotaPlanejada? rotaParaEditar;
 
+  /// Se true (padrão — usado na aba Mapa em tela cheia): mantém os streams
+  /// contínuos de GPS/bússola rodando, mostra a bússola sempre visível e
+  /// usa o barco 3D (BarcoNavegacao3d, via WebView) como marcador de
+  /// posição. Se false (usado no preview compacto embutido no Dashboard,
+  /// ver DashboardScreen): nada disso roda — só um marcador estático leve
+  /// (ícone) na posição atual — evita pagar o custo de bateria/CPU de uma
+  /// WebView 3D e sensores de alta frequência numa tela que só mostra um
+  /// resumo do mapa, não é usada pra navegar de verdade.
+  final bool navegacaoTempoReal;
+
   const MapaWidget({
     super.key,
     this.recomendacao,
@@ -120,13 +132,14 @@ class MapaWidget extends StatefulWidget {
     this.modoPlanejarRota = false,
     this.producaoPontos,
     this.rotaParaEditar,
+    this.navegacaoTempoReal = true,
   });
 
   @override
   State<MapaWidget> createState() => MapaWidgetState();
 }
 
-class MapaWidgetState extends State<MapaWidget> {
+class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   final MbtilesService _mbtiles = MbtilesService();
   final PontosService _pontosService = PontosService();
   final StreetMapCacheService _streetCache = StreetMapCacheService();
@@ -136,7 +149,6 @@ class MapaWidgetState extends State<MapaWidget> {
 
   _MapMode _mode = _MapMode.none;
   bool _loading = false;
-  String? _fileName;
   String? _error;
 
   /// Alterna entre a carta náutica carregada (MBTiles/GeoTIFF) e o mapa de
@@ -244,9 +256,84 @@ class MapaWidgetState extends State<MapaWidget> {
   // barco fica parado no centro da tela, é o mapa por baixo dele que gira.
   static const double _zoomModoNavegacao = 17;
   bool _modoNavegacao = false;
-  double _navegacaoRumo = 0;
+
+  // ValueNotifier em vez de campo simples + setState: o rumo muda a cada
+  // evento do sensor (pode ser bem frequente) e só a bússola/o barco 3D
+  // precisam repintar quando ele muda — não a árvore inteira do mapa
+  // (FlutterMap com suas dezenas de camadas condicionais). Um setState()
+  // aqui recalcularia esse build() inteiro a cada leitura do sensor, que é
+  // o maior custo de CPU do recurso; com ValueListenableBuilder (ver
+  // build()/BarcoNavegacao3d), só os widgets pequenos que exibem o rumo
+  // repintam.
+  final ValueNotifier<double> _navegacaoRumoNotifier = ValueNotifier(0);
+  double get _navegacaoRumo => _navegacaoRumoNotifier.value;
+
   StreamSubscription<Position>? _navegacaoPosicaoSub;
   StreamSubscription<CompassEvent>? _navegacaoBussolaSub;
+
+  // Bússola do aparelho (magnetômetro) ligada por padrão — pode ser
+  // desligada (ver _alternarBussola, no menu lateral) pra quem prefere
+  // não depender dela (interferência magnética perto de motor/metal é
+  // comum em embarcação). Desligada, o rumo passa a vir só do giroscópio
+  // (ver _iniciarGiroscopio) — sem referência absoluta ao norte, mas sem
+  // sofrer com desvio magnético, só integra o quanto o aparelho girou.
+  bool _bussolaAtiva = true;
+  StreamSubscription<GyroscopeEvent>? _giroscopioSub;
+  DateTime? _ultimaLeituraGiroscopio;
+
+  // Enquanto o usuário está arrastando/dando pinça no mapa, pausa a
+  // reorbitação do barco 3D (ver onPositionChanged, mais abaixo, e
+  // BarcoNavegacao3d.pausado) — evita competir por frame com o gesto (o
+  // pan/zoom fica mais fluido) e algo "brigando" visualmente com o dedo do
+  // usuário. `hasGesture` do próprio flutter_map já distingue isso de
+  // movimento programático (ex.: nosso moveAndRotate do Modo Navegação),
+  // então não corre o risco de ficar "travado" pausado por engano.
+  static const Duration _debounceFimMovimentoMapa = Duration(milliseconds: 200);
+  bool _usuarioMovendoMapa = false;
+  Timer? _timerFimMovimentoMapa;
+
+  // Throttle bruto antes mesmo de filtrar — o sensor de bússola pode
+  // emitir a uma taxa bem mais alta do que o olho percebe (dependendo do
+  // aparelho); processar cada leitura (mesmo só o filtro EMA) é trabalho
+  // desperdiçado. Descarta leituras que chegam antes desse intervalo.
+  static const Duration _intervaloMinimoBussola = Duration(milliseconds: 80);
+  DateTime? _ultimaLeituraBussolaProcessada;
+
+  // Filtro de suavização do rumo — o sensor de bússola do aparelho chega
+  // "ruidoso" (variações de vários graus entre uma leitura e outra), o que
+  // fazia o barco 3D/o mapa tremerem a cada evento. Faz uma média móvel
+  // exponencial (EMA) em cima do vetor (seno, cosseno) do ângulo — não do
+  // ângulo em si — pra suavizar sem quebrar na virada de 359°→0°.
+  double? _rumoFiltradoSeno;
+  double? _rumoFiltradoCosseno;
+
+  // Limiar antes de girar o mapa de verdade no Modo Navegação (ver uso em
+  // _iniciarBussolaEPosicaoContinuas) — girar é um repaint caro do canvas
+  // inteiro, então só vale reaplicar quando a diferença é perceptível.
+  static const double _limiarGirarMapa = 1.0;
+  double _ultimoRumoAplicadoAoMapa = 0;
+
+  double _diferencaAngular(double a, double b) {
+    var diferenca = (a - b) % 360;
+    if (diferenca > 180) diferenca = 360 - diferenca;
+    return diferenca.abs();
+  }
+
+  double _suavizarRumo(double rumoBruto) {
+    const alfa = 0.15; // 0–1: menor = mais suave (e mais "atrasado")
+    final rad = rumoBruto * math.pi / 180;
+    final seno = math.sin(rad);
+    final cosseno = math.cos(rad);
+    _rumoFiltradoSeno = _rumoFiltradoSeno == null
+        ? seno
+        : _rumoFiltradoSeno! + alfa * (seno - _rumoFiltradoSeno!);
+    _rumoFiltradoCosseno = _rumoFiltradoCosseno == null
+        ? cosseno
+        : _rumoFiltradoCosseno! + alfa * (cosseno - _rumoFiltradoCosseno!);
+    final grausSuavizados =
+        math.atan2(_rumoFiltradoSeno!, _rumoFiltradoCosseno!) * 180 / math.pi;
+    return (grausSuavizados + 360) % 360;
+  }
 
   // ── Sobreposição de imagem (PNG georreferenciado) ────────────────────────
   bool _overlayAtiva = false;
@@ -323,7 +410,15 @@ class MapaWidgetState extends State<MapaWidget> {
     _loadPontos();
     _carregarPontosMarcados();
     _carregarOverlayRecomendacao();
-    _iniciarBussolaEPosicaoContinuas();
+    // Bússola/GPS contínuos (o "coração" pesado do recurso — WebView 3D,
+    // sensor de alta frequência) só rodam quando esse mapa é o de verdade
+    // (aba Mapa/tela cheia). O preview compacto embutido no Dashboard (ver
+    // MapaWidget.navegacaoTempoReal) não precisa disso — evita rodar dois
+    // conjuntos de streams/uma WebView 3D extra sempre que o app abre.
+    if (widget.navegacaoTempoReal) {
+      WidgetsBinding.instance.addObserver(this);
+      _iniciarBussolaEPosicaoContinuas();
+    }
 
     final rotaEditando = widget.rotaParaEditar;
     if (rotaEditando != null) {
@@ -331,6 +426,18 @@ class MapaWidgetState extends State<MapaWidget> {
       _nomeRotaController.text = rotaEditando.nome;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _focarPontos(_pontosRotaPlanejada);
+      });
+    }
+    if (widget.modoPlanejarRota) {
+      // Sincroniza o retículo com o centro real do mapa assim que ele
+      // termina de montar (e, se estiver editando uma rota existente,
+      // depois do _focarPontos acima já ter enquadrado os pontos) — sem
+      // isso, o retículo ficaria parado no valor padrão até o primeiro
+      // gesto do usuário (ver onPositionChanged/_buildOverlayPlanejarRota).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _centroMira = _mapController.camera.center);
+        }
       });
     }
   }
@@ -384,11 +491,29 @@ class MapaWidgetState extends State<MapaWidget> {
     }
   }
 
+  /// Suspende GPS/bússola enquanto o app está em segundo plano (tela
+  /// bloqueada, outro app em primeiro plano) e retoma ao voltar — sem
+  /// isso, os streams continuavam rodando (e a WebView do barco 3D viva)
+  /// mesmo com o usuário nem olhando pro aparelho, gastando bateria à toa.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!widget.navegacaoTempoReal) return;
+    if (state == AppLifecycleState.paused) {
+      _pararBussolaEPosicaoContinuas();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_navegacaoPosicaoSub == null && _navegacaoBussolaSub == null) {
+        _iniciarBussolaEPosicaoContinuas();
+      }
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _trilhaViagemTimer?.cancel();
-    _navegacaoPosicaoSub?.cancel();
-    _navegacaoBussolaSub?.cancel();
+    _timerFimMovimentoMapa?.cancel();
+    _pararBussolaEPosicaoContinuas();
+    _navegacaoRumoNotifier.dispose();
     _mbtiles.close();
     _nomePontoController.dispose();
     _nomeRotaController.dispose();
@@ -400,6 +525,15 @@ class MapaWidgetState extends State<MapaWidget> {
   }
 
   // ── Planejar rota manualmente ────────────────────────────────────────────
+
+  /// Adiciona o ponto onde o retículo está apontando (_centroMira) —
+  /// mesmo padrão de precisão de "Marcar um ponto"/consultas (ver
+  /// _buildOverlayPlanejarRota), em vez do toque direto no mapa de antes
+  /// (impreciso — o dedo cobre o ponto exato, sem controle fino).
+  void _adicionarPontoRotaPlanejada() {
+    setState(() =>
+        _pontosRotaPlanejada = [..._pontosRotaPlanejada, _centroMira]);
+  }
 
   void _desfazerUltimoPontoRota() {
     if (_pontosRotaPlanejada.isEmpty) return;
@@ -560,7 +694,6 @@ class MapaWidgetState extends State<MapaWidget> {
       if (!mounted) return;
       setState(() {
         _mode = _MapMode.mbtiles;
-        _fileName = _bundledAsset.split('/').last;
         _loading = false;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -837,28 +970,62 @@ class MapaWidgetState extends State<MapaWidget> {
 
   // ── Grade de temperatura (SST) ───────────────────────────────────────────
 
-  /// Liga/desliga a grade. Ligar abre o seletor de posição (mesmo
-  /// reticulado de "Marcar um ponto" — ver [_buildOverlayConsultaPonto]);
-  /// a busca de verdade só acontece ao confirmar (ver
-  /// [_confirmarConsultaPonto]), centrada no ponto escolhido, não em
-  /// onde o mapa estava enquadrado no momento do toque.
+  /// Liga/desliga a camada. Mesmo padrão de [_alternarClorofila]: primeira
+  /// vez abre o seletor de posição (mesmo reticulado de "Marcar um ponto"
+  /// — ver [_buildOverlayConsultaPonto]); a busca de verdade só acontece
+  /// ao confirmar (ver [_confirmarConsultaPonto]). Só entra direto no
+  /// seletor se ainda não há nenhum ponto marcado; se já houver, ligar só
+  /// reexibe os pontos já consultados (adicionar mais um é pelo botão "+",
+  /// ver [_buildAdicionarPontoTemperaturaButton]).
   void _alternarGradeTemperatura() {
     if (_consultaPontoAtiva == _TipoConsultaPonto.temperatura) {
       setState(() => _consultaPontoAtiva = null);
       return;
     }
     if (_mostrarGradeTemperatura) {
-      setState(() {
-        _mostrarGradeTemperatura = false;
-        _gradeTemperatura = [];
-      });
+      setState(() => _mostrarGradeTemperatura = false);
       return;
     }
+    if (_gradeTemperatura.isEmpty) {
+      _iniciarConsultaTemperatura();
+    } else {
+      setState(() => _mostrarGradeTemperatura = true);
+    }
+  }
+
+  /// Abre o seletor de posição pra adicionar mais um ponto de temperatura,
+  /// sem mexer nos que já estão marcados — chamado tanto pela primeira
+  /// consulta (via [_alternarGradeTemperatura]) quanto pelo botão "+"
+  /// flutuante (mesmo papel de [_iniciarConsultaClorofila]).
+  void _iniciarConsultaTemperatura() {
     _fecharMenuLateral();
     setState(() {
       _consultaPontoAtiva = _TipoConsultaPonto.temperatura;
       _centroMira = _mapController.camera.center;
     });
+  }
+
+  /// Botão "+" flutuante pra marcar mais um ponto de temperatura, visível
+  /// só enquanto a camada está ligada — mesmo papel de
+  /// [_buildAdicionarPontoClorofilaButton]: permitir mais de um ponto
+  /// marcado ao mesmo tempo (antes, cada consulta substituía a anterior).
+  Widget _buildAdicionarPontoTemperaturaButton() {
+    // Empilha acima dos outros FABs de "+" que possam estar visíveis ao
+    // mesmo tempo (clorofila/índice), na mesma lógica de
+    // [_buildAdicionarPontoIndiceButton].
+    var bottom = 140.0;
+    if (_mostrarClorofila) bottom += 64;
+    if (_mostrarIndiceProdutividade) bottom += 64;
+    return Positioned(
+      right: 12,
+      bottom: bottom,
+      child: FloatingActionButton(
+        heroTag: 'adicionarTemperaturaFab',
+        onPressed: _iniciarConsultaTemperatura,
+        tooltip: AppLocalizations.of(context).mapaAdicionarPontoTemperatura,
+        child: const Icon(Icons.add),
+      ),
+    );
   }
 
   /// Zoom mínimo pra desenhar o valor em cima de cada célula — abaixo disso
@@ -908,26 +1075,80 @@ class MapaWidgetState extends State<MapaWidget> {
           );
         }).toList(),
       ),
-      if (mostrarRotulos)
-        MarkerLayer(
-          markers: comTemperatura
-              .map((p) => Marker(
+      // Alvo de toque por ponto — sempre presente (mesmo com o rótulo
+      // escondido em zoom baixo), pra ver o valor exato e remover
+      // individualmente (ver _mostrarInfoTemperaturaPonto), já que agora
+      // dá pra acumular vários pontos (botão "+").
+      MarkerLayer(
+        markers: comTemperatura
+            .map((p) => Marker(
                   point: LatLng(p.latitude, p.longitude),
                   width: 44,
-                  height: 20,
-                  child: Text(
-                    '${p.temperaturaC!.toStringAsFixed(0)}°',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
+                  height: 32,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _mostrarInfoTemperaturaPonto(p),
+                    child: mostrarRotulos
+                        ? Center(
+                            child: Text(
+                              '${p.temperaturaC!.toStringAsFixed(0)}°',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          )
+                        : const SizedBox.expand(),
                   ),
                 ))
             .toList(),
       ),
     ];
+  }
+
+  void _mostrarInfoTemperaturaPonto(SstPonto ponto) {
+    final l10n = AppLocalizations.of(context);
+    final valor = ponto.temperaturaC;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(l10n.mapaTemperaturaTitulo),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              valor != null
+                  ? l10n.mapaTemperaturaResultado(valor.toStringAsFixed(1))
+                  : l10n.mapaTemperaturaSemDado,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              formatarCoordenadasDMSCompacta(ponto.latitude, ponto.longitude),
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _gradeTemperatura =
+                  _gradeTemperatura.where((p) => p != ponto).toList());
+            },
+            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.fechar),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Informações náuticas (OpenSeaMap) ────────────────────────────────────
@@ -1024,19 +1245,102 @@ class MapaWidgetState extends State<MapaWidget> {
   /// mapa em cima desses mesmos dados, sem controlar os streams em si.
   void _iniciarBussolaEPosicaoContinuas() {
     _navegacaoBussolaSub = FlutterCompass.events?.listen((evento) {
-      final rumo = evento.heading;
-      if (rumo == null || !mounted) return;
-      setState(() => _navegacaoRumo = rumo);
-      if (_modoNavegacao) {
-        _mapController.moveAndRotate(
-            _mapController.camera.center, _mapController.camera.zoom, -rumo);
+      // Giroscópio no comando (ver _iniciarGiroscopio/_alternarBussola) —
+      // ignora a leitura do magnetômetro até a bússola ser religada. O
+      // stream continua assinado (não cancelado) só pra já ter leitura
+      // fresca pronta assim que voltar a ser usado.
+      if (!_bussolaAtiva) return;
+      final rumoBruto = evento.heading;
+      if (rumoBruto == null || !mounted) return;
+      final agora = DateTime.now();
+      if (_ultimaLeituraBussolaProcessada != null &&
+          agora.difference(_ultimaLeituraBussolaProcessada!) <
+              _intervaloMinimoBussola) {
+        return;
       }
+      _ultimaLeituraBussolaProcessada = agora;
+      _aplicarNovoRumo(_suavizarRumo(rumoBruto));
     });
 
+    _assinarPosicaoStream(precisaoAlta: _modoNavegacao);
+    if (!_bussolaAtiva) _iniciarGiroscopio();
+  }
+
+  /// Usado tanto pela bússola (magnetômetro) quanto pelo giroscópio (ver
+  /// _iniciarGiroscopio) — atualiza o rumo mostrado/usado pelo barco 3D e,
+  /// no Modo Navegação, gira o mapa (com o mesmo limiar anti-repaint
+  /// desnecessário de antes).
+  void _aplicarNovoRumo(double rumo) {
+    // Sem setState — só os widgets inscritos no ValueNotifier (bússola,
+    // barco 3D) repintam (ver campo _navegacaoRumoNotifier).
+    _navegacaoRumoNotifier.value = rumo;
+    // No Modo Navegação, girar o mapa é um repaint do canvas inteiro
+    // (tiles + todas as camadas), bem mais caro que só atualizar o
+    // ValueNotifier acima — só vale a pena girar de fato quando a
+    // diferença é perceptível, senão fica girando por frações de grau a
+    // cada leitura suavizada do sensor à toa.
+    if (_modoNavegacao &&
+        _diferencaAngular(rumo, _ultimoRumoAplicadoAoMapa) >=
+            _limiarGirarMapa) {
+      _ultimoRumoAplicadoAoMapa = rumo;
+      _mapController.moveAndRotate(
+          _mapController.camera.center, _mapController.camera.zoom, -rumo);
+    }
+  }
+
+  /// Liga/desliga a bússola do aparelho (magnetômetro) — ver
+  /// [_bussolaAtiva]. Desligada, o rumo do barco passa a vir da integração
+  /// do giroscópio (sem referência absoluta ao norte, mas imune a
+  /// interferência magnética).
+  void _alternarBussola() {
+    final ligando = !_bussolaAtiva;
+    setState(() => _bussolaAtiva = ligando);
+    if (ligando) {
+      _pararGiroscopio();
+    } else {
+      _iniciarGiroscopio();
+    }
+  }
+
+  /// Integra a velocidade angular do giroscópio (rad/s, eixo Z — o eixo
+  /// "certo" quando o aparelho é segurado na horizontal, tela pra cima,
+  /// como se estivesse lendo uma bússola de verdade) pra ir acumulando um
+  /// rumo a partir de onde a bússola parou. Não tem referência absoluta ao
+  /// norte — só o quanto o aparelho girou desde então —, então tende a
+  /// "derivar" (desviar aos poucos) quanto mais tempo passa sem religar a
+  /// bússola; é a troca aceita ao preferir não depender do magnetômetro.
+  void _iniciarGiroscopio() {
+    _ultimaLeituraGiroscopio = null;
+    _giroscopioSub = gyroscopeEventStream().listen((evento) {
+      if (!mounted) return;
+      final agora = DateTime.now();
+      final anterior = _ultimaLeituraGiroscopio;
+      _ultimaLeituraGiroscopio = agora;
+      if (anterior == null) return; // primeira leitura só calibra o relógio
+      final dt = agora.difference(anterior).inMicroseconds / 1e6;
+      final grausGirados = evento.z * 180 / math.pi * dt;
+      final novoRumo = ((_navegacaoRumo + grausGirados) % 360 + 360) % 360;
+      _aplicarNovoRumo(novoRumo);
+    });
+  }
+
+  void _pararGiroscopio() {
+    _giroscopioSub?.cancel();
+    _giroscopioSub = null;
+    _ultimaLeituraGiroscopio = null;
+  }
+
+  /// (Re)assina o stream de posição — accuracy/distanceFilter variam
+  /// conforme o Modo Navegação (ver _alternarModoNavegacao): alta precisão
+  /// só faz diferença de verdade enquanto o mapa está seguindo a
+  /// embarcação de perto; fora disso, uma amostragem mais econômica já
+  /// basta pro marcador/bússola sempre visíveis, e gasta menos GPS/bateria.
+  void _assinarPosicaoStream({required bool precisaoAlta}) {
+    _navegacaoPosicaoSub?.cancel();
     _navegacaoPosicaoSub = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
+      locationSettings: LocationSettings(
+        accuracy: precisaoAlta ? LocationAccuracy.high : LocationAccuracy.medium,
+        distanceFilter: precisaoAlta ? 3 : 10,
       ),
     ).listen((posicao) {
       if (!mounted) return;
@@ -1050,6 +1354,19 @@ class MapaWidgetState extends State<MapaWidget> {
     });
   }
 
+  /// Cancela os streams de GPS/bússola — usado tanto no dispose() quanto
+  /// ao suspender enquanto o app vai pro segundo plano (ver
+  /// didChangeAppLifecycleState), pra não gastar GPS/sensor/bateria com a
+  /// tela do mapa fora de vista. _iniciarBussolaEPosicaoContinuas() religa
+  /// tudo do zero quando o app volta.
+  void _pararBussolaEPosicaoContinuas() {
+    _navegacaoPosicaoSub?.cancel();
+    _navegacaoBussolaSub?.cancel();
+    _navegacaoPosicaoSub = null;
+    _navegacaoBussolaSub = null;
+    _pararGiroscopio();
+  }
+
   /// Liga/desliga só o comportamento de "seguir": recentralizar/girar o
   /// mapa a cada atualização (course-up, mesma convenção do Waze/Google
   /// Maps) e a inclinação 3D (ver _buildBody). Os streams de GPS/bússola
@@ -1059,7 +1376,13 @@ class MapaWidgetState extends State<MapaWidget> {
   void _alternarModoNavegacao() {
     final ligando = !_modoNavegacao;
     setState(() => _modoNavegacao = ligando);
+    // Sobe a precisão do GPS só enquanto navegando de verdade (ver
+    // _assinarPosicaoStream) — economiza fora desse modo.
+    if (_navegacaoPosicaoSub != null) {
+      _assinarPosicaoStream(precisaoAlta: ligando);
+    }
     if (ligando && _gpsPosition != null) {
+      _ultimoRumoAplicadoAoMapa = _navegacaoRumo;
       _mapController.moveAndRotate(
           _gpsPosition!, _zoomModoNavegacao, -_navegacaoRumo);
     } else if (!ligando) {
@@ -1455,7 +1778,11 @@ class MapaWidgetState extends State<MapaWidget> {
         final resultado = await WaveForecastRepository().buscarGrade([ponto]);
         if (!mounted) return;
         setState(() {
-          _gradeTemperatura = resultado;
+          // Acrescenta ao que já tinha (mesmo padrão de clorofila/índice)
+          // — antes, cada consulta substituía o ponto anterior; agora dá
+          // pra manter vários ao mesmo tempo (botão "+", ver
+          // _buildAdicionarPontoTemperaturaButton).
+          _gradeTemperatura = [..._gradeTemperatura, ...resultado];
           _mostrarGradeTemperatura = true;
           _consultaPontoAtiva = null;
         });
@@ -1635,6 +1962,21 @@ class MapaWidgetState extends State<MapaWidget> {
                       },
                     ),
                   ],
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text(l10n.mapaNavegacaoTitulo,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                  _itemMenuToggle(
+                    icone: _bussolaAtiva ? Icons.explore : Icons.explore_off,
+                    titulo: l10n.mapaBussolaTitulo,
+                    subtitulo: _bussolaAtiva
+                        ? null
+                        : l10n.mapaBussolaDesligadaSubtitulo,
+                    ativo: _bussolaAtiva,
+                    onTap: _alternarBussola,
+                  ),
                   const Divider(height: 1),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -2213,27 +2555,35 @@ class MapaWidgetState extends State<MapaWidget> {
       child: Stack(
         children: [
           Positioned.fill(child: _buildBody()),
-          // Bússola sempre visível (não só no Modo Navegação) — fica acima
-          // da barra com o menu de camadas, empurrando ela pra baixo (ver
-          // _buildTopBar).
-          if (_mode != _MapMode.none)
+          // Bússola sempre visível (não só no Modo Navegação) — canto
+          // esquerdo, compacta, no mesmo nível do botão de menu (canto
+          // direito, ver _buildTopBar), sem competir com o resto da tela.
+          // Só existe no mapa "de verdade" (ver widget.navegacaoTempoReal)
+          // e enquanto a bússola do aparelho estiver ligada — desligada
+          // (ver _alternarBussola), o rumo vem do giroscópio, sem
+          // referência ao norte, então o valor em graus deixa de fazer
+          // sentido mostrado como bússola.
+          if (_mode != _MapMode.none &&
+              widget.navegacaoTempoReal &&
+              _bussolaAtiva)
             Positioned(
               top: 8,
-              left: 0,
-              right: 0,
-              child: Center(child: CompassoCircular(rumo: _navegacaoRumo)),
+              left: 8,
+              // ValueListenableBuilder: só esse badge repinta a cada
+              // leitura do sensor, não a tela inteira (ver
+              // _navegacaoRumoNotifier).
+              child: ValueListenableBuilder<double>(
+                valueListenable: _navegacaoRumoNotifier,
+                builder: (context, rumo, _) =>
+                    CompassoCircular(rumo: rumo, tamanho: 44),
+              ),
             ),
           if (_mode != _MapMode.none) _buildTopBar(),
           if (_overlayAtiva && !_modoMarcarPonto && !widget.modoPlanejarRota)
             _buildOverlayOpacidadeControl(),
-          if (_mostrarGradeTemperatura && _gradeTemperaturaMinMax != null)
-            LegendaGradeTemperatura(
-              min: _gradeTemperaturaMinMax!.$1,
-              max: _gradeTemperaturaMinMax!.$2,
-            ),
           if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
           if (_consultaPontoAtiva != null) ..._buildOverlayConsultaPonto(),
-          if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
+          if (widget.modoPlanejarRota) ..._buildOverlayPlanejarRota(),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
               _mode != _MapMode.none)
@@ -2245,8 +2595,14 @@ class MapaWidgetState extends State<MapaWidget> {
             _buildGpsButton(),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
-              _mode != _MapMode.none)
+              _mode != _MapMode.none &&
+              widget.navegacaoTempoReal)
             _buildModoNavegacaoButton(),
+          if (!_modoMarcarPonto &&
+              !widget.modoPlanejarRota &&
+              _consultaPontoAtiva == null &&
+              _mostrarGradeTemperatura)
+            _buildAdicionarPontoTemperaturaButton(),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
               _consultaPontoAtiva == null &&
@@ -2264,73 +2620,51 @@ class MapaWidgetState extends State<MapaWidget> {
     );
   }
 
+  /// Compacta num botão só no canto (sem nome de arquivo/título) — o
+  /// resto do que já morou aqui (trocar carta, camadas etc.) mora só no
+  /// menu lateral mesmo (ver _buildMenuLateral). Fica no canto oposto ao
+  /// CompassoCircular, pra não competir com ele (ver build()).
   Widget _buildTopBar() {
     final l10n = AppLocalizations.of(context);
     return Positioned(
-      // Empurrada pra baixo do CompassoCircular, que agora fica sempre no
-      // topo do mapa (ver build()).
-      top: 150,
-      left: 8,
+      top: 8,
       right: 8,
       child: Material(
         color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.modoPlanejarRota
-                      ? (widget.rotaParaEditar != null
-                          ? l10n.mapaEditarRota
-                          : l10n.mapaNovaRotaPlanejada)
-                      : widget.recomendacao != null
-                          ? widget.recomendacao!.titulo.isEmpty
-                              ? l10n.mapaRecomendacaoFallback
-                              : widget.recomendacao!.titulo
-                          : widget.rota != null
-                              ? l10n.mapaRotaHistorico
-                              : _camadaRuas
-                                  ? l10n.mapaCamadaRuasTitulo
-                                  : _fileName ?? l10n.dashboardMapa,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+        borderRadius: BorderRadius.circular(12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_loading || _carregandoProducao || _consultandoPonto)
+              const Padding(
+                padding: EdgeInsets.only(left: 10),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
                 ),
               ),
-              if (_loading || _carregandoProducao || _consultandoPonto)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  ),
-                ),
-              // Enquanto marcando um ponto, um jeito rápido de cancelar sem
-              // abrir o menu lateral inteiro — todo o resto (inclusive
-              // iniciar a marcação) mora só lá agora (ver _buildMenuLateral).
-              if (!widget.modoPlanejarRota && _modoMarcarPonto)
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 22),
-                  tooltip: l10n.mapaCancelarMarcacao,
-                  onPressed: _alternarModoMarcarPonto,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 44, minHeight: 44),
-                ),
-              if (!widget.modoPlanejarRota)
-                IconButton(
-                  icon: const Icon(Icons.menu, color: Colors.white, size: 22),
-                  tooltip: l10n.mapaMenuDoMapaTooltip,
-                  onPressed: _abrirMenuLateral,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 44, minHeight: 44),
-                ),
-            ],
-          ),
+            // Enquanto marcando um ponto, um jeito rápido de cancelar sem
+            // abrir o menu lateral inteiro — todo o resto (inclusive
+            // iniciar a marcação) mora só lá agora (ver _buildMenuLateral).
+            if (!widget.modoPlanejarRota && _modoMarcarPonto)
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 22),
+                tooltip: l10n.mapaCancelarMarcacao,
+                onPressed: _alternarModoMarcarPonto,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              ),
+            if (!widget.modoPlanejarRota)
+              IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white, size: 22),
+                tooltip: l10n.mapaMenuDoMapaTooltip,
+                onPressed: _abrirMenuLateral,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              ),
+          ],
         ),
       ),
     );
@@ -2399,9 +2733,9 @@ class MapaWidgetState extends State<MapaWidget> {
   /// em tempo real, enquanto ela está ligada.
   Widget _buildOverlayOpacidadeControl() {
     return Positioned(
-      // Abaixo da barra de topo, que agora fica abaixo do CompassoCircular
-      // (ver build()/_buildTopBar()).
-      top: 198,
+      // Abaixo da bússola/botão de menu, que agora ficam nos cantos (ver
+      // build()/_buildTopBar()).
+      top: 64,
       left: 8,
       right: 8,
       child: Material(
@@ -2536,8 +2870,11 @@ class MapaWidgetState extends State<MapaWidget> {
         onPositionChanged: (camera, hasGesture) {
           // Move o reticulado tanto em "Marcar um ponto" quanto no seletor
           // de consulta de temperatura/clorofila (mesmo widget, ver
-          // _buildOverlayConsultaPonto) — os dois usam _centroMira.
-          if (_modoMarcarPonto || _consultaPontoAtiva != null) {
+          // _buildOverlayConsultaPonto) e agora também ao planejar rota
+          // (ver _buildOverlayPlanejarRota) — todos usam _centroMira.
+          if (_modoMarcarPonto ||
+              _consultaPontoAtiva != null ||
+              widget.modoPlanejarRota) {
             setState(() => _centroMira = camera.center);
           }
           if (_mostrarGradeTemperatura) {
@@ -2546,11 +2883,19 @@ class MapaWidgetState extends State<MapaWidget> {
               setState(() => _gradeRotulosVisiveis = rotulosVisiveis);
             }
           }
+          // Só pausa o barco 3D em gesto de verdade do usuário — não em
+          // mudança programática (ex.: nosso moveAndRotate do Modo
+          // Navegação), que `hasGesture` já exclui.
+          if (hasGesture) {
+            if (!_usuarioMovendoMapa) {
+              setState(() => _usuarioMovendoMapa = true);
+            }
+            _timerFimMovimentoMapa?.cancel();
+            _timerFimMovimentoMapa = Timer(_debounceFimMovimentoMapa, () {
+              if (mounted) setState(() => _usuarioMovendoMapa = false);
+            });
+          }
         },
-        onTap: widget.modoPlanejarRota
-            ? (_, ponto) => setState(
-                () => _pontosRotaPlanejada = [..._pontosRotaPlanejada, ponto])
-            : null,
       ),
       children: [
         if (_camadaRuas) ...[
@@ -2828,8 +3173,12 @@ class MapaWidgetState extends State<MapaWidget> {
         // Navegação, o mapa recentraliza sozinho a cada atualização de GPS
         // (ver _alternarModoNavegacao), então o marcador acaba ficando
         // perto do centro de qualquer jeito — só que sem "travar" nada.
-        // O rumo da bússola (só atualizado nesse modo) orbita a câmera ao
-        // redor do modelo, sem mover o ícone em si (ver BarcoNavegacao3d).
+        // A bússola do dispositivo (sempre ativa, ver
+        // _iniciarBussolaEPosicaoContinuas) orbita a câmera ao redor do
+        // modelo em qualquer modo, 2D ou Modo Navegação — sem mover o
+        // ícone em si (ver BarcoNavegacao3d). No preview compacto do
+        // Dashboard (navegacaoTempoReal=false) usa só um ícone estático —
+        // nada de WebView/3D ali (ver doc de MapaWidget.navegacaoTempoReal).
         if (_gpsPosition != null)
           MarkerLayer(
             markers: [
@@ -2837,8 +3186,24 @@ class MapaWidgetState extends State<MapaWidget> {
                 point: _gpsPosition!,
                 width: 70,
                 height: 70,
-                child: BarcoNavegacao3d(
-                    rumo: _modoNavegacao ? _navegacaoRumo : 0, tamanho: 70),
+                // RepaintBoundary: isola os repaints da WebView 3D (que
+                // muda a cada frame da transição de orbita) do resto do
+                // canvas do mapa (tiles, outras camadas) — sem isso, cada
+                // atualização do barco força o Skia a considerar repintar
+                // a composição inteira junto.
+                child: widget.navegacaoTempoReal
+                    ? RepaintBoundary(
+                        child: ValueListenableBuilder<double>(
+                          valueListenable: _navegacaoRumoNotifier,
+                          builder: (context, rumo, _) => BarcoNavegacao3d(
+                            rumo: rumo,
+                            tamanho: 70,
+                            pausado: _usuarioMovendoMapa,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.directions_boat_filled,
+                        color: Colors.blueAccent, size: 32),
               ),
             ],
           ),
@@ -2976,75 +3341,109 @@ class MapaWidgetState extends State<MapaWidget> {
 
   // ── Overlay do modo "planejar rota" ──────────────────────────────────────
 
-  Widget _buildOverlayPlanejarRota() {
+  List<Widget> _buildOverlayPlanejarRota() {
     final l10n = AppLocalizations.of(context);
     final pontos = _pontosRotaPlanejada.length;
     final podeSalvar =
         pontos >= 2 && _nomeRotaController.text.trim().isNotEmpty;
-    return Positioned(
-      left: 12,
-      right: 12,
-      bottom: 12,
-      child: Card(
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                pontos == 0
-                    ? l10n.mapaRotaTocarPrimeiroPonto
-                    : l10n.mapaRotaPontosAdicionados(pontos),
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _nomeRotaController,
-                textCapitalization: TextCapitalization.sentences,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  labelText: l10n.mapaNomeRotaLabel,
-                  hintText: l10n.mapaNomeRotaHint,
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: pontos == 0 ? null : _desfazerUltimoPontoRota,
-                      child: Text(l10n.mapaDesfazerUltimo),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: (!podeSalvar || _salvandoRota)
-                          ? null
-                          : _salvarRotaPlanejada,
-                      icon: _salvandoRota
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.check),
-                      label: Text(widget.rotaParaEditar != null
-                          ? l10n.mapaSalvarAlteracoes
-                          : l10n.mapaSalvarRota),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+    return [
+      // Retículo fixo no centro do mapa — mesmo padrão de precisão de
+      // "Marcar um ponto"/consultas (ver _buildOverlayMarcarPonto):
+      // "Adicionar ponto" (abaixo) usa a posição real apontada aqui, não
+      // onde o dedo tocou a tela.
+      const IgnorePointer(
+        child: Center(
+          child: Icon(
+            Icons.add,
+            size: 44,
+            color: Colors.purple,
+            shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
           ),
         ),
       ),
-    );
+      Positioned(
+        left: 12,
+        right: 12,
+        bottom: 12,
+        child: Card(
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pontos == 0
+                      ? l10n.mapaRotaTocarPrimeiroPonto
+                      : l10n.mapaRotaPontosAdicionados(pontos),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  formatarCoordenadasDMSCompacta(
+                      _centroMira.latitude, _centroMira.longitude),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _adicionarPontoRotaPlanejada,
+                    icon: const Icon(Icons.add_location_alt),
+                    label: Text(l10n.mapaRotaAdicionarPontoBotao),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _nomeRotaController,
+                  textCapitalization: TextCapitalization.sentences,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    labelText: l10n.mapaNomeRotaLabel,
+                    hintText: l10n.mapaNomeRotaHint,
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed:
+                            pontos == 0 ? null : _desfazerUltimoPontoRota,
+                        child: Text(l10n.mapaDesfazerUltimo),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: (!podeSalvar || _salvandoRota)
+                            ? null
+                            : _salvarRotaPlanejada,
+                        icon: _salvandoRota
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.check),
+                        label: Text(widget.rotaParaEditar != null
+                            ? l10n.mapaSalvarAlteracoes
+                            : l10n.mapaSalvarRota),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 }
 

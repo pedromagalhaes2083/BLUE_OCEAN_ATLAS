@@ -631,6 +631,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get mapaTemperaturaTitulo => 'Temperatura della superficie del mare';
 
   @override
+  String get mapaAdicionarPontoTemperatura =>
+      'Segna un altro punto di temperatura';
+
+  @override
   String mapaConsultarPontoInstrucao(String titulo) {
     return 'Consulta $titulo — punta il centro della mappa verso il luogo desiderato';
   }
@@ -666,6 +670,16 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get mapaMarcarPonto => 'Segna un punto';
+
+  @override
+  String get mapaNavegacaoTitulo => 'NAVIGAZIONE';
+
+  @override
+  String get mapaBussolaTitulo => 'Bussola del dispositivo';
+
+  @override
+  String get mapaBussolaDesligadaSubtitulo =>
+      'Spenta: la barca segue il giroscopio (senza riferimento al nord, ma immune a interferenze magnetiche)';
 
   @override
   String get mapaCamadasTitulo => 'STRATI';
@@ -816,7 +830,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get mapaRotaTocarPrimeiroPonto =>
-      'Tocca la mappa o un punto segnato per aggiungere il primo punto';
+      'Punta il centro della mappa (o tocca un punto segnato) per aggiungere il primo punto';
 
   @override
   String mapaRotaPontosAdicionados(int n) {
@@ -826,8 +840,11 @@ class AppLocalizationsIt extends AppLocalizations {
       other: '$n punti aggiunti',
       one: '1 punto aggiunto',
     );
-    return '$_temp0 — tocca per continuare';
+    return '$_temp0 — punta il centro della mappa per continuare';
   }
+
+  @override
+  String get mapaRotaAdicionarPontoBotao => 'Aggiungi punto';
 
   @override
   String get mapaNomeRotaLabel => 'Nome della rotta';

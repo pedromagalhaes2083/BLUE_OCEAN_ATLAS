@@ -1125,6 +1125,12 @@ abstract class AppLocalizations {
   /// **'Temperatura da superfície do mar'**
   String get mapaTemperaturaTitulo;
 
+  /// No description provided for @mapaAdicionarPontoTemperatura.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar outro ponto de temperatura'**
+  String get mapaAdicionarPontoTemperatura;
+
   /// No description provided for @mapaConsultarPontoInstrucao.
   ///
   /// In pt, this message translates to:
@@ -1184,6 +1190,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Marcar um ponto'**
   String get mapaMarcarPonto;
+
+  /// No description provided for @mapaNavegacaoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'NAVEGAÇÃO'**
+  String get mapaNavegacaoTitulo;
+
+  /// No description provided for @mapaBussolaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bússola do aparelho'**
+  String get mapaBussolaTitulo;
+
+  /// No description provided for @mapaBussolaDesligadaSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligada: o barco segue o giroscópio (sem referência ao norte, mas sem interferência magnética)'**
+  String get mapaBussolaDesligadaSubtitulo;
 
   /// No description provided for @mapaCamadasTitulo.
   ///
@@ -1446,14 +1470,20 @@ abstract class AppLocalizations {
   /// No description provided for @mapaRotaTocarPrimeiroPonto.
   ///
   /// In pt, this message translates to:
-  /// **'Toque no mapa ou num ponto marcado para adicionar o primeiro ponto'**
+  /// **'Aponte o centro do mapa (ou toque num ponto marcado) para adicionar o primeiro ponto'**
   String get mapaRotaTocarPrimeiroPonto;
 
   /// No description provided for @mapaRotaPontosAdicionados.
   ///
   /// In pt, this message translates to:
-  /// **'{n, plural, =1{1 ponto adicionado} other{{n} pontos adicionados}} — toque para continuar'**
+  /// **'{n, plural, =1{1 ponto adicionado} other{{n} pontos adicionados}} — aponte o centro do mapa pra continuar'**
   String mapaRotaPontosAdicionados(int n);
+
+  /// No description provided for @mapaRotaAdicionarPontoBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar ponto'**
+  String get mapaRotaAdicionarPontoBotao;
 
   /// No description provided for @mapaNomeRotaLabel.
   ///

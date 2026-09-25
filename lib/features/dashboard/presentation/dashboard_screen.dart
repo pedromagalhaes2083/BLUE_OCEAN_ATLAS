@@ -546,7 +546,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     SizedBox(
                       height: 450,
                       width: double.infinity,
-                      child: const MapaWidget(),
+                      // Preview leve — sem GPS/bússola contínuos nem o
+                      // barco 3D (WebView), que só fazem sentido na aba
+                      // Mapa em tela cheia (ver
+                      // MapaWidget.navegacaoTempoReal). Evita rodar esse
+                      // custo pesado toda vez que o app abre no Home.
+                      child: const MapaWidget(navegacaoTempoReal: false),
                     ),
 
                     const SizedBox(height: 40),
