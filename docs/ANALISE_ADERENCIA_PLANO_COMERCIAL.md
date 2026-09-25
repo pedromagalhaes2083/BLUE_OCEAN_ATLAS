@@ -1,6 +1,6 @@
 # Análise de Aderência — Plano Comercial × Código Atual
 
-**Data:** 2026-09-24
+**Data:** 2026-09-24 (atualizado no mesmo dia: §3.0 — grupos de permissão decididos)
 **Escopo:** leitura de `docs/Plano_Comercial_Blue_Ocean_Atlas.docx`, `DOCUMENTACAO.md`, `AUDITORIA_BLUE_OCEAN_ATLAS.md` e o código em `lib/`. **Nenhum código de produção foi alterado nesta fase.**
 **Metodologia:** para cada item, o código-fonte foi lido diretamente (`grep`/leitura de arquivo) — a `DOCUMENTACAO.md` foi usada só como mapa inicial, nunca como fonte final, porque **está desatualizada em pontos estruturais** (ver nota abaixo). Onde a documentação e o código atual divergem, o código manda.
 
@@ -81,6 +81,47 @@ Priorizadas pelo fluxo de demonstração comercial (seção 11 do plano): **posi
 
 ## 3. Ambiguidades do plano que precisam de decisão
 
+### 3.0 Grupos de permissão (nível 1) — **decidido em 2026-09-24**
+
+Estrutura de dois níveis confirmada: **grupos amplos** (liberam o módulo inteiro) e **permissões específicas** (afinam um recurso dentro de um grupo já liberado). Isso já resolve, por si só, três das ambiguidades abaixo (marcadas ✅ RESOLVIDO nas subseções correspondentes) — o que resta em aberto é só a definição fina de "básico" vs "completo" dentro de cada grupo, tratada como trabalho de nível 2, não mais uma pendência de arquitetura.
+
+**Grupos amplos** (`GrupoPermissao` — vira o nível "pai" de `RecursoAtlas` no domínio de planos, §4):
+
+| Grupo | Controla | Start | Pro | Offshore |
+|---|---|---|---|---|
+| `navegacaoEssencial` | GPS, mapa base, marcar ponto, planejar rota manual | ✓ | ✓ | ✓ |
+| `cartas` | Cartas náuticas, solicitações | ✓ (básico) | ✓ (completo) | ✓ (completo) |
+| `oceanografia` | Meteorologia, maré, profundidade, correntes | ✓ (básico) | ✓ (completo) | ✓ (completo) |
+| `producao` | Registro de captura, histórico | ✓ (básico) | ✓ (detalhado) | ✓ (detalhado) |
+| `rotas` | Minhas Rotas | ✓ (manual) | ✓ (+histórico) | ✓ (+inteligente*) |
+| `rastreamento` | GPS em segundo plano, trilha da viagem no mapa | — | ✓ | ✓ |
+| `inteligencia` | Recomendações, índice de produtividade, maré e pesca de atum, análise de rota | — | ✓ (básico) | ✓ (avançado) |
+| `operacao` | Gestão de viagem/tripulação | — | — | ✓ |
+| `frota` | Dashboard web, multi-embarcação (fora do mobile) | — | — | — (Fleet, só web) |
+
+\* `rotas.inteligente` é lacuna real (não existe nenhuma forma hoje) — o grupo `rotas` já pode ser gateado por plano agora, o recurso específico "inteligente" fica marcado como "a construir" até existir algo pra gatear.
+
+**Permissões específicas já mapeadas dentro de cada grupo** (a granularidade fina de básico/completo de cada uma fica pra nível 2, §3.1–§3.6 abaixo):
+
+| Permissão específica | Grupo pai |
+|---|---|
+| `mapa.sst` | oceanografia |
+| `oceanografia.correntes` | oceanografia |
+| `mapa.indiceProdutividade` | inteligencia |
+| `oceanografia.mareEPescaAtum` | inteligencia |
+| `rotas.analiseRota` | inteligencia |
+| `mapa.trilhaViagem` | rastreamento |
+| `oceanografia.alertasAvancados` + `configurarAlertas` | oceanografia |
+| `producao.historico` / `producao.porPonto` | producao |
+| `rotas.historico` | rotas |
+| `rotas.inteligente` | rotas |
+| `recomendacao.scoreEConfianca` | inteligencia |
+| `viagem.tripulacao` | operacao |
+
+Isso resolve as ambiguidades §3.4 (correntes fica dentro de `oceanografia`, com permissão específica própria — não precisa decidir "gate geral ou próprio", os dois convivem: o grupo libera a tela, a permissão específica libera o card de corrente dentro dela), §3.7 (a matriz da seção 8 prevalece — "Mapas e pontos" fica em `navegacaoEssencial`, liberado a todos, inclusive Start) e §3.8 (Fleet no mobile herda tudo de Offshore + grupo `operacao`; a diferença de frota fica inteiramente no grupo `frota`, que não existe no app mobile).
+
+O que **continua em aberto**, agora reclassificado como nível 2 (dentro de cada grupo já decidido):
+
 ### 3.1 Cartas offline — "Básico" (Start) vs "completo" (Pro/Offshore)
 Hoje **não existe diferença de nível**: a carta bundled (`OUTPUT_FILE.mbtiles`) e o download de cartas do S3/região de ruas funcionam igual pra qualquer usuário. Possíveis interpretações, preciso que você escolha uma (ou proponha outra):
 - **(a)** Start = só a carta bundled; Pro/Offshore = pode baixar cartas adicionais do S3 e regiões de mapa de ruas.
@@ -97,10 +138,8 @@ Hoje **não existe diferença de nível**: a carta bundled (`OUTPUT_FILE.mbtiles
 - Produção: **(a)** Básica = só peso total + posição (sem espécie/classificação/quantidade de unidades); Detalhada = formulário completo atual. **(b)** Não distinguir, produção sempre completa.
 - Recomendações no Pro: o plano marca "—/básicas" (incerto no próprio documento). **(a)** Pro não vê recomendação nenhuma (só Offshore); **(b)** Pro vê recomendação sem score/confiança/pontos sugeridos (só título/descrição); **(c)** a diferenciação é feita pelo **backend** (retorna menos/mais recomendações pro Pro) e o app só teria um `RecursoAtlas.recomendacoes` (Pro+) e `RecursoAtlas.recomendacoesAvancadas` (Offshore, controla exibição de score/confiança/pontos).
 
-### 3.4 "Correntes" como item separado de "Meteorologia" na matriz
-No código, corrente é só mais um campo de `WaveForecast`, obtido na mesma chamada de vento/onda/maré — não dá pra "esconder só corrente" sem redesenhar a tela. Preciso saber se:
-- **(a)** É pra valer como redação da matriz mas, na prática, cai dentro do gate geral de "Meteorologia completa" (§3.2) — ou seja, `RecursoAtlas.meteorologiaCompleta` cobre onda+corrente+SST+maré juntos.
-- **(b)** É pra ter um gate próprio (`RecursoAtlas.correntes`), escondendo só a linha/card de corrente na tela, com onda/vento/maré continuando liberados no Start.
+### 3.4 ✅ RESOLVIDO (ver §3.0) — "Correntes" como item separado de "Meteorologia" na matriz
+Decisão: opção (b), com ajuste — `oceanografia.correntes` é uma permissão específica própria dentro do grupo `oceanografia`. O grupo controla se a tela aparece; a permissão específica controla só o card/linha de corrente dentro dela. O que falta é só definir **o conjunto exato** de campos que compõem "oceanografia básica" (§3.2) — corrente, nessa definição, provavelmente fica de fora do básico por padrão, mas isso é decidido junto com o resto de §3.2, não separadamente.
 
 ### 3.5 "Mapa de produtividade" — o índice heurístico local é a mesma coisa?
 `IndiceProdutividadeBlueOcean` (SST+clorofila, calculado no dispositivo) é o candidato mais próximo hoje, mas "produtividade por área"/"pontos mais produtivos" (seção 6 do plano) soa como agregação **histórica de produção real** por região — que não existe (`producao_pontos_analyzer.dart` agrupa por ponto marcado, não por área). Preciso saber se, pra efeito de Fase 2:
@@ -115,13 +154,11 @@ Só existe um nível de alerta hoje (vento/corrente/onda/swell severos, mesmo li
 
 Independente da resposta, a regra 5 do pedido (nunca bloquear alerta crítico de segurança) deve prevalecer — o `RecursoAtlas` de alerta, se existir, deveria no mínimo garantir que o alerta de condição severa nunca fique totalmente mudo, mesmo no Start.
 
-### 3.7 Contradição interna do próprio plano — "Pontos de pesca salvos"
-A seção 5 (Atlas Pro) lista "Pontos de pesca salvos" como diferencial do Pro, mas a seção 8 (matriz) marca "Mapas e pontos" com ✓ pros três planos, incluindo Start. Preciso que você decida qual das duas prevalece — a matriz (item comum a todos) ou a lista do Pro (exclusivo). Assumi a matriz como fonte de verdade no inventário acima (item 1.1), mas quero confirmação.
+### 3.7 ✅ RESOLVIDO (ver §3.0) — Contradição interna do próprio plano — "Pontos de pesca salvos"
+Decisão: a matriz da seção 8 prevalece — "Mapas e pontos" fica no grupo `navegacaoEssencial`, liberado a Start/Pro/Offshore igualmente. A menção isolada na lista do Atlas Pro (seção 5 do plano) é tratada como redundância de copy comercial, não como uma exclusividade real a implementar.
 
-### 3.8 Como o Fleet (e a mudança de arquitetura viagem/embarcação) se manifesta no mobile
-Com viagem e embarcação já vindas do backend pra todo mundo (não só Fleet), o que resta pro app mobile distinguir Fleet de Offshore? Possibilidades:
-- **(a)** Fleet no mobile é idêntico ao Offshore (a diferença de frota é 100% na plataforma web) — o app só precisa reconhecer o plano `fleet` como "tem tudo que Offshore tem".
-- **(b)** Fleet no mobile ganha um seletor de embarcação (hoje o app já tem conceito de "embarcação ativa" em `Constantes.embarcacaoId`/Configurações) pra trocar entre embarcações da frota sem precisar de outra conta.
+### 3.8 ✅ RESOLVIDO (ver §3.0) — Como o Fleet (e a mudança de arquitetura viagem/embarcação) se manifesta no mobile
+Decisão: opção (a) — Fleet no mobile herda tudo do Offshore (incluindo o grupo `operacao`); a diferença de frota (multi-embarcação, dashboard consolidado, gestão de usuários/permissões) fica inteiramente no grupo `frota`, que não tem nenhuma superfície no app mobile — só a menção "sob consulta, a partir de R$ 499/mês" na tela Planos (Fase 2.4).
 
 ---
 
@@ -132,13 +169,16 @@ Com viagem e embarcação já vindas do backend pra todo mundo (não só Fleet),
 ```
 lib/core/planos/
 ├── plano_atlas.dart          # enum PlanoAtlas
-├── recurso_atlas.dart        # enum RecursoAtlas
-├── matriz_entitlements.dart  # Map<PlanoAtlas, Set<RecursoAtlas>> — fonte única, testável
+├── grupo_permissao.dart      # enum GrupoPermissao — nível 1 (ver §3.0)
+├── recurso_atlas.dart        # enum RecursoAtlas — nível 2, cada valor aponta pro GrupoPermissao pai
+├── matriz_entitlements.dart  # Map<PlanoAtlas, Set<GrupoPermissao>> + Map<PlanoAtlas, Set<RecursoAtlas>> — fonte única, testável
 ├── fonte_plano.dart          # abstract class FontePlano { Future<PlanoAtlas> obterPlanoAtual(); }
 ├── fonte_plano_local.dart    # implementação local/config (via Config/Hive) — usada hoje
 ├── fonte_plano_remota.dart   # implementação futura — lê de Organizacao/Embarcacao/endpoint dedicado
 └── plano_service.dart        # PlanoService — namespace estático, mesmo padrão de AuthService/Config
 ```
+
+`PlanoService.possuiGrupo(GrupoPermissao)` decide se o módulo inteiro aparece (usado pra decidir se uma tela existe no menu/navegação); `PlanoService.possui(RecursoAtlas)` decide um recurso fino dentro de uma tela já liberada (usado pelo widget `RecursoProtegido`, ver Fase 2.3) — os dois métodos convivem, `possui()` sempre implica checar o grupo pai primeiro (um `RecursoAtlas` nunca libera nada se o `GrupoPermissao` dele estiver bloqueado).
 
 `FontePlano` é uma interface simples (`abstract class`, sem pacote de DI — o projeto não usa Provider/Riverpod/get_it, então a escolha de implementação é feita dentro do próprio `PlanoService`, no mesmo espírito de como `ApiService`/`Config` já resolvem coisas hoje: um método estático decide qual fonte usar). Isso cumpre a regra 2 do pedido (fonte abstraída, local agora / remota depois) sem introduzir gerenciador de estado novo.
 
@@ -257,13 +297,13 @@ Baseline confirmada nesta sessão, sem nenhuma alteração de código de produç
 
 ## Perguntas em aberto para você (resumo do §3, pra facilitar a resposta)
 
-1. Cartas offline — o que "básico" esconde? (§3.1)
-2. Meteorologia — o que "básica" esconde? (§3.2)
-3. Produção — o que "básica" esconde? E Recomendações no Pro: nada, versão reduzida, ou decisão do backend? (§3.3)
-4. Correntes — gate próprio ou dentro do gate geral de meteorologia completa? (§3.4)
-5. Mapa de produtividade — é o índice heurístico (SST+clorofila) já existente, ou é outra coisa a construir depois? (§3.5)
-6. Alertas — o que distingue "básico" de "avançado"? (§3.6)
-7. "Pontos de pesca salvos": matriz (todos os planos) ou lista do Pro (exclusivo)? (§3.7)
-8. Fleet no mobile: idêntico ao Offshore, ou ganha um seletor de embarcação da frota? (§3.8)
-9. Período de carência offline proposto: 7 dias — confirma ou muda? (§4.3)
-10. Downgrade: dados antigos ficam visíveis/somente-leitura (proposta) ou somem da UI? (§4.4)
+**✅ Decidido em 2026-09-24 (§3.0):** grupos amplos de permissão (nível 1), incluindo a resolução de §3.4 (correntes), §3.7 (pontos salvos) e §3.8 (Fleet no mobile).
+
+**Ainda em aberto — nível 2, básico vs completo dentro de cada grupo já decidido:**
+1. Cartas offline — o que "básico" esconde dentro do grupo `cartas`? (§3.1)
+2. Oceanografia — o que "básico" esconde dentro do grupo `oceanografia` (vento/onda/corrente/maré/SST)? (§3.2)
+3. Produção — o que "básico" esconde dentro do grupo `producao`? E Recomendações no Pro (`inteligencia` básico): nada, versão reduzida, ou decisão do backend? (§3.3)
+4. Mapa de produtividade — a permissão `mapa.indiceProdutividade` gateia o índice heurístico (SST+clorofila) já existente, ou é outra coisa a construir depois? (§3.5)
+5. Alertas — o que distingue `oceanografia` básico de `oceanografia.alertasAvancados`? (§3.6)
+6. Período de carência offline proposto: 7 dias — confirma ou muda? (§4.3)
+7. Downgrade: dados antigos ficam visíveis/somente-leitura (proposta) ou somem da UI? (§4.4)
