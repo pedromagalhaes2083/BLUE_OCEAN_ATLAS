@@ -7,6 +7,7 @@ import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.da
 import 'package:atlas/features/metereologia/presentation/fase_lua_screen.dart';
 import 'package:atlas/features/metereologia/presentation/mare_pesca_atum_screen.dart';
 import 'package:atlas/features/metereologia/presentation/tabua_mare_screen.dart';
+import 'package:atlas/features/termoclina/presentation/termoclina_screen.dart';
 import 'package:atlas/features/producao/presentation/producao_screen.dart';
 import 'package:atlas/features/rotas/presentation/minhas_rotas_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
@@ -682,6 +683,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const MareEPescaAtumScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.thermostat_outlined),
+              title: Text(l10n.drawerTermoclina),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TermoclinaScreen()),
                 );
               },
             ),

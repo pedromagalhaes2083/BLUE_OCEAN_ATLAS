@@ -7,8 +7,11 @@ import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/fase_lua.dart';
 import '../../../core/utils/indice_influencia_mare.dart';
 import '../../../core/utils/nivel_operacional_mare.dart';
+import '../../../core/planos/plano_service.dart';
+import '../../../core/planos/recurso_atlas.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/meus_pontos_screen.dart';
+import '../../widgets/recurso_protegido.dart';
 import '../../widgets/mare_pesca_atum/comparacao_sizigia_quadratura_widget.dart';
 import '../../widgets/mare_pesca_atum/estado_mare_card.dart';
 import '../../widgets/mare_pesca_atum/explicacao_mare_dialogs.dart';
@@ -165,7 +168,10 @@ class _MareEPescaAtumScreenState extends State<MareEPescaAtumScreen> {
             ),
         ],
       ),
-      body: ListView(
+      body: !PlanoService.possui(RecursoAtlas.oceanografiaMareEPescaAtum)
+          ? CardUpgradePlano.telaCheia(
+              context, RecursoAtlas.oceanografiaMareEPescaAtum)
+          : ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _cabecalho(context, corRot),

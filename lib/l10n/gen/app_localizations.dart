@@ -1179,6 +1179,240 @@ abstract class AppLocalizations {
   /// **'MENU DO MAPA'**
   String get mapaMenuTitulo;
 
+  /// No description provided for @planoRecursoBloqueadoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recurso do {plano}'**
+  String planoRecursoBloqueadoTitulo(String plano);
+
+  /// No description provided for @planoRecursoBloqueadoDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esse recurso faz parte do plano {plano} ou superior.'**
+  String planoRecursoBloqueadoDescricao(String plano);
+
+  /// No description provided for @planoConhecerPlanos.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conhecer planos'**
+  String get planoConhecerPlanos;
+
+  /// No description provided for @planoTelaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planos'**
+  String get planoTelaTitulo;
+
+  /// No description provided for @planoSeuPlanoAtual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu plano atual'**
+  String get planoSeuPlanoAtual;
+
+  /// No description provided for @planoAvisoApoioNavegacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sistema de apoio à navegação — não substitui equipamentos náuticos obrigatórios ou sistemas certificados.'**
+  String get planoAvisoApoioNavegacao;
+
+  /// No description provided for @planoRecursosLiberados.
+  ///
+  /// In pt, this message translates to:
+  /// **'O que esse plano libera'**
+  String get planoRecursosLiberados;
+
+  /// No description provided for @planoCompararPlanos.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comparar planos'**
+  String get planoCompararPlanos;
+
+  /// No description provided for @planoFalarComBlueOcean.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falar com a Blue Ocean'**
+  String get planoFalarComBlueOcean;
+
+  /// No description provided for @planoFalarComBlueOceanEmBreve.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contato comercial em breve — fale com quem te passou o Atlas por enquanto.'**
+  String get planoFalarComBlueOceanEmBreve;
+
+  /// No description provided for @planoSobConsulta.
+  ///
+  /// In pt, this message translates to:
+  /// **'sob consulta'**
+  String get planoSobConsulta;
+
+  /// No description provided for @planoPorMes.
+  ///
+  /// In pt, this message translates to:
+  /// **'/mês'**
+  String get planoPorMes;
+
+  /// No description provided for @planoSeletorDebugTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trocar plano (modo debug)'**
+  String get planoSeletorDebugTitulo;
+
+  /// No description provided for @planoSeletorDebugSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só aparece em modo debug — não existe compra/assinatura dentro do app.'**
+  String get planoSeletorDebugSubtitulo;
+
+  /// No description provided for @planoGrupoNavegacaoEssencial.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegação essencial'**
+  String get planoGrupoNavegacaoEssencial;
+
+  /// No description provided for @planoGrupoCartas.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cartas náuticas'**
+  String get planoGrupoCartas;
+
+  /// No description provided for @planoGrupoOceanografia.
+  ///
+  /// In pt, this message translates to:
+  /// **'Oceanografia'**
+  String get planoGrupoOceanografia;
+
+  /// No description provided for @planoGrupoProducao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Produção'**
+  String get planoGrupoProducao;
+
+  /// No description provided for @planoGrupoRotas.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rotas'**
+  String get planoGrupoRotas;
+
+  /// No description provided for @planoGrupoRastreamento.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rastreamento'**
+  String get planoGrupoRastreamento;
+
+  /// No description provided for @planoGrupoInteligencia.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inteligência'**
+  String get planoGrupoInteligencia;
+
+  /// No description provided for @planoGrupoOperacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Operação (viagem/tripulação)'**
+  String get planoGrupoOperacao;
+
+  /// No description provided for @planoGrupoFrota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gestão de frota'**
+  String get planoGrupoFrota;
+
+  /// No description provided for @planoRecursoMapaSst.
+  ///
+  /// In pt, this message translates to:
+  /// **'Temperatura da superfície do mar (SST)'**
+  String get planoRecursoMapaSst;
+
+  /// No description provided for @planoRecursoOceanografiaCorrentes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Correntes'**
+  String get planoRecursoOceanografiaCorrentes;
+
+  /// No description provided for @planoRecursoOceanografiaAlertasAvancados.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alertas avançados'**
+  String get planoRecursoOceanografiaAlertasAvancados;
+
+  /// No description provided for @planoRecursoOceanografiaConfigurarAlertas.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configurar limiares de alerta'**
+  String get planoRecursoOceanografiaConfigurarAlertas;
+
+  /// No description provided for @planoRecursoMapaClorofila.
+  ///
+  /// In pt, this message translates to:
+  /// **'Clorofila-a'**
+  String get planoRecursoMapaClorofila;
+
+  /// No description provided for @planoRecursoMapaIndiceProdutividade.
+  ///
+  /// In pt, this message translates to:
+  /// **'Índice de produtividade Blue Ocean'**
+  String get planoRecursoMapaIndiceProdutividade;
+
+  /// No description provided for @planoRecursoOceanografiaMareEPescaAtum.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré e pesca de atum'**
+  String get planoRecursoOceanografiaMareEPescaAtum;
+
+  /// No description provided for @planoRecursoOceanografiaTermoclina.
+  ///
+  /// In pt, this message translates to:
+  /// **'Termoclina'**
+  String get planoRecursoOceanografiaTermoclina;
+
+  /// No description provided for @planoRecursoRotasAnaliseRota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Análise de rota'**
+  String get planoRecursoRotasAnaliseRota;
+
+  /// No description provided for @planoRecursoRecomendacaoScoreEConfianca.
+  ///
+  /// In pt, this message translates to:
+  /// **'Score e confiança da recomendação'**
+  String get planoRecursoRecomendacaoScoreEConfianca;
+
+  /// No description provided for @planoRecursoMapaTrilhaViagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trilha da viagem no mapa'**
+  String get planoRecursoMapaTrilhaViagem;
+
+  /// No description provided for @planoRecursoProducaoHistorico.
+  ///
+  /// In pt, this message translates to:
+  /// **'Histórico de produção'**
+  String get planoRecursoProducaoHistorico;
+
+  /// No description provided for @planoRecursoProducaoPorPonto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Produção por ponto'**
+  String get planoRecursoProducaoPorPonto;
+
+  /// No description provided for @planoRecursoRotasHistorico.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rotas a partir do histórico'**
+  String get planoRecursoRotasHistorico;
+
+  /// No description provided for @planoRecursoRotasInteligente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rotas inteligentes'**
+  String get planoRecursoRotasInteligente;
+
+  /// No description provided for @planoRecursoViagemTripulacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastro de tripulação'**
+  String get planoRecursoViagemTripulacao;
+
   /// No description provided for @mapaCancelarMarcacao.
   ///
   /// In pt, this message translates to:
@@ -2990,6 +3224,108 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Utilize a maré como um dos indicadores dentro de uma análise integrada.'**
   String get mareEPescaAvisoSecundario;
+
+  /// No description provided for @drawerTermoclina.
+  ///
+  /// In pt, this message translates to:
+  /// **'Termoclina'**
+  String get drawerTermoclina;
+
+  /// No description provided for @termoclinaTelaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Termoclina'**
+  String get termoclinaTelaTitulo;
+
+  /// No description provided for @termoclinaAguardandoPosicao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando posição atual da embarcação...'**
+  String get termoclinaAguardandoPosicao;
+
+  /// No description provided for @termoclinaErroMensagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível atualizar os dados oceanográficos.'**
+  String get termoclinaErroMensagem;
+
+  /// No description provided for @termoclinaSemDadosMensagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não há dados oceanográficos disponíveis para esta região.'**
+  String get termoclinaSemDadosMensagem;
+
+  /// No description provided for @termoclinaAtualizarBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar dados'**
+  String get termoclinaAtualizarBotao;
+
+  /// No description provided for @termoclinaProfundidadeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Profundidade da termoclina'**
+  String get termoclinaProfundidadeLabel;
+
+  /// No description provided for @termoclinaProfundidadeEstimada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Profundidade estimada'**
+  String get termoclinaProfundidadeEstimada;
+
+  /// No description provided for @termoclinaAtualizadoAs.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizado às {hora}'**
+  String termoclinaAtualizadoAs(String hora);
+
+  /// No description provided for @termoclinaIndicadorSst.
+  ///
+  /// In pt, this message translates to:
+  /// **'SST'**
+  String get termoclinaIndicadorSst;
+
+  /// No description provided for @termoclinaIndicadorTemperaturaProfundidade.
+  ///
+  /// In pt, this message translates to:
+  /// **'Temperatura em profundidade'**
+  String get termoclinaIndicadorTemperaturaProfundidade;
+
+  /// No description provided for @termoclinaIndicadorConfianca.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confiança'**
+  String get termoclinaIndicadorConfianca;
+
+  /// No description provided for @termoclinaPerfilTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil de temperatura'**
+  String get termoclinaPerfilTitulo;
+
+  /// No description provided for @termoclinaGraficoSemDado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem dados de perfil pra mostrar'**
+  String get termoclinaGraficoSemDado;
+
+  /// No description provided for @termoclinaGraficoLegendaFaixa.
+  ///
+  /// In pt, this message translates to:
+  /// **'Termoclina'**
+  String get termoclinaGraficoLegendaFaixa;
+
+  /// No description provided for @termoclinaFonteLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fonte: {fonte}'**
+  String termoclinaFonteLabel(String fonte);
+
+  /// No description provided for @termoclinaMockAviso.
+  ///
+  /// In pt, this message translates to:
+  /// **'SST real; profundidade e perfil da termoclina ainda são estimados — sem fonte com perfil vertical medido conectada.'**
+  String get termoclinaMockAviso;
 
   /// No description provided for @producaoHistoricoTitulo.
   ///

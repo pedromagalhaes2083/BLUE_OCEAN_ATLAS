@@ -660,6 +660,133 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapaMenuTitulo => 'MAP MENU';
 
   @override
+  String planoRecursoBloqueadoTitulo(String plano) {
+    return '$plano feature';
+  }
+
+  @override
+  String planoRecursoBloqueadoDescricao(String plano) {
+    return 'This feature is part of the $plano plan or higher.';
+  }
+
+  @override
+  String get planoConhecerPlanos => 'See plans';
+
+  @override
+  String get planoTelaTitulo => 'Plans';
+
+  @override
+  String get planoSeuPlanoAtual => 'Your current plan';
+
+  @override
+  String get planoAvisoApoioNavegacao =>
+      'Navigation support system — does not replace mandatory nautical equipment or certified systems.';
+
+  @override
+  String get planoRecursosLiberados => 'What this plan unlocks';
+
+  @override
+  String get planoCompararPlanos => 'Compare plans';
+
+  @override
+  String get planoFalarComBlueOcean => 'Talk to Blue Ocean';
+
+  @override
+  String get planoFalarComBlueOceanEmBreve =>
+      'Sales contact coming soon — for now, reach out to whoever gave you the Atlas.';
+
+  @override
+  String get planoSobConsulta => 'by quote';
+
+  @override
+  String get planoPorMes => '/mo';
+
+  @override
+  String get planoSeletorDebugTitulo => 'Switch plan (debug mode)';
+
+  @override
+  String get planoSeletorDebugSubtitulo =>
+      'Only shows in debug mode — there is no purchase/subscription inside the app.';
+
+  @override
+  String get planoGrupoNavegacaoEssencial => 'Essential navigation';
+
+  @override
+  String get planoGrupoCartas => 'Nautical charts';
+
+  @override
+  String get planoGrupoOceanografia => 'Oceanography';
+
+  @override
+  String get planoGrupoProducao => 'Catch log';
+
+  @override
+  String get planoGrupoRotas => 'Routes';
+
+  @override
+  String get planoGrupoRastreamento => 'Tracking';
+
+  @override
+  String get planoGrupoInteligencia => 'Intelligence';
+
+  @override
+  String get planoGrupoOperacao => 'Operations (trip/crew)';
+
+  @override
+  String get planoGrupoFrota => 'Fleet management';
+
+  @override
+  String get planoRecursoMapaSst => 'Sea surface temperature (SST)';
+
+  @override
+  String get planoRecursoOceanografiaCorrentes => 'Currents';
+
+  @override
+  String get planoRecursoOceanografiaAlertasAvancados => 'Advanced alerts';
+
+  @override
+  String get planoRecursoOceanografiaConfigurarAlertas =>
+      'Configure alert thresholds';
+
+  @override
+  String get planoRecursoMapaClorofila => 'Chlorophyll-a';
+
+  @override
+  String get planoRecursoMapaIndiceProdutividade =>
+      'Blue Ocean productivity index';
+
+  @override
+  String get planoRecursoOceanografiaMareEPescaAtum => 'Tide and tuna fishing';
+
+  @override
+  String get planoRecursoOceanografiaTermoclina => 'Thermocline';
+
+  @override
+  String get planoRecursoRotasAnaliseRota => 'Route analysis';
+
+  @override
+  String get planoRecursoRecomendacaoScoreEConfianca =>
+      'Recommendation score and confidence';
+
+  @override
+  String get planoRecursoMapaTrilhaViagem => 'Live trip trail on the map';
+
+  @override
+  String get planoRecursoProducaoHistorico => 'Catch history';
+
+  @override
+  String get planoRecursoProducaoPorPonto => 'Catch by spot';
+
+  @override
+  String get planoRecursoRotasHistorico => 'Routes from history';
+
+  @override
+  String get planoRecursoRotasInteligente => 'Smart routes';
+
+  @override
+  String get planoRecursoViagemTripulacao => 'Crew registration';
+
+  @override
   String get mapaCancelarMarcacao => 'Cancel marking';
 
   @override
@@ -1704,6 +1831,65 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mareEPescaAvisoSecundario =>
       'Use the tide as one of the indicators within an integrated analysis.';
+
+  @override
+  String get drawerTermoclina => 'Thermocline';
+
+  @override
+  String get termoclinaTelaTitulo => 'Thermocline';
+
+  @override
+  String get termoclinaAguardandoPosicao =>
+      'Waiting for the boat\'s current position...';
+
+  @override
+  String get termoclinaErroMensagem =>
+      'Could not update the oceanographic data.';
+
+  @override
+  String get termoclinaSemDadosMensagem =>
+      'No oceanographic data available for this region.';
+
+  @override
+  String get termoclinaAtualizarBotao => 'Update data';
+
+  @override
+  String get termoclinaProfundidadeLabel => 'Thermocline depth';
+
+  @override
+  String get termoclinaProfundidadeEstimada => 'Estimated depth';
+
+  @override
+  String termoclinaAtualizadoAs(String hora) {
+    return 'Updated at $hora';
+  }
+
+  @override
+  String get termoclinaIndicadorSst => 'SST';
+
+  @override
+  String get termoclinaIndicadorTemperaturaProfundidade => 'Deep temperature';
+
+  @override
+  String get termoclinaIndicadorConfianca => 'Confidence';
+
+  @override
+  String get termoclinaPerfilTitulo => 'Temperature profile';
+
+  @override
+  String get termoclinaGraficoSemDado => 'No profile data to show';
+
+  @override
+  String get termoclinaGraficoLegendaFaixa => 'Thermocline';
+
+  @override
+  String termoclinaFonteLabel(String fonte) {
+    return 'Source: $fonte';
+  }
+
+  @override
+  String get termoclinaMockAviso =>
+      'Real SST; thermocline depth and profile are still estimated — no source with a measured vertical profile connected yet.';
 
   @override
   String get producaoHistoricoTitulo => 'Production History';

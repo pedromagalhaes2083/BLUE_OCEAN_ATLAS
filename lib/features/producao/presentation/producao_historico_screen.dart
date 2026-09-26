@@ -5,8 +5,11 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/planos/plano_service.dart';
+import '../../../core/planos/recurso_atlas.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/mapa_screen.dart';
+import '../../widgets/recurso_protegido.dart';
 import '../domain/especies_comuns.dart';
 import '../domain/models/producao_registro.dart';
 import 'producao_por_ponto_screen.dart';
@@ -170,7 +173,9 @@ class _ProducaoHistoricoScreenState extends State<ProducaoHistoricoScreen> {
           IconButton(icon: const Icon(Icons.refresh), onPressed: _carregar),
         ],
       ),
-      body: _isLoading
+      body: !PlanoService.possui(RecursoAtlas.producaoHistorico)
+          ? CardUpgradePlano.telaCheia(context, RecursoAtlas.producaoHistorico)
+          : _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _registros.isEmpty
               ? Center(

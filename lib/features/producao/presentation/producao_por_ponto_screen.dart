@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/database/database_helper.dart';
+import '../../../core/planos/plano_service.dart';
+import '../../../core/planos/recurso_atlas.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/domain/models/ponto_marcado.dart';
+import '../../widgets/recurso_protegido.dart';
 import '../domain/models/producao_registro.dart';
 import '../domain/services/producao_pontos_analyzer.dart';
 
@@ -65,7 +68,9 @@ class _ProducaoPorPontoScreenState extends State<ProducaoPorPontoScreen> {
     return Scaffold(
       appBar: AppBar(
           title: Text(AppLocalizations.of(context).producaoPorPontoTitulo)),
-      body: _carregando
+      body: !PlanoService.possui(RecursoAtlas.producaoPorPonto)
+          ? CardUpgradePlano.telaCheia(context, RecursoAtlas.producaoPorPonto)
+          : _carregando
           ? const Center(child: CircularProgressIndicator())
           : _erro != null
               ? Center(child: Text(_erro!))

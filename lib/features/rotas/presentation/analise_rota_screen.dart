@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/config/limiares_alerta.dart';
+import '../../../core/planos/plano_service.dart';
+import '../../../core/planos/recurso_atlas.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/erro_amigavel.dart';
@@ -10,6 +12,7 @@ import '../../../core/utils/severidade_condicoes.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../metereologia/data/previsao_tempo_repository.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
+import '../../widgets/recurso_protegido.dart';
 
 /// Condições do mar buscadas pra um ponto específico da rota — cada campo
 /// nulo significa "a API não trouxe esse dado nesse ponto" (comum em
@@ -160,7 +163,9 @@ class _AnaliseRotaScreenState extends State<AnaliseRotaScreen> {
     return Scaffold(
       appBar: AppBar(
           title: Text(AppLocalizations.of(context).rotasAnaliseTitulo(widget.nomeRota))),
-      body: ListView(
+      body: !PlanoService.possui(RecursoAtlas.rotasAnaliseRota)
+          ? CardUpgradePlano.telaCheia(context, RecursoAtlas.rotasAnaliseRota)
+          : ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildResumo(),

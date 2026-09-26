@@ -18,6 +18,7 @@ import '../../../core/services/theme_mode_service.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../dispositivo/presentation/dispositivo_teste_screen.dart';
 import '../../embarcacao/presentation/embarcacao_configuracao_screen.dart';
+import '../../planos/presentation/planos_screen.dart';
 
 class ConfiguracoesScreen extends StatefulWidget {
   final DatabaseHelper dbHelper;
@@ -676,6 +677,15 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     ),
                   ],
                   const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PlanosScreen()),
+                    ),
+                    icon: const Icon(Icons.workspace_premium_outlined),
+                    label: Text(l10n.planoTelaTitulo),
+                  ),
+                  const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () => Navigator.push(
                       context,

@@ -3,6 +3,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/database/database_helper.dart';
+import 'core/planos/plano_service.dart';
 import 'core/services/locale_service.dart';
 import 'core/services/night_mode_service.dart';
 import 'core/services/recomendacao_notification_service.dart';
@@ -33,6 +34,7 @@ void main() async {
   await NightModeService.carregar();
   await ThemeModeService.carregar();
   await LocaleService.carregar();
+  await PlanoService.carregar();
   await RecomendacaoNotificationService.inicializar(
     aoTocarNotificacao: (_) {
       navigatorKey.currentState?.push(
@@ -49,10 +51,26 @@ void main() async {
 // Converte pra escala de cinza (luminância) e joga tudo no canal vermelho —
 // o "modo noturno" clássico de embarcações, que preserva a visão no escuro.
 const _filtroModoNoturno = ColorFilter.matrix(<double>[
-  0.2126, 0.7152, 0.0722, 0, 0,
-  0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0,
-  0, 0, 0, 1, 0,
+  0.2126,
+  0.7152,
+  0.0722,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
 ]);
 
 /// Tema único do app — antes cada tela decidia por conta própria a borda, o
@@ -87,9 +105,8 @@ ThemeData _buildTheme(Brightness brightness) {
     useMaterial3: true,
     brightness: brightness,
     colorScheme: colorScheme,
-    scaffoldBackgroundColor: claro
-        ? const Color(0xFFF7F5FA)
-        : const Color(0xFF10161D),
+    scaffoldBackgroundColor:
+        claro ? const Color(0xFFF7F5FA) : const Color(0xFF10161D),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: claro ? const Color(0xFFF5F7FA) : const Color(0xFF1C2530),

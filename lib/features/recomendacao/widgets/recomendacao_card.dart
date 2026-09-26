@@ -3,6 +3,7 @@ import '../../../core/utils/coordenadas_format.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../../metereologia/presentation/mare_pesca_atum_screen.dart';
+import '../../termoclina/presentation/termoclina_screen.dart';
 import '../domain/models/recomendacao.dart';
 import 'recomendacao_confianca_dots.dart';
 import 'recomendacao_pontos_list.dart';
@@ -126,6 +127,24 @@ class RecomendacaoCard extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.phishing, size: 18),
                 label: Text(l10n.meusPontosMareEPescaAqui),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TermoclinaScreen(
+                      latitude: r.centroide!.latitude,
+                      longitude: r.centroide!.longitude,
+                      nomePonto: r.titulo,
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.thermostat_outlined, size: 18),
+                label: Text(l10n.termoclinaTelaTitulo),
               ),
             ),
           ],

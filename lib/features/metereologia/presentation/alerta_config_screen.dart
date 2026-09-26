@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/config/limiares_alerta.dart';
+import '../../../core/planos/plano_service.dart';
+import '../../../core/planos/recurso_atlas.dart';
 import '../../../l10n/gen/app_localizations.dart';
+import '../../widgets/recurso_protegido.dart';
 
 /// Tela pra configurar quando o app deve disparar a notificação de
 /// "condição severa à frente" (ver `AlertaCondicaoNotificationService`) —
@@ -52,7 +55,10 @@ class _AlertaConfigScreenState extends State<AlertaConfigScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.alertaConfigTitulo)),
-      body: _carregando
+      body: !PlanoService.possui(RecursoAtlas.oceanografiaConfigurarAlertas)
+          ? CardUpgradePlano.telaCheia(
+              context, RecursoAtlas.oceanografiaConfigurarAlertas)
+          : _carregando
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),

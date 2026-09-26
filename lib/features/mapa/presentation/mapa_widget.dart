@@ -15,11 +15,15 @@ import 'package:sensors_plus/sensors_plus.dart';
 
 import '../../../core/database/database_helper.dart';
 import '../../../core/models/sst_ponto.dart';
+import '../../../core/planos/plano_service.dart';
+import '../../../core/planos/recurso_atlas.dart';
 import '../../../core/services/geo_png_helper.dart';
+import '../../widgets/recurso_protegido.dart';
 import '../../../core/services/mbtiles_service.dart';
 import '../../cartas/presentation/solicitar_cartas_screen.dart';
 import '../../../core/services/geotiff_service.dart';
 import '../../metereologia/presentation/condicoes_ponto_screen.dart';
+import '../../termoclina/presentation/termoclina_screen.dart';
 import '../../../core/services/pontos_service.dart';
 import '../../../core/services/street_map_cache_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
@@ -1895,7 +1899,14 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     required bool ativo,
     required VoidCallback? onTap,
     bool carregando = false,
+    // Gate de plano (ver core/planos/) — quando informado e o plano ativo
+    // não liberar esse recurso, o toque mostra o card de upgrade em vez
+    // de ligar a camada. Hoje a matriz libera tudo pra todos os planos
+    // (ver matriz_entitlements.dart), então isso não muda nada visível
+    // ainda — é a aplicação do gate, não a definição de quem tem acesso.
+    RecursoAtlas? recurso,
   }) {
+    final bloqueado = recurso != null && !PlanoService.possui(recurso);
     return ListTile(
       leading: carregando
           ? const SizedBox(
@@ -1906,10 +1917,24 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
           : Icon(icone, color: ativo ? Colors.lightBlueAccent : null),
       title: Text(titulo),
       subtitle: subtitulo == null ? null : Text(subtitulo),
-      trailing: Switch(value: ativo, onChanged: onTap == null ? null : (_) => onTap()),
-      onTap: onTap,
-      enabled: onTap != null,
+      trailing: bloqueado
+          ? const Icon(Icons.lock_outline, size: 20)
+          : Switch(value: ativo, onChanged: onTap == null ? null : (_) => onTap()),
+      onTap: bloqueado ? () => _mostrarCardUpgrade(recurso) : onTap,
+      enabled: bloqueado || onTap != null,
       dense: true,
+    );
+  }
+
+  void _mostrarCardUpgrade(RecursoAtlas recurso) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: CardUpgradePlano(recurso: recurso),
+        ),
+      ),
     );
   }
 
@@ -2017,6 +2042,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                     subtitulo: l10n.mapaCamadaTrilhaViagemSubtitulo,
                     ativo: _mostrarTrilhaViagem,
                     onTap: _alternarTrilhaViagem,
+                    recurso: RecursoAtlas.mapaTrilhaViagem,
                   ),
                   _itemMenuToggle(
                     icone: Icons.thermostat,
@@ -2025,6 +2051,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                     onTap: _alternarGradeTemperatura,
                     carregando: _consultandoPonto &&
                         _consultaPontoAtiva == _TipoConsultaPonto.temperatura,
+                    recurso: RecursoAtlas.mapaSst,
                   ),
                   _itemMenuToggle(
                     icone: Icons.water_drop,
@@ -2034,6 +2061,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                     onTap: _alternarClorofila,
                     carregando:
                         _consultandoPonto && _consultaPontoAtiva == _TipoConsultaPonto.clorofila,
+                    recurso: RecursoAtlas.mapaClorofila,
                   ),
                   _itemMenuToggle(
                     icone: Icons.local_fire_department,
@@ -2069,6 +2097,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                     carregando: _consultandoPonto &&
                         _consultaPontoAtiva ==
                             _TipoConsultaPonto.indiceProdutividade,
+                    recurso: RecursoAtlas.mapaIndiceProdutividade,
                   ),
                   if (_camadaRuas) ...[
                     const Divider(height: 1),
@@ -2362,6 +2391,22 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
             child: Text(l10n.mapaConsultarAqui),
           ),
           TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TermoclinaScreen(
+                    latitude: ponto.latitude,
+                    longitude: ponto.longitude,
+                    nomePonto: ponto.nome,
+                  ),
+                ),
+              );
+            },
+            child: Text(l10n.termoclinaTelaTitulo),
+          ),
+          TextButton(
             onPressed: () async {
               Navigator.pop(context);
               if (ponto.id != null) {
@@ -2504,6 +2549,21 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
               );
             },
             child: Text(l10n.mapaConsultarAqui),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TermoclinaScreen(
+                    latitude: ponto.latitude,
+                    longitude: ponto.longitude,
+                  ),
+                ),
+              );
+            },
+            child: Text(l10n.termoclinaTelaTitulo),
           ),
         ],
       ),

@@ -13,6 +13,7 @@ import '../../recomendacao/data/recomendacao_repository.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_card.dart';
 import '../../recomendacao/widgets/recomendacao_list_tile.dart';
+import '../../termoclina/presentation/termoclina_screen.dart';
 import '../../producao/domain/models/producao_registro.dart';
 import '../../producao/domain/services/producao_pontos_analyzer.dart';
 import '../domain/models/ponto_marcado.dart';
@@ -490,6 +491,27 @@ class _DetalhePontoMarcado extends StatelessWidget {
             },
             icon: const Icon(Icons.phishing, size: 18),
             label: Text(l10n.meusPontosMareEPescaAqui),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TermoclinaScreen(
+                    latitude: ponto.latitude,
+                    longitude: ponto.longitude,
+                    nomePonto: ponto.nome,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.thermostat_outlined, size: 18),
+            label: Text(l10n.termoclinaTelaTitulo),
           ),
         ),
         const SizedBox(height: 8),

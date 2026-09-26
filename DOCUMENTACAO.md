@@ -1,6 +1,13 @@
 # Atlas Blue Ocean — Documentação Técnica
 
-> Versão: 1.0.0+1 · Flutter ≥ 3.6.0 · Última atualização: 23 de Agosto de 2026
+> Versão: 1.0.0+1 · Flutter ≥ 3.6.0 · Última atualização: 24 de Setembro de 2026
+
+> **Mudanças estruturais desde a última atualização (Agosto→Setembro 2026)**, resumidas aqui pra quem já conhecia a versão anterior:
+> - **Viagem e embarcação passaram a vir da retaguarda/plataforma**, não mais cadastradas no app — `CadastrarEmbarcacaoScreen`/`NovaViagemScreen` não existem mais; o app agora só *espelha* localmente a viagem ativa e a embarcação dela (`ContextoViagemService`, `ViagemRepository.buscarAtual()`, `EmbarcacaoRepository`).
+> - **Rastreamento em segundo plano trocou de `workmanager` pra `flutter_foreground_task`** — serviço em primeiro plano de verdade (notificação persistente), não mais tarefa periódica de melhor esforço (ver §7.6).
+> - **Modo Navegação no mapa** (estilo Waze): mapa gira acompanhando o rumo, inclinação pseudo-3D, barco 3D (`.glb`, via `flutter_3d_controller`) como marcador de posição, bússola do aparelho com opção de usar o giroscópio no lugar do magnetômetro.
+> - Telas novas não documentadas na versão anterior: Configurar Alertas, Fase da Lua, Tábua de Maré (+ detalhe por porto, com modelo harmônico offline), Maré e Pesca de Atum, Análise de Rota.
+> - Banco de dados na **versão 16** (era 12); 5 idiomas suportados (pt/en/es/fr/it, era pt/es/fr).
 
 ---
 
@@ -35,20 +42,26 @@
 
 | Área | O que faz |
 |------|-----------|
-| **Mapa Offline** | Cartas náuticas em MBTiles, overlay de GeoTIFF e de PNG georreferenciado, mapa de ruas com cache, marcação de pontos, planejamento de rotas, rota entre registros de produção, grade de temperatura da superfície do mar (SST) |
+| **Mapa Offline** | Cartas náuticas em MBTiles, overlay de GeoTIFF e de PNG georreferenciado, mapa de ruas com cache, marcação de pontos (com retículo de precisão), planejamento de rotas (mesmo retículo, botão "Adicionar ponto"), rota entre registros de produção, grade de temperatura da superfície do mar (SST, múltiplos pontos), clorofila-a, índice de produtividade Blue Ocean (SST+clorofila), trilha ao vivo da viagem em andamento |
+| **Modo Navegação (mapa)** | Vista estilo Waze: mapa gira acompanhando o rumo (course-up), inclinação pseudo-3D, barco 3D (`.glb`) como marcador de posição orientado pela bússola/giroscópio do aparelho, bússola circular sempre visível (pode ser desligada em favor do giroscópio) |
 | **Meus Pontos** | Lista unificada (estilo da aba Recomendações) de pontos marcados manualmente + recomendações, com card de detalhe flutuante mostrando dados oceânicos ao vivo e produção associada a cada ponto |
 | **Alerta de Rota** | Projeta um ponto a X milhas náuticas no rumo atual (GPS) ou simulado (a partir de um ponto marcado) e mostra vento, corrente, altura de onda e swell nesse ponto à frente; inclui bússola (magnetômetro) num card próprio |
-| **Rastreamento GPS** | Registra a posição a cada 5 min (foreground) e 15 min (background, escopado à viagem em andamento), sincroniza com o backend quando logado |
+| **Configurar Alertas** | Limiares individuais (liga/desliga + slider) por condição — vento, altura de onda/swell, corrente, temperatura — pra disparo da notificação de condição severa |
+| **Rastreamento GPS** | Serviço em primeiro plano (`flutter_foreground_task`, notificação persistente) durante viagem em andamento — registra e sincroniza a posição no intervalo configurado, sobrevive ao app fechado |
 | **Meteorologia** | Vento, correntes, previsão do tempo, ondas/swell, tábua de marés e profundidade/batimetria — via APIs públicas (Open-Meteo, Open-Meteo Marine, OpenTopoData) |
-| **Notificação de Recomendação** | Avisa (notificação local) quando uma recomendação nova é gerada, checada pela mesma tarefa periódica do rastreamento (só roda com viagem em andamento) |
+| **Fase da Lua** | Fase atual, próximas fases principais e horário de nascer/pôr da lua |
+| **Tábua de Maré** | Portos salvos pelo usuário com modelo de maré por harmônicos — preamar/baixa-mar dos próximos dias, funciona **offline** depois de sincronizado uma vez |
+| **Maré e Pesca de Atum** | Cruza sizígia/quadratura com a dinâmica que pode afetar a disponibilidade de atum — sempre como indicador de apoio à decisão, nunca como correlação direta com captura |
+| **Análise de Rota** | Busca condições do mar (vento/onda/corrente/SST) pra cada ponto de uma rota planejada |
+| **Notificação de Recomendação** | Avisa (notificação local) quando uma recomendação nova é gerada, checada pelo mesmo serviço em primeiro plano do rastreamento (só roda com viagem em andamento) |
 | **Produção** | Registra capturas de pesca (tipo do peixe, classificação por faixa de peso, quantidade, posição GPS, viagem) com peso estimado calculado automaticamente; mostra histórico/totais e ranking de produção por ponto marcado |
 | **Recomendação** | Exibe recomendações de pesca vindas do backend (score, confiança, variáveis ambientais, pontos sugeridos) |
 | **Cartas Náuticas** | Gerencia, baixa e visualiza PDFs de cartas náuticas; permite solicitar novas cartas |
-| **Rotas Planejadas** | Cria rotas desenhadas manualmente sobre o mapa, ou geradas automaticamente a partir dos registros de produção de uma viagem (ao finalizá-la) |
-| **Viagem** | Início/fim de viagem, tripulação, histórico de localizações da viagem |
-| **Embarcação** | Cadastro, configuração e foto da embarcação |
+| **Rotas Planejadas** | Cria rotas desenhadas manualmente sobre o mapa (com retículo de precisão), ou geradas automaticamente a partir dos registros de produção de uma viagem (ao finalizá-la) |
+| **Viagem** | Viagem ativa vem da retaguarda (`ContextoViagemService`) — app espelha localmente; tripulação, histórico de localizações da viagem, finalizar viagem |
+| **Embarcação** | Vem da retaguarda (catálogo remoto), espelhada localmente — sem cadastro manual no app; configuração e foto da embarcação |
 | **Autenticação** | Login real contra a Blue Ocean API, com opção de lembrar credenciais para login automático; sessão controlada pela expiração (`exp`) do JWT |
-| **Configurações** | Intervalo de rastreamento, modo noturno, tema escuro, contato de emergência, embarcação ativa |
+| **Configurações** | Intervalo de rastreamento, modo noturno, tema escuro, contato de emergência, embarcação ativa, idioma |
 | **Teste de API / Dispositivo** | Ferramentas internas de debug para chamadas HTTP manuais, teste do registro de dispositivo e teste manual da notificação de recomendação |
 
 ### Stack Tecnológica
@@ -56,11 +69,13 @@
 - **Frontend:** Flutter (Dart)
 - **Banco de dados relacional:** SQLite via `sqflite` (dados locais: embarcação, viagens, produção, pontos, rotas)
 - **Banco de dados NoSQL:** Hive via `hive_flutter` (preferências/tokens e histórico de chamadas de teste)
-- **Mapas:** `flutter_map` com tiles MBTiles, overlay de GeoTIFF, overlay de PNG georreferenciado, grade de temperatura (polígonos) e cache de mapa de ruas
+- **Mapas:** `flutter_map` com tiles MBTiles, overlay de GeoTIFF, overlay de PNG georreferenciado, grades de temperatura/clorofila/índice de produtividade (polígonos), cache de mapa de ruas
+- **Modelo 3D:** `flutter_3d_controller` (renderiza `.glb` via WebView local/`model-viewer`, sem precisar de internet — ver §9.6) para o barco do Modo Navegação
 - **GPS:** `geolocator`
-- **Bússola:** `flutter_compass` (magnetômetro, usada em `AlertaRotaScreen` — independente do rumo de GPS)
-- **Notificações locais:** `flutter_local_notifications` (recomendação nova)
-- **Background tasks:** `workmanager`
+- **Bússola:** `flutter_compass` (magnetômetro, usada em `AlertaRotaScreen` e no Modo Navegação do mapa)
+- **Giroscópio:** `sensors_plus` — fonte alternativa de rumo no Modo Navegação, quando a bússola do aparelho é desligada
+- **Notificações locais:** `flutter_local_notifications` (recomendação nova, condição severa)
+- **Serviço em primeiro plano:** `flutter_foreground_task` (rastreamento contínuo durante viagem — substituiu `workmanager`, ver §7.6)
 - **Armazenamento seguro:** `flutter_secure_storage` (ID de dispositivo no iOS; credenciais de login lembradas)
 - **Backend:** Blue Ocean API (REST, `blue-ocean-app-api.up.railway.app`), consumida via `ApiService`
 - **APIs externas:** Open-Meteo (previsão do tempo, grade de SST), Open-Meteo Marine (ondas, swell, corrente, maré), OpenTopoData (profundidade/batimetria)
@@ -110,14 +125,14 @@ feature/
 └── presentation/       ← Telas e widgets (Screens)
 ```
 
-Features que só persistem localmente (`producao`, `embarcacao`, `mapa`, `viagem`, `cartas`, `rotas`) **não têm `data/`** — as telas acessam `DatabaseHelper` diretamente. Já as features que falam com o backend (`dispositivo`, `localizacao`, `recomendacao`) e as que falam com APIs meteorológicas externas (`metereologia`) têm repositório dedicado em `data/`.
+Hoje a maioria das features já tem `data/` — só `cartas` e `configuracoes` continuam acessando `DatabaseHelper` direto das telas. As demais têm repositório dedicado: `dispositivo`, `localizacao`, `recomendacao` (Blue Ocean API), `metereologia`, `mapa` (clorofila — Blue Ocean API), `producao` (`ProducaoRepository`/`EspecieRepository`), `viagem` (`ViagemRepository`/`PortoRepository`) e `embarcacao` (`EmbarcacaoRepository`) — as duas últimas fazem parte da mudança de 2026-09 que moveu criação/edição de viagem e embarcação pra retaguarda (ver nota no topo do documento e §9.5/§9.11).
 
 A camada `core/` contém tudo que é compartilhado entre features:
 
 ```
 core/
-├── auth/               ← Autenticação (AuthService, JWT, Usuario)
-├── background/         ← Callback do WorkManager (rastreamento em background)
+├── auth/               ← Autenticação (AuthService, JWT, Usuario, Organizacao)
+├── background/         ← Handler do serviço em primeiro plano (rastreamento — flutter_foreground_task)
 ├── config/              ← Config (key-value sobre Hive) e Constantes de chaves
 ├── database/            ← DatabaseHelper (SQLite)
 ├── models/              ← Modelos usados por múltiplas features (ondas, SST)
@@ -172,12 +187,13 @@ atlas/
 │   │   ├── auth/
 │   │   │   ├── auth_service.dart
 │   │   │   ├── jwt_utils.dart
-│   │   │   └── models/usuario.dart
+│   │   │   └── models/{usuario.dart, organizacao.dart}
 │   │   ├── background/
-│   │   │   └── location_worker.dart
+│   │   │   └── location_foreground_task_handler.dart  # handler do serviço em 1º plano (flutter_foreground_task)
 │   │   ├── config/
 │   │   │   ├── config.dart
-│   │   │   └── constantes.dart
+│   │   │   ├── constantes.dart
+│   │   │   └── limiares_alerta.dart   # limiares configuráveis do alerta de condição severa
 │   │   ├── database/
 │   │   │   └── database_helper.dart
 │   │   ├── models/
@@ -188,13 +204,18 @@ atlas/
 │   │   │   ├── endpoints.dart
 │   │   │   └── excecoes.dart
 │   │   ├── services/
+│   │   │   ├── alerta_condicao_notification_service.dart  # notificação de vento/onda/corrente severos
+│   │   │   ├── battery_optimization_service.dart
+│   │   │   ├── contexto_viagem_service.dart   # resolve viagem ativa + embarcação a partir do backend
+│   │   │   ├── dados_ponto_cache_service.dart
 │   │   │   ├── device_id_service.dart
 │   │   │   ├── foto_embarcacao_service.dart
 │   │   │   ├── geo_png_helper.dart
 │   │   │   ├── geotiff_service.dart
+│   │   │   ├── locale_service.dart            # idioma ativo (pt/en/es/fr/it)
 │   │   │   ├── localizacao_reporter_service.dart
 │   │   │   ├── location_service.dart
-│   │   │   ├── location_tracking_service.dart
+│   │   │   ├── location_tracking_service.dart # serviço em 1º plano, ver §7.6
 │   │   │   ├── mbtiles_service.dart
 │   │   │   ├── night_mode_service.dart
 │   │   │   ├── theme_mode_service.dart        # tema claro/escuro/sistema
@@ -207,7 +228,13 @@ atlas/
 │   │   │   └── api_storage_service.dart
 │   │   └── utils/
 │   │       ├── coordenadas_format.dart
-│   │       └── proximidade.dart               # + projetarPontoNoRumo (geodésia direta)
+│   │       ├── proximidade.dart               # + projetarPontoNoRumo (geodésia direta)
+│   │       ├── cor_tema.dart
+│   │       ├── erro_amigavel.dart
+│   │       ├── fase_lua.dart
+│   │       ├── indice_influencia_mare.dart
+│   │       ├── nivel_operacional_mare.dart
+│   │       └── severidade_condicoes.dart
 │   │
 │   └── features/
 │       ├── api_tester/presentation/
@@ -229,10 +256,12 @@ atlas/
 │       │   ├── data/dispositivo_repository.dart
 │       │   ├── domain/models/dispositivo.dart
 │       │   └── presentation/dispositivo_teste_screen.dart
-│       ├── embarcacao/
-│       │   ├── domain/models/embarcacao.dart
+│       ├── embarcacao/                        # ver nota no topo: sem cadastro manual, vem da retaguarda
+│       │   ├── data/
+│       │   │   ├── embarcacao_repository.dart      # catálogo remoto (Blue Ocean API)
+│       │   │   └── embarcacao_local_lookup.dart
+│       │   ├── domain/models/{embarcacao.dart, embarcacao_remota.dart}
 │       │   └── presentation/
-│       │       ├── cadastrar_embarcacao_screen.dart
 │       │       ├── embarcacao_configuracao_screen.dart
 │       │       ├── embarcacao_screen.dart
 │       │       └── widgets/foto_embarcacao_picker.dart
@@ -240,35 +269,53 @@ atlas/
 │       │   ├── data/localizacao_repository.dart
 │       │   └── domain/models/localizacao_envio.dart
 │       ├── mapa/
-│       │   ├── domain/models/ponto_marcado.dart
+│       │   ├── data/clorofila_repository.dart # Blue Ocean API — leitura de clorofila-a num ponto
+│       │   ├── domain/models/
+│       │   │   ├── ponto_marcado.dart
+│       │   │   ├── leitura_clorofila.dart
+│       │   │   ├── indice_produtividade_blue_ocean.dart  # SST+clorofila → Ruim/Bom/Ótimo/Excelente
+│       │   │   └── nivel_produtividade.dart
 │       │   ├── presentation/
 │       │   │   ├── mapa_screen.dart
-│       │   │   ├── mapa_widget.dart
+│       │   │   ├── mapa_widget.dart           # ~3000 linhas — ver §9.6
 │       │   │   └── meus_pontos_screen.dart    # pontos marcados + recomendações, lista unificada
 │       │   └── widgets/
+│       │       ├── barco_navegacao_3d.dart    # modelo 3D (.glb) do Modo Navegação
+│       │       ├── compasso_circular.dart     # badge de rumo em graus (canto do mapa)
 │       │       ├── dados_oceanicos_ponto.dart # profundidade/SST/corrente/maré de um ponto qualquer
 │       │       ├── download_regiao_dialog.dart
+│       │       ├── legenda_clorofila.dart
+│       │       ├── legenda_grade_temperatura.dart
 │       │       ├── mbtiles_tile_provider.dart
 │       │       ├── meteorologia_sheet.dart
 │       │       ├── ponto_marcado_list_tile.dart
 │       │       └── street_map_tile_provider.dart
 │       ├── metereologia/
 │       │   ├── data/
+│       │   │   ├── fase_lua_repository.dart
 │       │   │   ├── previsao_tempo_repository.dart
 │       │   │   ├── profundidade_repository.dart
 │       │   │   └── wave_forecast_repository.dart
 │       │   ├── domain/models/
+│       │   │   ├── dia_lunar.dart
 │       │   │   ├── leitura_profundidade.dart
+│       │   │   ├── porto_mare.dart            # porto salvo + modelo harmônico de maré
 │       │   │   └── previsao_tempo.dart
 │       │   └── presentation/
+│       │       ├── alerta_config_screen.dart  # limiares por condição do alerta de rota
 │       │       ├── alerta_rota_screen.dart    # vento/corrente/onda/swell à frente + bússola
 │       │       ├── condicoes_mar_screen.dart
-│       │       └── condicoes_ponto_screen.dart
+│       │       ├── condicoes_ponto_screen.dart
+│       │       ├── fase_lua_screen.dart
+│       │       ├── mare_pesca_atum_screen.dart
+│       │       ├── tabua_mare_screen.dart          # lista de portos salvos
+│       │       └── tabua_mare_detalhe_screen.dart  # maré offline do porto (modelo harmônico)
 │       ├── producao/
+│       │   ├── data/{producao_repository.dart, especie_repository.dart}
 │       │   ├── domain/
 │       │   │   ├── classificacao_peso.dart
 │       │   │   ├── especies_comuns.dart
-│       │   │   ├── models/producao_registro.dart
+│       │   │   ├── models/{producao_registro.dart, producao_envio.dart, especie_remota.dart}
 │       │   │   └── services/
 │       │   │       └── producao_pontos_analyzer.dart  # agrupa produção por ponto marcado
 │       │   └── presentation/
@@ -291,32 +338,49 @@ atlas/
 │       │       └── recomendacoes_list.dart
 │       ├── rotas/
 │       │   ├── domain/models/rota_planejada.dart
-│       │   └── presentation/minhas_rotas_screen.dart
+│       │   └── presentation/
+│       │       ├── minhas_rotas_screen.dart
+│       │       └── analise_rota_screen.dart   # condições do mar por ponto de uma rota
 │       ├── splash/
 │       │   └── splash_screen.dart
-│       ├── viagem/
+│       ├── viagem/                            # ver nota no topo: viagem vem da retaguarda
+│       │   ├── data/{viagem_repository.dart, porto_repository.dart}
 │       │   ├── domain/models/
 │       │   │   ├── tripulante.dart
-│       │   │   └── viagem.dart
+│       │   │   ├── viagem.dart
+│       │   │   ├── viagem_atual_remota.dart   # GET base/operacao/viagens/eu/atual
+│       │   │   └── porto.dart
 │       │   └── presentation/
-│       │       ├── historico_localizacoes_screen.dart
-│       │       ├── nova_tripulacao.dart
-│       │       └── nova_viagem_screen.dart
+│       │       ├── historico_localizacoes_screen.dart  # finalizar viagem fica aqui
+│       │       └── nova_tripulacao.dart
 │       └── widgets/
 │           ├── base_meteorology_card.dart
 │           ├── info_column.dart
+│           ├── offline_dados_banner.dart
 │           ├── posicao_atual_widget.dart
 │           ├── posicao_manual_widget.dart
 │           ├── position_card.dart
 │           ├── profundidade_card.dart
+│           ├── seletor_coordenada_widget.dart
 │           ├── web_view_screen.dart
 │           ├── previsao_tempo/
 │           │   ├── condicoes_vento_card.dart
 │           │   └── previsao_tempo_widgets.dart      # barrel
+│           ├── mare_pesca_atum/                     # 7 widgets — gráficos e cards da tela dedicada
+│           │   ├── comparacao_sizigia_quadratura_widget.dart
+│           │   ├── estado_mare_card.dart
+│           │   ├── explicacao_mare_dialogs.dart
+│           │   ├── fluxo_influencia_widget.dart
+│           │   ├── grafico_mare_24h.dart
+│           │   ├── indice_influencia_card.dart
+│           │   ├── janela_operacional_widget.dart
+│           │   └── nivel_operacional_card.dart
 │           └── wave_forecast/
 │               ├── condicoes_atuais_card.dart
+│               ├── fase_lua_card.dart
 │               ├── mare_card.dart                   # tábua de marés (preamar/baixa-mar)
 │               ├── sea_surface_temperature_card.dart
+│               ├── tabela_solunar_card.dart
 │               └── wave_forecast_widgets.dart       # barrel
 │
 └── pubspec.yaml
@@ -336,14 +400,16 @@ atlas/
 | `path` | ^1.9.0 | Manipulação de caminhos |
 | `pdfrx` | ^1.0.0 | Visualizador de PDF (cartas náuticas) |
 | `geolocator` | ^13.0.0 | GPS e geolocalização |
-| `workmanager` | 0.9.0+3 | Tarefas em background (rastreamento) |
+| `flutter_foreground_task` | ^9.2.2 | Serviço em primeiro plano — rastreamento contínuo durante viagem (substituiu `workmanager`, ver §7.6) |
+| `sensors_plus` | ^7.1.0 | Giroscópio — fonte alternativa de rumo no Modo Navegação do mapa |
+| `flutter_3d_controller` | ^2.3.0 | Renderiza o modelo 3D (`.glb`) do barco no Modo Navegação — via WebView local, sem depender de internet |
 | `permission_handler` | ^12.0.0 | Gerenciamento de permissões |
 | `flutter_map` | ^7.0.2 | Mapa interativo offline (tiles, overlays, polígonos) |
 | `latlong2` | ^0.9.1 | Operações com coordenadas |
 | `file_picker` | ^8.1.6 | Seletor de arquivos do dispositivo (MBTiles, GeoTIFF, PNG de overlay) |
 | `image` | ^4.5.0 | Processamento de GeoTIFF e leitura de metadados de PNG (`GeoPngHelper`) |
 | `hive_flutter` | ^1.1.0 | Armazenamento NoSQL local (config e histórico de API) |
-| `intl` | ^0.19.0 | Formatação de datas/números |
+| `intl` | ^0.20.2 | Formatação de datas/números, i18n (pt/en/es/fr/it, ver `l10n.yaml`) |
 | `flutter_secure_storage` | ^9.2.0 | Armazenamento seguro (ID de dispositivo no iOS; credenciais lembradas no login) |
 | `device_info_plus` | ^12.4.0 | Dados descritivos do dispositivo |
 | `android_id` | ^0.5.2+1 | ID estável de dispositivo Android |
@@ -368,7 +434,7 @@ atlas/
 ## 6. Banco de Dados SQLite
 
 **Arquivo:** `blue_ocean.db` (em `ApplicationDocumentsDirectory`)
-**Gerenciado por:** `lib/core/database/database_helper.dart` — **Singleton** (`DatabaseHelper.instance`), atualmente na **versão 12** do schema (`onCreate`/`onUpgrade` incrementais desde a v2).
+**Gerenciado por:** `lib/core/database/database_helper.dart` — **Singleton** (`DatabaseHelper.instance`), atualmente na **versão 16** do schema (`onCreate`/`onUpgrade` incrementais desde a v2).
 
 O `DatabaseHelper` expõe métodos genéricos CRUD reaproveitados por toda a app — não há DAO por entidade:
 
@@ -399,6 +465,7 @@ Future<int> deleteWhere(String table, {required String where, List<Object?>? whe
 | `mestre_id` | TEXT | *(desde v4)* |
 | `motor_usado` | TEXT | *(desde v5)* |
 | `foto` | TEXT | Caminho local da foto *(desde v6)* |
+| `remoto_id` | TEXT | Id da embarcação no catálogo remoto — vincula a linha local espelhada ao `EmbarcacaoRemota` correspondente *(desde v16)*. Ver nota no topo do documento: cadastro/edição manual acabou, quem cria é a retaguarda. |
 
 #### `viagem`
 | Coluna | Tipo | Descrição |
@@ -409,6 +476,7 @@ Future<int> deleteWhere(String table, {required String where, List<Object?>? whe
 | `data_termino` | TEXT | ISO 8601 (nullable) |
 | `embarcacao_id` | TEXT | ID da embarcação |
 | `status` | TEXT | `'em_andamento'` ou `'finalizada'` |
+| `remoto_id` | TEXT | UUID da viagem no backend *(desde v14)* — obrigatório pra `producao_registro` conseguir sincronizar (ver §7.7a). Um índice único parcial (`idx_viagem_unica_ativa`, migração v15) garante no máximo uma linha `status = 'em_andamento'` por vez. |
 
 #### `localizacao_historico`
 | Coluna | Tipo | Descrição |
@@ -461,6 +529,16 @@ Future<int> deleteWhere(String table, {required String where, List<Object?>? whe
 | `latitude` / `longitude` | REAL | Posição marcada manualmente no mapa |
 | `data_criacao` | TEXT | ISO 8601 |
 | `nome` | TEXT | Nome opcional do ponto |
+
+#### `porto_mare` *(desde v13)*
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `id` | INTEGER PK | — |
+| `nome` | TEXT | Nome do porto salvo pelo usuário (ex: "Porto de Itarema") |
+| `latitude` / `longitude` | REAL | Posição do porto |
+| `data_criacao` | TEXT | ISO 8601 |
+| `constantes_json` | TEXT | Modelo de maré por harmônicos, ajustado a partir da série da Open-Meteo — permite calcular preamar/baixa-mar **offline**, sem nova chamada de rede (ver `TabuaMareDetalheScreen`, §9.7) |
+| `sincronizado_em` | TEXT | ISO 8601, última vez que o modelo foi reajustado com dado fresco |
 
 #### `solicitacao_carta` *(desde v9)*
 | Coluna | Tipo | Descrição |
@@ -558,12 +636,26 @@ decimalToDMS(double decimal, bool isLatitude)       // → String
 ### 7.6 LocationTrackingService
 **Localização:** `core/services/location_tracking_service.dart` — Singleton.
 
+Rastreamento de posição durante uma viagem — roda como **serviço em primeiro plano de verdade** (`flutter_foreground_task`, com notificação persistente), não mais como tarefa periódica do `workmanager` (mudança de 2026-09). Diferença que importa na prática: o WorkManager era melhor-esforço — o Android podia atrasar, agrupar ou simplesmente não rodar a tarefa com o app fechado, dependendo do fabricante e do modo Doze. Um serviço em primeiro plano com notificação continua rodando mesmo com o app fechado/removido dos recentes, e só para quando o mestre finaliza a viagem ou o sistema mata o app via "Forçar parada".
+
 ```dart
-initialize()                                       // Workmanager().initialize(callbackDispatcher)
-iniciarRastreamento({required int intervaloMinutos}) // mínimo de 15 min, registra task periódica
-pararRastreamento()
-getHistory({int? viagemId})                        // → histórico em localizacao_historico
+Future<bool> get isTracking  // consulta o sistema (FlutterForegroundTask.isRunningService), não um bool em memória
+iniciarRastreamento({required int intervaloMinutos})
+// configura canal de notificação (channelImportance: DEFAULT — importância baixa deixava a OneUI/Samsung
+// dispensar a notificação com swipe mesmo sendo de serviço em 1º plano), pede permissão de notificação +
+// isenção de otimização de bateria, e sobe o serviço (FlutterForegroundTask.startService)
+pararRastreamento()          // FlutterForegroundTask.stopService()
+getHistory({int? viagemId})  // → histórico em localizacao_historico
 ```
+
+No iOS não existe "serviço em primeiro plano" — o rastreamento em background depende do modo de localização do sistema (`UIBackgroundModes` + permissão "Sempre" no `Info.plist`), não dessa notificação.
+
+---
+
+### 7.6a LocationForegroundTaskHandler
+**Localização:** `core/background/location_foreground_task_handler.dart`
+
+Handler que roda dentro da isolate própria do serviço em primeiro plano (`vm:entry-point`, reinicializa o Hive nela — não reaproveita a isolate principal do app). A cada disparo (`onStart`/`onRepeatEvent`, no intervalo configurado): captura a posição e grava/sincroniza (`LocalizacaoReporterService.registrarESincronizar`), checa recomendação nova (`RecomendacaoNotificationService.verificarNovas`) e condição severa à frente (`AlertaCondicaoNotificationService.verificarCondicoesAFrente`) — atualiza o texto da notificação a cada execução (hora do último envio + contador), pra o mestre distinguir "rodando" de "travado" só olhando a notificação.
 
 ---
 
@@ -580,7 +672,7 @@ sincronizarPendentes()
 // convertendo velocidade m/s → nós
 ```
 
-Chamado pelo callback do WorkManager (`location_worker.dart`) e por `PosicaoAtualWidget` na abertura do app.
+Chamado pelo handler do serviço em primeiro plano (`LocationForegroundTaskHandler`, §7.6a) e por `PosicaoAtualWidget` na abertura do app.
 
 ---
 
@@ -605,8 +697,9 @@ cadastrado na plataforma — o app só lista, nunca cria), `pesoKg`, `quantidade
 coordenada no backend. `ProducaoReporterService` resolve os dois IDs que faltam:
 `especieId` via `EspecieRepository` (mapeando `TipoPeixe.kihada`/`bati` → "Atum", único
 item de atum do catálogo) e o `viagemId` remoto via `viagem.remoto_id` (coluna nova,
-preenchida por `NovaViagemScreen` depois que `ViagemRepository.criar()` retorna o UUID
-gerado). Um registro de produção só sincroniza depois que a viagem dele já sincronizou.
+preenchida a partir do `ViagemAtualRemota.id` que `ContextoViagemService` espelha, ver §7.17
+— ou, quando o app ainda cria a viagem, pelo UUID que `ViagemRepository.criar()` retorna).
+Um registro de produção só sincroniza depois que a viagem dele já sincronizou.
 `ProducaoScreen._salvarProducao()` já chama `sincronizarPendentes()` (fire-and-forget)
 depois de cada `insert` bem-sucedido — não precisa mexer no ponto de chamada.
 
@@ -686,7 +779,7 @@ verificarNovas()
 // com criadoEm posterior à marca salva e avança a marca — evita re-notificar
 ```
 
-Chamado pela mesma tarefa periódica do rastreamento de GPS (`location_worker.callbackDispatcher`), então só roda enquanto há uma viagem em andamento, no intervalo configurado (mínimo 15 min no Android — não é push de verdade, não depende de servidor/Firebase). No toque da notificação, `main.dart` usa um `GlobalKey<NavigatorState>` (`navigatorKey`) pra abrir `MeusPontosScreen`. Tem um botão de teste manual em `DispositivoTesteScreen` (zera a marca d'água e chama `verificarNovas()` na hora, sem esperar o ciclo do WorkManager).
+Chamado pelo mesmo serviço em primeiro plano do rastreamento de GPS (`LocationForegroundTaskHandler`, §7.6a), então só roda enquanto há uma viagem em andamento, no intervalo configurado pelo usuário (não é push de verdade, não depende de servidor/Firebase). No toque da notificação, `main.dart` usa um `GlobalKey<NavigatorState>` (`navigatorKey`) pra abrir `MeusPontosScreen`. Tem um botão de teste manual em `DispositivoTesteScreen` (zera a marca d'água e chama `verificarNovas()` na hora, sem esperar o próximo disparo do serviço).
 
 ---
 
@@ -721,6 +814,50 @@ Persiste respostas HTTP da tela de Teste de API (`ApiEntry`): `save`, `getAll` (
 
 ---
 
+### 7.17 ContextoViagemService
+**Localização:** `core/services/contexto_viagem_service.dart` — namespace estático.
+
+Resolve o contexto operacional a partir da viagem ativa do usuário **no backend**: busca a viagem (`ViagemRepository.buscarAtual()`), e a partir do `embarcacaoId` dela, resolve/espelha a embarcação. Reflete o novo desenho de 2026-09 (ver nota no topo do documento): antes tanto viagem quanto embarcação eram cadastradas manualmente no app; agora as duas só existem na retaguarda, e o app espelha localmente o que a viagem ativa aponta — nunca cria nem edita nenhuma das duas.
+
+```dart
+resolverAoLogar(DatabaseHelper dbHelper)   // chamado pelo LoginScreen após login — nunca lança
+sincronizar(DatabaseHelper dbHelper) → Future<bool>
+// chamável a qualquer momento (botões "Sincronizar" no Dashboard e em EmbarcacaoConfiguracaoScreen)
+// true = achou e sincronizou viagem ativa; false = sem viagem ativa OU erro de rede (não distingue os dois)
+```
+
+Best-effort de propósito (mesmo padrão de `SincronizacaoService`): nunca trava nem falha visivelmente — sem viagem ativa ou erro de rede/backend, o app segue com o que já tinha localmente. A sincronização local (`_sincronizarViagemLocal`) nunca sobrescreve nem finaliza uma viagem `em_andamento` local diferente da que veio do backend (só registra no log) — proteção contra perder rastreamento/produção em andamento por um conflito de sincronização.
+
+---
+
+### 7.18 AlertaCondicaoNotificationService
+**Localização:** `core/services/alerta_condicao_notification_service.dart`
+
+Notificação (com vibração) quando vento, corrente, onda ou swell no ponto à frente da embarcação ficam severos — checado tanto em primeiro plano (`AlertaRotaScreen`, a cada busca) quanto em segundo plano (`LocationForegroundTaskHandler`, durante uma viagem em andamento), pelo mesmo método, pra não duplicar a lógica de limiar em dois lugares. Canal e inicialização independentes de `RecomendacaoNotificationService` (plugins/canais separados, mesmo pacote). Limiares configuráveis por condição na `AlertaConfigScreen` (ver `core/config/limiares_alerta.dart`, §9.7). Intervalo mínimo de 1h entre duas notificações da mesma condição severa persistente, pra não notificar de novo a cada checagem em segundo plano.
+
+---
+
+### 7.19 BatteryOptimizationService
+**Localização:** `core/services/battery_optimization_service.dart`
+
+Helper pequeno em torno de `FlutterForegroundTask.isIgnoringBatteryOptimizations`/`requestIgnoreBatteryOptimization` — usado por `LocationTrackingService` (§7.6) na hora de iniciar o rastreamento, e exposto também nas Configurações pra o mestre checar/pedir a isenção manualmente se o rastreamento estiver sendo interrompido pelo sistema.
+
+---
+
+### 7.20 DadosPontoCacheService
+**Localização:** `core/services/dados_ponto_cache_service.dart`
+
+Cache em memória (TTL curto) de consultas repetidas de dados oceânicos por coordenada — evita rechamar `WaveForecastRepository`/`ProfundidadeRepository`/`ClorofilaRepository` várias vezes seguidas pro mesmo ponto (ex: abrir o mesmo ponto marcado de novo logo em seguida, ou telas diferentes consultando a mesma posição). Não persiste em disco — zera a cada reabertura do app.
+
+---
+
+### 7.21 LocaleService
+**Localização:** `core/services/locale_service.dart`
+
+Estado global do idioma ativo (`ValueNotifier<Locale>`), mesmo padrão de `NightModeService`/`ThemeModeService` — persistido via `Config`, consumido no `builder` do `MaterialApp` (`main.dart`) e exposto na tela de Configurações. Idiomas suportados: pt (padrão/template do `l10n.yaml`), en, es, fr, it.
+
+---
+
 ## 8. Repositórios de API (`data/`)
 
 | Repository | Métodos | Backend |
@@ -731,10 +868,17 @@ Persiste respostas HTTP da tela de Teste de API (`ApiEntry`): `save`, `getAll` (
 | `PrevisaoTempoRepository` (`features/metereologia/data`) | `buscar({latitude, longitude}) → Future<PrevisaoTempo>` | Open-Meteo (`http` direto) |
 | `ProfundidadeRepository` (`features/metereologia/data`) | `buscarPonto(...)`, `buscarVarios(List<LatLng>)` | OpenTopoData/GEBCO (`http` direto) |
 | `WaveForecastRepository` (`features/metereologia/data`) | `buscar({latitude, longitude}) → Future<WaveForecast>` (onda, swell, corrente, SST, **maré**), `buscarGrade(List<LatLng> pontos) → Future<List<SstPonto>>` | Open-Meteo Marine (`http` direto) |
+| `FaseLuaRepository` (`features/metereologia/data`) | `buscar({latitude, longitude, ...}) → Future<List<DiaLunar>>` | Open-Meteo (`http` direto) |
+| `ClorofilaRepository` (`features/mapa/data`) | `buscarPonto({latitude, longitude}) → Future<LeituraClorofilaPonto>` | Blue Ocean API, via `ApiService` |
+| `ProducaoRepository` (`features/producao/data`) | `enviar(ProducaoEnvio dados) → Future<void>` | Blue Ocean API — `POST base/resultado/capturas`, via `ApiService` |
+| `EspecieRepository` (`features/producao/data`) | `listar({String? nome}) → Future<List<EspecieRemota>>` | Blue Ocean API — `base/resultado/especies/indice`, catálogo só-leitura |
+| `ViagemRepository` (`features/viagem/data`) | `criar(...) → Future<String>` (retorna o UUID gerado pelo backend), `buscarAtual() → Future<ViagemAtualRemota?>` | Blue Ocean API — `base/operacao/viagens` |
+| `PortoRepository` (`features/viagem/data`) | `listar({nome, codigo}) → Future<List<Porto>>`, `criarOuReaproveitar(...) → Future<Porto>` | Blue Ocean API — `base/operacao/portos` |
+| `EmbarcacaoRepository` (`features/embarcacao/data`) | `listar({String? nome}) → Future<List<EmbarcacaoRemota>>`, `buscarPorId(String id) → Future<EmbarcacaoRemota?>` | Blue Ocean API — `base/operacao/embarcacoes`, catálogo só-leitura (não cria/edita) |
 
 `buscarGrade` pede a SST atual (`current`, não `hourly` — mais leve) de vários pontos numa única chamada, usando listas separadas por vírgula nos parâmetros `latitude`/`longitude` da Open-Meteo; usado pela grade de temperatura do mapa (ver [9.6](#96-mapa-offline-mapa)).
 
-Endpoints do backend próprio ficam centralizados em `core/network/endpoints.dart` (`Endpoints.dispositivoPorIdentificador`, `Endpoints.recomendacoes`, `Endpoints.recomendacaoPorId`, `Endpoints.localizacaoDispositivo`).
+Endpoints do backend próprio ficam centralizados em `core/network/endpoints.dart` (`Endpoints.euOrganizacoes`, `Endpoints.dispositivoPorIdentificador`, `Endpoints.recomendacoes`/`recomendacaoPorId`, `Endpoints.localizacaoDispositivo`, `Endpoints.viagens`/`viagemAtual`, `Endpoints.portos`/`portosIndice`, `Endpoints.embarcacoesIndice`/`embarcacaoPorId`, `Endpoints.especiesIndice`, `Endpoints.capturas`).
 
 ---
 
@@ -753,10 +897,12 @@ Endpoints do backend próprio ficam centralizados em `core/network/endpoints.dar
 **Telas:** `CartasScreen` (lista/baixa cartas com busca), `PdfViewerScreen` (zoom/pan via `pdfrx`), `SolicitarCartaScreen` (formulário de pedido, salvo em `solicitacao_carta`), `MinhasSolicitacoesScreen` (lista os pedidos feitos).
 
 ### 9.5 Embarcação (`embarcacao/`)
-**Telas:** `EmbarcacaoScreen`, `CadastrarEmbarcacaoScreen`, `EmbarcacaoConfiguracaoScreen`; widget `FotoEmbarcacaoPicker` (usa `FotoEmbarcacaoService`). A placa/registro é sempre convertida para maiúsculas.
+**Telas:** `EmbarcacaoScreen`, `EmbarcacaoConfiguracaoScreen`; widget `FotoEmbarcacaoPicker` (usa `FotoEmbarcacaoService`).
+
+> ⚠️ **Sem cadastro manual desde 2026-09.** `CadastrarEmbarcacaoScreen` não existe mais — a embarcação vem do catálogo remoto (`EmbarcacaoRepository`, `base/operacao/embarcacoes`) e é espelhada localmente a partir do `embarcacaoId` da viagem ativa (`ContextoViagemService`, ver §7.17). `EmbarcacaoConfiguracaoScreen` continua existindo, mas hoje é mais um ponto de "Sincronizar" (chama `ContextoViagemService.sincronizar`) do que um formulário de edição — os campos que o catálogo remoto ainda não traz (capacidade de gelo/diesel, tripulação, mestre, motor) ficam nulos e não são mais editáveis à mão.
 
 ### 9.6 Mapa Offline (`mapa/`)
-**Telas:** `MapaScreen` (container) → `MapaWidget` (mapa principal, autocontido).
+**Telas:** `MapaScreen` (container) → `MapaWidget` (mapa principal, autocontido, ~3000 linhas — concentra navegação, camadas, overlays, diálogos e o Modo Navegação).
 
 Suporta os modos:
 
@@ -772,14 +918,21 @@ Suporta os modos:
 2. `OverlayImageLayer` — GeoTIFF (se modo GeoTIFF ativo)
 3. `OverlayImageLayer` — PNG georreferenciado escolhido pelo usuário
 4. `MarkerLayer` — calor de produção (círculos proporcionais ao total em kg)
-5. `PolygonLayer` + `MarkerLayer` — grade de temperatura da superfície do mar (SST)
-6. `PolylineLayer` — rota sendo planejada manualmente
-7. `PolylineLayer` + `MarkerLayer` — rota entre registros de produção (ícones de peixe)
-8. `MarkerLayer` — pontos marcados manualmente, pontos de recomendação, rota de histórico, posição GPS
+5. `PolygonLayer` + `MarkerLayer` — grade de temperatura da superfície do mar (SST, múltiplos pontos)
+6. `PolygonLayer`/`MarkerLayer` — clorofila-a e índice de produtividade Blue Ocean
+7. `PolylineLayer` — trilha ao vivo da viagem em andamento
+8. `PolylineLayer` — rota sendo planejada manualmente
+9. `PolylineLayer` + `MarkerLayer` — rota entre registros de produção (ícones de peixe)
+10. `MarkerLayer` — pontos marcados manualmente, pontos de recomendação, rota de histórico
+11. `MarkerLayer` — posição GPS: ícone estático (mapa embutido no Dashboard) ou o barco 3D (mapa em tela cheia, ver Modo Navegação abaixo)
 
 **Sobreposição de PNG georreferenciado:** o botão de camadas (ícone de "layers") abre um diálogo (`AlertDialog`) explicando o fluxo e, ao confirmar, abre o seletor de arquivos (`FilePicker`, filtrado para `.png` — no Android inclui a galeria de fotos como origem). Os bounds (sudoeste/nordeste) são lidos automaticamente do metadado `geo_bounds` embutido no arquivo via `GeoPngHelper.readBounds`. Se o PNG não tiver o metadado, o app cai num retângulo fixo de fallback e avisa o usuário por `SnackBar`, em vez de travar. Toque curto no botão liga/desliga a camada já carregada; toque longo reabre o diálogo para trocar de imagem. Um slider ajusta a opacidade em tempo real (padrão 80%).
 
-**Grade de temperatura (SST):** botão termômetro na barra superior. Gera uma grade quadrada de 5×5 pontos (0.25° de espaçamento) centrada no centro do mapa no momento da ativação, busca a SST de todos numa única chamada (`WaveForecastRepository.buscarGrade`) e desenha um quadrado colorido por célula (verde = mais frio → amarelo → laranja = mais quente, normalizado pelo mín./máx. da própria grade) com o valor em cima. Uma legenda compacta (gradiente + mín./máx.) aparece no canto superior direito enquanto a grade está ativa. Os números somem abaixo do zoom 8 para não se sobreporem — a cor de fundo continua visível em qualquer zoom. Resultado cacheado em memória (só busca de novo se reaberta após reiniciar a tela).
+**Grade de temperatura (SST):** menu lateral → "Temperatura da superfície do mar". Cada consulta abre o mesmo seletor de posição (retículo no centro do mapa + coordenada exibida) usado em "Marcar um ponto", e ao confirmar busca a SST daquele ponto (`WaveForecastRepository.buscarGrade`) e desenha um quadrado colorido (verde = mais frio → amarelo → laranja = mais quente, normalizado pelo mín./máx. dos pontos já consultados) com o valor em cima. **Suporta múltiplos pontos simultâneos** — um botão "+" flutuante adiciona mais um sem substituir os já consultados (antes, cada nova consulta substituía a anterior); tocar num ponto abre um diálogo com o valor exato e a opção de remover só aquele. Não há mais legenda de escala fixa no canto da tela — o valor de cada ponto já aparece escrito em cima do quadrado colorido. Os números somem abaixo do zoom 8 para não se sobreporem — a cor de fundo continua visível em qualquer zoom.
+
+**Clorofila-a e Índice de Produtividade Blue Ocean:** mesmo padrão de múltiplos pontos + botão "+" da grade de temperatura. Clorofila-a vem da Blue Ocean API (`ClorofilaRepository`); o Índice de Produtividade (`IndiceProdutividadeBlueOcean.calcular`) combina clorofila-a + SST num nível único (Ruim/Bom/Ótimo/Excelente) — sempre com uma frase curta explicando os fatores (ex: "Clorofila-a: Ótimo (0,19 mg/m³) · Temperatura: Bom (24,8 °C)"), tratado explicitamente como estimativa heurística, nunca como garantia de cardume.
+
+**Trilha ao vivo da viagem:** menu lateral → "Trilha da viagem". Desenha o trajeto da viagem em andamento (`localizacao_historico`) e se atualiza sozinha a cada 60s enquanto ligada — best-effort, o intervalo real de gravação é o do rastreamento (`LocationTrackingService`), a atualização de 60s só garante que a linha reflete o ponto mais recente já gravado sem exigir sair e voltar ao mapa.
 
 **Rota entre registros de produção:** ao vir de "Ver no mapa" em `ProducaoHistoricoScreen`, cada registro de produção com coordenada vira um marcador (ícone de peixe) e, havendo 2 ou mais, uma linha os liga em ordem cronológica — estilo Waze/Google Maps, mesmo padrão visual da rota de histórico de GPS, mas em laranja. Essa rota **não tem botão de salvar** — o salvamento como rota planejada acontece automaticamente ao finalizar a viagem correspondente (ver [9.11](#911-viagem-viagem)).
 
@@ -787,23 +940,34 @@ Suporta os modos:
 
 **Meus Pontos** (`MeusPontosScreen`, acessível por um ícone ao lado do botão de GPS no mapa): lista, no mesmo estilo visual da aba Recomendações (linhas com acento lateral colorido, divisor fino, card de detalhe flutuante), os pontos marcados e as recomendações juntos — reaproveita `RecomendacaoListTile`/`RecomendacaoCard` para as recomendações e um novo `PontoMarcadoListTile`/`_DetalhePontoMarcado` para os pontos marcados, ambos abrindo o detalhe no mesmo chrome de diálogo.
 
+**Precisão ao marcar pontos e planejar rotas:** tanto "Marcar um ponto" quanto "Planejar rota" usam o mesmo retículo fixo no centro da tela + coordenada exibida em tempo real, em vez de um toque direto no mapa (o dedo cobre o ponto exato e não dá controle fino). Ao planejar rota, o botão "Adicionar ponto" usa a posição apontada pelo retículo; tocar diretamente num ponto já marcado no mapa continua funcionando como atalho (usa a coordenada exata já salva, sem depender de acertar o toque).
+
+**Modo Navegação (vista estilo Waze):** botão dedicado no mapa liga/desliga uma vista de navegação — o mapa recentraliza e gira sozinho acompanhando o rumo (course-up, `moveAndRotate`), com uma inclinação pseudo-3D (`Transform` com matriz de perspectiva) simulando uma câmera de navegação. O marcador de posição vira um modelo 3D do barco (`assets/icons/fishing-boat.glb`, renderizado via `flutter_3d_controller`/WebView local — **não depende de internet**, o modelo e o motor de renderização (`model-viewer`) vêm empacotados no próprio app); a câmera orbita suavemente ao redor do modelo conforme o rumo muda (filtro de suavização + transição animada, não o ícone em si girando). O rumo vem da bússola do aparelho (`CompassoCircular`, badge de graus no canto do mapa, sempre visível) por padrão, ou do **giroscópio** (`sensors_plus`, integração da velocidade angular) se a bússola for desligada no menu lateral — útil perto de motor/metal, onde o magnetômetro sofre interferência; nesse caso o badge de graus some (deixa de representar um rumo bussolar de verdade). A reorbitação do barco 3D pausa automaticamente enquanto o usuário arrasta/dá pinça no mapa, pra não competir com o gesto.
+
+**Otimizações de performance do mapa:** o rumo do sensor é propagado via `ValueNotifier` (não `setState`) pra evitar reconstruir a árvore inteira do mapa a cada leitura; há throttle na frequência de processamento da bússola, um limiar angular antes de de fato girar o mapa no Modo Navegação (girar é um repaint caro do canvas inteiro), `RepaintBoundary` isolando a WebView do barco 3D do resto do canvas, e precisão de GPS adaptativa (alta só durante o Modo Navegação). O preview do mapa embutido no Dashboard (`MapaWidget(navegacaoTempoReal: false)`) não roda nenhum desses streams contínuos nem a WebView 3D — só um ícone estático de posição, pra não pagar esse custo toda vez que o app abre no Home.
+
 **Outras interações do mapa:**
-- Marcar ponto manualmente (mira no centro, salvo em `ponto_marcado`)
-- Planejar rota manualmente (sequência de toques, salva em `rota_planejada`/`rota_planejada_ponto`)
 - Toque no label de um ponto → `MeteorologiaSheet` (bottom sheet com vento, movimento, atmosfera, ondas)
 - Download de região do mapa de ruas para uso offline (`DownloadRegiaoDialog`)
 
-**GPS:** estratégia de duas fases — `getLastKnownPosition()` (instantâneo) → `getCurrentPosition()` (fix fresco em segundo plano).
+**GPS:** estratégia de duas fases — `getLastKnownPosition()` (instantâneo) → `getCurrentPosition()` (fix fresco em segundo plano). Fora do fix único inicial, o mapa mantém um stream contínuo de GPS/bússola enquanto a tela está aberta (ver "Modo Navegação" acima).
 
 ### 9.7 Meteorologia (`metereologia/`)
 **Telas:**
 - `CondicoesMarScreen` — temperatura da água, corrente, ondas/swell, **maré** (`MareCard`) e clima na posição atual da embarcação (GPS) ou numa posição informada manualmente (`PosicaoAtualWidget` + `PosicaoManualWidget`).
 - `CondicoesPontoScreen` — mesma informação, mas **travada num único ponto de referência** (latitude/longitude fixos, recebidos por parâmetro) — sem GPS nem campo de posição manual, então não tem como trocar de posição sem querer no meio da consulta. Usada a partir de "Consultar aqui" no diálogo de um ponto marcado no mapa.
 - `AlertaRotaScreen` — ver [9.17](#917-alerta-de-rota-metereologia).
+- `AlertaConfigScreen` — configura os limiares do alerta de condição severa (`AlertaCondicaoNotificationService`, §7.18): um card por condição (vento, altura de onda/swell, corrente, temperatura), cada um com liga/desliga e slider de limiar (`core/config/limiares_alerta.dart`). Salva a cada mudança, sem botão "Salvar" separado.
+- `FaseLuaScreen` — fase atual da lua, próximas fases principais (Nova/Quarto Crescente/Cheia/Quarto Minguante) e nascer/pôr da lua (`FaseLuaRepository`, `DiaLunar`).
+- `TabuaMareScreen` — lista de portos salvos pelo usuário pra consulta de maré (tabela `porto_mare`); cada porto guarda um modelo de maré por harmônicos ajustado a partir da série da Open-Meteo.
+- `TabuaMareDetalheScreen` — maré de um porto salvo: altura prevista agora + preamares/baixa-mares dos próximos dias, calculadas pelo modelo harmônico local. Funciona **sem internet** depois de sincronizado ao menos uma vez; um botão de sincronizar busca série nova e reajusta o modelo (precisa de conexão).
+- `MarePescaAtumScreen` — inteligência oceanográfica de apoio à decisão: explica sizígia/quadratura e relaciona a maré com a dinâmica que pode afetar a disponibilidade de atum (correntes, mistura, distribuição de presas) — **nunca afirma correlação direta entre fase da maré e captura** (`calcularIndiceInfluenciaMare`/`calcularNivelOperacionalMare`, `core/utils/`). Widgets dedicados em `features/widgets/mare_pesca_atum/` (gráfico de maré 24h, comparação sizígia×quadratura, índice de influência, janela/nível operacional).
 
-Todos os dados vêm de APIs externas via `PrevisaoTempoRepository`/`ProfundidadeRepository`/`WaveForecastRepository` (Open-Meteo). A antiga tela de Gribs (`vento.json`/`correntes.json` locais) foi removida — não há mais consulta de dados fora da tela de condições do mar/ponto.
+Os dados de vento/onda/maré/profundidade vêm de APIs externas via `PrevisaoTempoRepository`/`ProfundidadeRepository`/`WaveForecastRepository`/`FaseLuaRepository` (Open-Meteo). A antiga tela de Gribs (`vento.json`/`correntes.json` locais) foi removida — não há mais consulta de dados fora dessas telas.
 
-**Tábua de marés:** `WaveForecastRepository.buscar()` já pede `sea_level_height_msl` junto com onda/swell/corrente/SST (mesma chamada, sem custo extra de rede). `WaveForecast.eventosMare` (getter em `core/models/wave_forecast.dart`) calcula os picos/vales dessa série horária — cada ponto onde a curva muda de direção é uma preamar (`TipoMare.alta`) ou baixa-mar (`TipoMare.baixa`), já que a Open-Meteo não expõe esses horários prontos. `MareCard` mostra o nível atual + os próximos eventos; `DadosOceanicosPonto` mostra uma linha compacta ("X m (preamar às HH:mm)").
+**Tábua de marés (cálculo ao vivo, sem porto salvo):** `WaveForecastRepository.buscar()` já pede `sea_level_height_msl` junto com onda/swell/corrente/SST (mesma chamada, sem custo extra de rede). `WaveForecast.eventosMare` (getter em `core/models/wave_forecast.dart`) calcula os picos/vales dessa série horária — cada ponto onde a curva muda de direção é uma preamar (`TipoMare.alta`) ou baixa-mar (`TipoMare.baixa`), já que a Open-Meteo não expõe esses horários prontos. `MareCard` mostra o nível atual + os próximos eventos; `DadosOceanicosPonto` mostra uma linha compacta ("X m (preamar às HH:mm)").
+
+**Tábua de marés offline (porto salvo):** diferente do cálculo ao vivo acima, `TabuaMareDetalheScreen` usa um **modelo de maré por harmônicos** (ajustado uma vez a partir da série da Open-Meteo e salvo em `porto_mare.constantes_json`) — permite calcular preamar/baixa-mar dos próximos dias sem nenhuma chamada de rede, útil em viagem longa sem sinal.
 
 ### 9.8 Produção (`producao/`)
 **Tela:** `ProducaoScreen` — registro de captura com os campos, nessa ordem:
@@ -823,12 +987,17 @@ Ao salvar: tenta capturar o GPS (`LocationService`); se falhar, salva mesmo assi
 Sem tela própria — é uma biblioteca de widgets (`RecomendacaoCard`, `RecomendacaoListTile`, `RecomendacaoPontoCard`, `RecomendacaoScoreBadge`, `RecomendacaoConfiancaDots`, `RecomendacaoValidadeChip`, `RecomendacaoVariavelChip`, `RecomendacoesList`) embutida em `dashboard`, `mapa` e `dispositivo`, alimentada por `RecomendacaoRepository`.
 
 ### 9.10 Rotas (`rotas/`)
-**Tela:** `MinhasRotasScreen` — lista/gerencia rotas planejadas (CRUD local em `rota_planejada`/`rota_planejada_ponto`). Cada item mostra um ícone diferente conforme a origem: peixe/laranja para rotas geradas de registros de produção (`embarcacaoId != null`), rota/roxo para rotas desenhadas à mão no mapa.
+**Tela:** `MinhasRotasScreen` — lista/gerencia rotas planejadas (CRUD local em `rota_planejada`/`rota_planejada_ponto`). Cada item mostra um ícone diferente conforme a origem: peixe/laranja para rotas geradas de registros de produção (`embarcacaoId != null`), rota/roxo para rotas desenhadas à mão no mapa (ver [9.6](#96-mapa-offline-mapa) — usa o mesmo retículo de precisão de "Marcar um ponto").
+
+**Tela:** `AnaliseRotaScreen` — busca condições do mar (vento/onda/corrente/SST) pra cada ponto de uma rota planejada; cada campo nulo significa "a API não trouxe esse dado nesse ponto" (comum em pontos sobre terra ou fora de cobertura marinha), sem inventar valor.
 
 ### 9.11 Viagem (`viagem/`)
-**Telas:** `NovaViagemScreen` (inicia viagem), `NovaTripulacao` (gerencia tripulantes — ainda sem persistência local), `HistoricoLocalizacoesScreen` (timeline de posições em DMS, trajeto no mapa, botão **Finalizar viagem**).
 
-**Ao finalizar uma viagem** (`HistoricoLocalizacoesScreen._finalizarViagem`): além de marcar `status = 'finalizada'`, busca os registros de `producao_registro` dessa viagem com coordenada (ordenados cronologicamente) e, havendo 2 ou mais, salva automaticamente uma `rota_planejada` ligando esses pontos — sem pedir nome ao usuário (o nome é gerado, e a rota já fica identificada por `embarcacao_id`/`viagem_id`). Best-effort: se falhar, não impede a viagem de ser finalizada.
+> ⚠️ **Sem criação manual desde 2026-09.** `NovaViagemScreen` não existe mais. Viagem e embarcação agora vêm da retaguarda: `ContextoViagemService.sincronizar()` (§7.17) busca a viagem ativa do usuário logado (`ViagemRepository.buscarAtual()`, `GET base/operacao/viagens/eu/atual`) e espelha localmente na tabela `viagem` (por `remoto_id`), além de resolver a embarcação vinculada. Chamado após o login (`LoginScreen`) e por botões "Sincronizar" manuais (Dashboard, `EmbarcacaoConfiguracaoScreen`).
+
+**Telas:** `NovaTripulacao` (gerencia tripulantes — ainda sem persistência local nem remota, ver §10), `HistoricoLocalizacoesScreen` (timeline de posições em DMS, trajeto no mapa, botão **Finalizar viagem**).
+
+**Ao finalizar uma viagem** (`HistoricoLocalizacoesScreen._finalizarViagem`): além de marcar `status = 'finalizada'`, busca os registros de `producao_registro` dessa viagem com coordenada (ordenados cronologicamente) e, havendo 2 ou mais, salva automaticamente uma `rota_planejada` ligando esses pontos — sem pedir nome ao usuário (o nome é gerado, e a rota já fica identificada por `embarcacao_id`/`viagem_id`). Best-effort: se falhar, não impede a viagem de ser finalizada. Finalizar a viagem também é o que encerra o serviço em primeiro plano do rastreamento (§7.6).
 
 ### 9.12 Dispositivo (`dispositivo/`)
 **Tela:** `DispositivoTesteScreen` — ferramenta de debug do registro de dispositivo (`DispositivoRepository`) e recomendações associadas.
@@ -837,7 +1006,7 @@ Sem tela própria — é uma biblioteca de widgets (`RecomendacaoCard`, `Recomen
 Sem tela própria — só `data/` (`LocalizacaoRepository`) e `domain/models` (`LocalizacaoEnvio`), consumida por `LocalizacaoReporterService` e widgets de posição.
 
 ### 9.14 Configurações (`configuracoes/`)
-**Tela:** `ConfiguracoesScreen` — intervalo de rastreamento, modo noturno, contato de emergência (WhatsApp), embarcação ativa, backup manual do banco.
+**Tela:** `ConfiguracoesScreen` — intervalo de rastreamento, modo noturno, tema claro/escuro/sistema, idioma (pt/en/es/fr/it — `LocaleService`, §7.21), contato de emergência (WhatsApp), embarcação ativa, backup manual do banco.
 
 ### 9.15 Teste de API (`api_tester/`)
 **Tela:** `ApiTesterScreen` — ferramenta interna para testar endpoints HTTP manualmente.
@@ -866,6 +1035,7 @@ Sem tela própria — só `data/` (`LocalizacaoRepository`) e `domain/models` (`
 - **Bússola** (card ao lado do de alcance): usa o **magnetômetro** (`flutter_compass`), não o GPS — funciona parada ou em movimento, mostrador fixo (N/L/S/O) com uma agulha girando pro rumo atual, só número em graus + rótulo cardinal (sem desenho de ponteiro).
 - **Simulação**: botão "Simular com ponto marcado" (ícone de frasco) — escolhe um ponto já salvo em `ponto_marcado` + um rumo arbitrário (slider 0–359°) e monta uma `Position` sintética (`isMocked: true`) nessa coordenada, rodando o mesmo pipeline de busca. Um banner amarelo deixa claro que não é o GPS real, com botão "Sair" (chama `_atualizar()`, que volta pro GPS real). Útil pra testar/planejar sem depender de a embarcação estar de fato em movimento.
 - **Cards de alerta**: vento (limiares de `CondicoesVentoCard`), corrente (limiares próprios em nós), onda e swell (limiares de `CondicoesAtuaisCard`, altura em metros) — cada um com ícone, cor por severidade (verde→vermelho) e direção.
+- **Limiares configuráveis**: os mesmos limiares que definem "severo" aqui e na notificação em segundo plano (`AlertaCondicaoNotificationService`, §7.18) ficam em `core/config/limiares_alerta.dart` e podem ser ajustados na tela `AlertaConfigScreen` (§9.7) — liga/desliga + slider por condição.
 
 ---
 
@@ -877,6 +1047,15 @@ class Usuario {
   final String id, email, nome;
   final String? organizacaoId, empresaId;
   factory Usuario.fromLoginResponse(Map<String,dynamic> json); // combina resposta de login + claims do JWT
+}
+```
+
+### Organizacao (`core/auth/models`)
+```dart
+class Organizacao {
+  final String id, nome;
+  final String? documento;
+  factory Organizacao.fromJson(Map<String,dynamic> json); // GET autenticacao/eu/organizacoes
 }
 ```
 
@@ -897,7 +1076,7 @@ class Dispositivo {
 class Embarcacao {
   final int? id;
   final String nome;
-  final String? dono, registro, mestreId, motorUsado, foto;
+  final String? dono, registro, mestreId, motorUsado, foto, remotoId; // remotoId desde v16
   final int quantidadeUrnas; // default 1
   final double? capacidadeGeloKg, capacidadeDieselLitros;
   final int? numeroTripulantes;
@@ -906,12 +1085,23 @@ class Embarcacao {
   factory Embarcacao.fromMap(Map map); Map<String,dynamic> toMap(); Embarcacao copyWith(...);
 }
 ```
+Linha local espelhada a partir do catálogo remoto (ver `EmbarcacaoRemota` abaixo) — não confundir os dois. `remotoId` vincula essa linha ao id no backend.
+
+### EmbarcacaoRemota (`features/embarcacao/domain/models`)
+```dart
+class EmbarcacaoRemota {
+  final String id, nome;
+  final String? codigo, sigla, dono, registro;
+  final int? status, quantidadeUrnas;
+  factory EmbarcacaoRemota.fromJson(Map<String,dynamic> json); // base/operacao/embarcacoes
+}
+```
 
 ### Viagem (`features/viagem/domain/models`)
 ```dart
 class Viagem {
   final int id;
-  final String? nome;
+  final String? nome, remotoId; // remotoId desde v14 — UUID gerado pelo backend
   final DateTime dataInicio;
   final DateTime? dataTermino;
   final String embarcacaoId;
@@ -920,6 +1110,31 @@ class Viagem {
   factory Viagem.fromMap(Map map); Map<String,dynamic> toMap();
 }
 ```
+
+### ViagemAtualRemota (`features/viagem/domain/models`)
+```dart
+class ViagemAtualRemota {
+  final String id, embarcacaoId; // únicos obrigatórios
+  final String? nome, portoOrigemId, portoDestinoId;
+  final DateTime? dataInicio, dataTermino;
+  factory ViagemAtualRemota.fromJson(Map<String,dynamic> json);
+  // GET base/operacao/viagens/eu/atual — resposta vem como {"viagem": {...}},
+  // desembrulhado automaticamente; tolera nomes de campo alternativos
+  // (dataInicio/inicioPrevisto, viagemId/id) sem depender deles.
+}
+```
+
+### Porto (`features/viagem/domain/models`)
+```dart
+class Porto {
+  final String id, nome;
+  final String? codigo, sigla, pais;
+  final int status;
+  final double latitude, longitude;
+  factory Porto.fromJson(Map<String,dynamic> json); // base/operacao/portos
+}
+```
+Porto cadastrado no backend, usado como origem/destino de uma viagem — **não confundir com `PortoMare`** (só um ponto salvo localmente pra tábua de maré offline, sem relação com este).
 
 ### Tripulante (`features/viagem/domain/models`)
 ```dart
@@ -984,6 +1199,22 @@ class ProducaoRegistro {
 // + especiesComuns: List<String> e normalizarEspecie(String) em especies_comuns.dart
 ```
 
+### ProducaoEnvio + EspecieRemota (`features/producao/domain/models`)
+```dart
+class ProducaoEnvio {
+  final String viagemId, especieId;  // ambos remotos — resolvidos por ProducaoReporterService
+  final double pesoKg;
+  final int quantidade;
+  final DateTime instante;
+}
+class EspecieRemota {
+  final String id, nome;
+  final String? nomeCientifico;
+  factory EspecieRemota.fromJson(Map<String,dynamic> json); // base/resultado/especies
+}
+```
+`ProducaoEnvio` é o DTO write-only mandado a `POST base/resultado/capturas` — bem mais simples que `ProducaoRegistro` (sem tipo/classificação de peixe, dispositivo ou coordenada). `EspecieRemota` é o catálogo só-leitura que resolve `especieId`.
+
 ### PontoMarcado (`features/mapa/domain/models`)
 ```dart
 class PontoMarcado {
@@ -994,6 +1225,36 @@ class PontoMarcado {
   factory PontoMarcado.fromMap(Map map); Map<String,dynamic> toMap();
 }
 ```
+
+### LeituraClorofilaPonto (`features/mapa/domain/models`)
+```dart
+class LeituraClorofilaPonto {
+  final double latitude, longitude;
+  final double? valorMgM3; // nulo = sem dado válido (nuvem, terra, falha do sensor) — nunca inventado
+  final DateTime data;     // data do dado mais recente disponível no ERDDAP, pode não ser hoje
+  final String source;
+  factory LeituraClorofilaPonto.fromJson(Map<String,dynamic> json);
+}
+```
+Vem de `ClorofilaRepository` (NOAA CoastWatch/ERDDAP, satélite, sem autenticação). Indicador de produtividade biológica — nunca tratado como biomassa de peixe diretamente.
+
+### NivelProdutividade + IndiceProdutividadeBlueOcean (`features/mapa/domain/models`)
+```dart
+enum NivelProdutividade { ruim, bom, otimo, excelente } // rotulo: Ruim/Bom/Ótimo/Excelente
+
+class IndiceProdutividadeBlueOcean {
+  final double latitude, longitude;
+  final double? clorofilaMgM3, temperaturaC;
+  final DateTime? clorofilaData;
+  final NivelProdutividade nivel;
+  final String explicacao; // ex: "Clorofila-a: Ótimo (0,19 mg/m³) · Temperatura: Bom (24,8 °C)"
+  factory IndiceProdutividadeBlueOcean.calcular({
+    required double latitude, required double longitude,
+    double? clorofilaMgM3, DateTime? clorofilaData, double? temperaturaC,
+  });
+}
+```
+Combina clorofila-a + SST num único indicador (camada "Índice de Produtividade Blue Ocean" no mapa, §9.6) — quando os dois fatores existem, o nível final é o **pior dos dois** (um fator ruim já basta pra não chamar o ponto de "excelente"); com um fator só, usa o que tiver. Sempre heurística/estimativa, nunca garantia de cardume.
 
 ### RotaPlanejada (`features/rotas/domain/models`)
 ```dart
@@ -1072,6 +1333,30 @@ class LeituraProfundidade {
   factory LeituraProfundidade.fromJson(Map<String,dynamic> json); // OpenTopoData
 }
 ```
+
+### DiaLunar (`features/metereologia/domain/models`)
+```dart
+class DiaLunar {
+  final DateTime data;
+  final DateTime? nascerSol, porSol, nascer, poesta; // nascer/poesta da lua — nulo é dia válido sem evento
+  factory DiaLunar.fromJson(Map<String,dynamic> json); // Open-Meteo (daily=sunrise,sunset,moonrise,moonset)
+}
+```
+
+### PortoMare (`features/metereologia/domain/models`)
+```dart
+class PortoMare {
+  final int? id;
+  final String nome;
+  final double latitude, longitude;
+  final DateTime dataCriacao;
+  final ModeloMareHarmonico? modelo;   // nulo até a 1ª sincronização bem-sucedida
+  final DateTime? sincronizadoEm;
+  bool get temModeloOffline => modelo != null;
+  factory PortoMare.fromMap(Map map); Map<String,dynamic> toMap(); PortoMare copyWith(...);
+}
+```
+Porto salvo pelo usuário pra consulta de maré **offline** (tabela `porto_mare`, §6) — `modelo` (`core/utils/mare_harmonica.dart`) é ajustado a partir da série horária da Open-Meteo e permite calcular preamar/baixa-mar sem rede depois da 1ª sincronização. Não confundir com `Porto` (cadastro remoto de origem/destino de viagem).
 
 ### PontoMapa + Meteorologia (`core/services/pontos_service.dart`)
 ```dart
@@ -1233,29 +1518,36 @@ LoginScreen
 
 ### Fluxo de Rastreamento
 
-O rastreamento em segundo plano é **escopado à viagem**, não ao login — começa em `NovaViagemScreen._salvarViagem()` (depois de confirmar permissão de localização "sempre" + exceção de otimização de bateria) e termina em `HistoricoLocalizacoesScreen._finalizarViagem()`. Login/Splash só retomam o rastreamento se já houver uma viagem com `status = 'em_andamento'` — não iniciam por conta própria.
+O rastreamento em segundo plano é **escopado à viagem**, não ao login. Desde 2026-09, o rastreamento inicia quando `ContextoViagemService` sincroniza uma viagem ativa vinda do backend (ver §7.17/§9.11 — não há mais tela de "Nova Viagem" que inicia localmente) e termina em `HistoricoLocalizacoesScreen._finalizarViagem()`. Login/Splash retomam o rastreamento (idempotente) sempre que já houver uma viagem com `status = 'em_andamento'` local.
 
 ```
-NovaViagemScreen._salvarViagem()
- ├─ LocationService.solicitarPermissaoSempre()          (escalada em 2 etapas: whileInUse → always)
- ├─ LocationService.solicitarIgnorarOtimizacaoBateria()  (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
- └─ LocationTrackingService.iniciarRastreamento(intervaloMinutos)
-     └─ WorkManager.registerPeriodicTask (mín. 15 min)
-         └─ location_worker.callbackDispatcher()
-             ├─ LocalizacaoReporterService.registrarESincronizar()
-             │   ├─ Geolocator.getCurrentPosition() + Battery.batteryLevel
-             │   ├─ INSERT localizacao_historico (sincronizado=0)
-             │   └─ sincronizarPendentes()
-             │       ├─ AuthService.isLoggedIn()? senão para o rastreamento
-             │       ├─ DispositivoRepository.buscarPorIdentificador(DeviceIdService.obtemId())
-             │       └─ LocalizacaoRepository.enviar(...) por pendência → marca sincronizado=1
-             └─ RecomendacaoNotificationService.verificarNovas()
-                 └─ notifica (flutter_local_notifications) se houver recomendação mais nova
-                    que a última verificação salva (ver §7.12b)
+Login/sincronização manual
+ └─ ContextoViagemService.sincronizar()
+     ├─ ViagemRepository.buscarAtual()  (GET base/operacao/viagens/eu/atual)
+     ├─ espelha a viagem em `viagem` (por remoto_id) + resolve/espelha a embarcação
+     └─ (em algum momento após isso, com a viagem em_andamento confirmada)
+        LocationTrackingService.iniciarRastreamento(intervaloMinutos)
+         ├─ FlutterForegroundTask.init(...)   configura canal de notificação + intervalo
+         ├─ pede permissão de notificação + isenção de otimização de bateria (best-effort)
+         └─ FlutterForegroundTask.startService(callback: iniciarLocationForegroundTaskHandler)
+             └─ LocationForegroundTaskHandler  (isolate própria, sobrevive ao app fechado)
+                 ├─ onStart/onRepeatEvent → _executar() a cada intervalo configurado
+                 │   ├─ LocalizacaoReporterService.registrarESincronizar()
+                 │   │   ├─ Geolocator.getCurrentPosition() + Battery.batteryLevel
+                 │   │   ├─ INSERT localizacao_historico (sincronizado=0)
+                 │   │   └─ sincronizarPendentes()
+                 │   │       ├─ AuthService.isLoggedIn()? senão para o rastreamento
+                 │   │       ├─ DispositivoRepository.buscarPorIdentificador(DeviceIdService.obtemId())
+                 │   │       └─ LocalizacaoRepository.enviar(...) por pendência → marca sincronizado=1
+                 │   ├─ RecomendacaoNotificationService.verificarNovas()  (ver §7.12b)
+                 │   └─ AlertaCondicaoNotificationService.verificarCondicoesAFrente()  (ver §7.18)
+                 └─ atualiza o texto da notificação persistente a cada execução
 
 HistoricoLocalizacoesScreen._finalizarViagem()
- └─ LocationTrackingService.pararRastreamento()  (além de marcar status='finalizada')
+ └─ LocationTrackingService.pararRastreamento()  (FlutterForegroundTask.stopService(), além de marcar status='finalizada')
 ```
+
+Diferença que importa na prática em relação ao desenho anterior (WorkManager): o serviço em primeiro plano com notificação persistente sobrevive ao app fechado/removido dos recentes — antes, o WorkManager podia atrasar, agrupar ou simplesmente não rodar a tarefa, dependendo do fabricante e do modo Doze.
 
 ### Fluxo do Mapa — sobreposição de PNG georreferenciado
 
@@ -1322,17 +1614,17 @@ MapaWidget.initState()
 
 ```xml
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-<uses-permission android:name="android.permission.WAKE_LOCK" />
-<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
 ```
 
-Para o WorkManager funcionar corretamente em background, o serviço deve estar declarado no manifest. `READ_EXTERNAL_STORAGE`/o seletor de documentos do sistema também cobrem a seleção de PNG de overlay via `file_picker`. `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` evita que fabricantes agressivos (Xiaomi, Samsung, Huawei) matem a tarefa de rastreamento em segundo plano mesmo com localização "sempre" concedida. `POST_NOTIFICATIONS` (Android 13+) é exigida por qualquer notificação, inclusive as locais de recomendação nova.
+`FOREGROUND_SERVICE`/`FOREGROUND_SERVICE_LOCATION` são exigidas pelo `flutter_foreground_task` (rastreamento em primeiro plano, §7.6 — substituíram a antiga declaração do WorkManager). `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` evita que fabricantes agressivos (Xiaomi, Samsung, Huawei) matem o serviço de rastreamento mesmo com localização "sempre" concedida. `POST_NOTIFICATIONS` (Android 13+) é exigida por qualquer notificação, inclusive as locais de recomendação nova/condição severa e a notificação persistente do rastreamento. `READ_EXTERNAL_STORAGE`/`RECEIVE_BOOT_COMPLETED` não são mais declaradas — a seleção de arquivos hoje usa o seletor de documentos do sistema via `file_picker` sem precisar da permissão explícita, e o reinício automático do serviço após boot é resolvido pelo próprio `flutter_foreground_task` (`autoRunOnBoot`, ver `LocationTrackingService`).
 
 > **`flutter_local_notifications` exige core library desugaring** — sem `isCoreLibraryDesugaringEnabled = true` em `compileOptions` (+ dependência `coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:...")`) no `android/app/build.gradle.kts`, o Gradle falha em `checkDebugAarMetadata`. Já configurado no projeto — só um lembrete pra quem for adicionar outro plugin que dependa de APIs `java.time`.
 
@@ -1390,6 +1682,8 @@ Todo campo, dropdown, card e botão do app puxa do mesmo `ThemeData` — antes c
 ## 16. Diagrama de Classes (UML)
 
 Visão resumida das relações entre as principais classes do projeto. Para o diagrama completo e navegável, veja a versão interativa publicada — link compartilhado à parte.
+
+> ⚠️ Os diagramas abaixo **não foram refeitos** nesta atualização (2026-09-24) — ainda refletem o desenho anterior à mudança de viagem/embarcação pra retaguarda e à troca WorkManager→`flutter_foreground_task`. As seções 6–10 (texto) são a referência atualizada; os diagramas ficam como pendência pra uma próxima revisão dedicada.
 
 ### 16.1 Camada de serviços e configuração
 
@@ -1740,7 +2034,7 @@ banco novo em `onCreate`.
 
 | Área | Arquivo | Cobre |
 |---|---|---|
-| Schema/CRUD do banco | `test/core/database/database_helper_test.dart` | Todas as tabelas existem no `onCreate`; colunas das migrações v8/v11/v12; insert/query/update/delete/queryWhere/deleteWhere genéricos |
+| Schema/CRUD do banco | `test/core/database/database_helper_test.dart` | Todas as tabelas existem no `onCreate` (v16); colunas das migrações; insert/query/update/delete/queryWhere/deleteWhere genéricos |
 | Classificação por peso | `test/features/producao/domain/classificacao_peso_test.dart` | Faixa de peso por classificação (incl. override 40+ = 45-50), cálculo de peso estimado |
 | Espécies comuns | `test/features/producao/domain/especies_comuns_test.dart` | Normalização (capitalização/trim/case-insensitive) |
 | `ProducaoRegistro` | `test/features/producao/domain/models/producao_registro_test.dart` | Round-trip `toMap`/`fromMap`, compatibilidade com registros antigos (sem tipo/classificação), serialização de enum por `.name` |
@@ -1749,17 +2043,34 @@ banco novo em `onCreate`.
 | `RotaPlanejada` | `test/features/rotas/domain/models/rota_planejada_test.dart` | `fromMap`/`toMap`, `embarcacaoId`/`viagemId` nulo vs. populado |
 | `SstPonto` | `test/core/models/sst_ponto_test.dart` | `fromJson` com/sem leitura, coerção int→double |
 | JWT | `test/core/auth/jwt_utils_test.dart` | Decodificação de payload, tokens malformados |
+| `AuthService` | `test/core/auth/auth_service_test.dart` | Login/logout, login automático com credencial lembrada |
 | Formatação de coordenadas | `test/core/utils/coordenadas_format_test.dart` | DMS (N/S/E/W), formatos compacto/multilinha |
 | Proximidade | `test/core/utils/proximidade_test.dart` | Distância em milhas náuticas, ordenação por proximidade |
+| Erro amigável | `test/core/utils/erro_amigavel_test.dart` | Tradução de exceções de rede/parsing pra mensagem exibível |
+| Fase da lua | `test/core/utils/fase_lua_test.dart` | Cálculo de fase a partir da data |
+| Maré harmônica | `test/core/utils/mare_harmonica_test.dart` | Ajuste do modelo de harmônicos, previsão offline de preamar/baixa-mar |
+| Índice de influência da maré / nível operacional | `test/core/utils/indice_influencia_mare_test.dart`, `nivel_operacional_mare_test.dart` | Heurística da tela Maré e Pesca de Atum — nunca correlação direta com captura |
+| Severidade de condições | `test/core/utils/severidade_condicoes_test.dart` | Classificação de vento/onda/corrente por limiar (usada no alerta) |
+| Tabela solunar / tendência de pressão | `test/core/utils/tabela_solunar_test.dart`, `tendencia_pressao_test.dart` | — |
+| Limiares de alerta | `test/core/config/limiares_alerta_test.dart` | Persistência/leitura dos limiares configuráveis (`AlertaConfigScreen`) |
+| `DadosPontoCacheService` | `test/core/services/dados_ponto_cache_service_test.dart` | TTL do cache em memória por coordenada |
+| `EmbarcacaoRemota` | `test/features/embarcacao/domain/models/embarcacao_remota_test.dart` | `fromJson` |
+| `ClorofilaRepository` / `LeituraClorofilaPonto` | `test/features/mapa/data/clorofila_repository_test.dart`, `test/features/mapa/domain/models/leitura_clorofila_test.dart` | Parsing da resposta ERDDAP, "sem dado" vs. valor |
+| `IndiceProdutividadeBlueOcean` | `test/features/mapa/domain/models/indice_produtividade_blue_ocean_test.dart` | Combinação clorofila+SST, regra do "pior dos dois fatores" |
+| `ViagemAtualRemota` | `test/features/viagem/domain/models/viagem_atual_remota_test.dart` | `fromJson` desembrulhando `{"viagem": {...}}`, tolerância a nomes de campo alternativos |
 | Login | `test/widget_test.dart` | Tela de login exibida quando não há sessão |
+
+**163 testes, todos passando** (confirmado em 2026-09-24) — crescimento em relação aos 91 da auditoria de 2026-09-02, refletindo as features novas do período (giroscópio/bússola do mapa, temperatura multi-ponto, precisão de rota, clorofila, índice de produtividade, viagem/embarcação remotas, alertas configuráveis).
 
 ### O que ainda não está coberto (ver §18)
 
 - Serviços que dependem de plugins nativos sem um fake equivalente ao do
   `path_provider` (`MbtilesService`, `GeotiffService`, `GeoPngHelper`, `LocationService`)
+- `mapa_widget.dart` (~3000 linhas, todo o Modo Navegação/barco 3D/bússola-giroscópio) — sem teste de widget dedicado
+- `LocationTrackingService`/`LocationForegroundTaskHandler` (`flutter_foreground_task`) — sem fake equivalente disponível
 - Testes de integração ponta-a-ponta (fluxo completo de viagem, rastreamento)
-- Chamadas de rede reais do `ProducaoRepository`/`LocalizacaoRepository` (hoje só o
-  formato do DTO é testado, não a chamada HTTP em si — não há mock de `ApiService`
+- Chamadas de rede reais do `ProducaoRepository`/`LocalizacaoRepository`/`ViagemRepository`/`EmbarcacaoRepository` (hoje só o
+  formato do DTO/parsing é testado, não a chamada HTTP em si — não há mock de `ApiService`
   no projeto ainda)
 
 ---
@@ -1779,10 +2090,16 @@ banco novo em `onCreate`.
 - [x] ~~Splash screen~~ — feito (`SplashScreen` + `flutter_native_splash`)
 - [x] ~~Login automático (lembrar credenciais)~~ — feito (`AuthService.tentarLoginAutomatico`, checkbox no `LoginScreen`)
 - [x] ~~Modo de visualização de rota no mapa a partir de dados não-GPS~~ — feito pra produção (rota entre registros de produção + salvamento automático ao finalizar viagem)
-- [ ] Gerenciamento de múltiplas viagens (listar, encerrar, ver histórico completo)
+- [x] ~~Viagem/embarcação sem cadastro manual~~ — feito (2026-09): passaram a vir da retaguarda (`ContextoViagemService`), o app só espelha localmente — ver nota no topo do documento
+- [x] ~~Rastreamento sobrevive ao app fechado~~ — feito (2026-09): trocado de `workmanager` (melhor-esforço) pra `flutter_foreground_task` (serviço em primeiro plano de verdade) — ver §7.6
+- [x] ~~Precisão ao marcar ponto/planejar rota~~ — feito: retículo fixo + coordenada em tempo real em vez de toque direto no mapa, também em "Planejar rota" (antes só em "Marcar um ponto")
+- [x] ~~Múltiplos pontos de SST/clorofila/índice de produtividade no mapa~~ — feito (antes cada consulta substituía a anterior)
+- [x] ~~Alertas com limiar configurável por condição~~ — feito (`AlertaConfigScreen`)
+- [ ] Gerenciamento de múltiplas viagens (listar, encerrar, ver histórico completo) — parcialmente superado pela mudança de arquitetura (viagem ativa é sempre a que o backend aponta), mas ainda não há como o app listar viagens passadas além do histórico de localizações da atual
 - [ ] Exportar dados de produção em CSV/PDF
-- [ ] Persistência local de tripulantes (`Tripulante` ainda não tem tabela/serialização)
+- [ ] Persistência local de tripulantes (`Tripulante` ainda não tem tabela/serialização, nem local nem remota)
 - [ ] Edição de uma `RotaPlanejada` já salva (hoje só visualizar ou apagar)
+- [ ] "Rotas inteligentes" — nenhuma forma de roteamento algorítmico/recomendado existe hoje, só manual e derivado de histórico de produção
 
 ### Sobreposição de PNG georreferenciado
 
@@ -1809,11 +2126,13 @@ banco novo em `onCreate`.
 - [x] ~~Remover a tela de Gribs (`vento.json`/`correntes.json` locais)~~ — feito, dados só via Open-Meteo agora
 - [x] ~~Tábua de marés (preamar/baixa-mar)~~ — feito (`WaveForecast.eventosMare`, `MareCard`)
 - [x] ~~Cruzar produção com pontos marcados por proximidade~~ — feito (`producao_pontos_analyzer.dart`, `ProducaoPorPontoScreen`)
-- [x] ~~Notificação local de recomendação nova~~ — feito (`RecomendacaoNotificationService`), sem push real (depende do ciclo do WorkManager, mín. 15 min)
+- [x] ~~Notificação local de recomendação nova~~ — feito (`RecomendacaoNotificationService`), sem push real (depende do intervalo configurado do serviço em primeiro plano, §7.6)
 - [x] ~~Alerta de vento/corrente/onda/swell num ponto à frente da embarcação~~ — feito (`AlertaRotaScreen`), com simulação a partir de ponto marcado pra testar sem depender do GPS em movimento
+- [x] ~~Limiares de alerta configuráveis por condição~~ — feito (`AlertaConfigScreen`, §7.18)
 - [x] ~~Tema escuro~~ — feito (`ThemeModeService`) + harmonização de cores hardcoded nas telas
+- [x] ~~Fase da lua, tábua de maré offline por porto~~ — feito (`FaseLuaScreen`, `TabuaMareScreen`/`TabuaMareDetalheScreen`, modelo de harmônicos)
 - [ ] Camada visual de alerta (grade de vento/corrente forte no mapa, nos moldes da grade de SST) — considerada, mas o ponto-à-frente (`AlertaRotaScreen`) foi priorizado por ser mais acionável
-- [ ] Push de verdade (Firebase/FCM) pra notificação de recomendação, se o intervalo mínimo do WorkManager (15 min) não for suficiente na prática
+- [ ] Push de verdade (Firebase/FCM) pra notificação de recomendação, se o intervalo mínimo do serviço em primeiro plano não for suficiente na prática
 
 ### Qualidade de Código
 

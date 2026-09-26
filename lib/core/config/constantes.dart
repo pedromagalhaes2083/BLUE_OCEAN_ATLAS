@@ -36,4 +36,10 @@ class Constantes {
   /// `AuthService._tratarTrocaDeUsuario`) e decidir se limpa os dados
   /// locais do usuário anterior.
   static const String ultimoUsuarioId = 'ultimo_usuario_id';
+
+  /// Plano comercial ativo (`PlanoAtlas.name`) — hoje só lido/gravado
+  /// localmente (`FontePlanoLocal`, sem backend expondo plano ainda; ver
+  /// `core/planos/`). Seletor de troca fica em Configurações, só em modo
+  /// debug (ver `docs/ANALISE_ADERENCIA_PLANO_COMERCIAL.md` §2.2).
+  static const String planoAtual = 'plano_atual';
 }
