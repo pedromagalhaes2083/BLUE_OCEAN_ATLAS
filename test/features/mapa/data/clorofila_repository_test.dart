@@ -44,4 +44,56 @@ void main() {
           throwsFormatException);
     });
   });
+
+  group('ClorofilaRepository.parseRespostaCsvGrade', () {
+    test('lê várias linhas de dado — resposta real de intervalo (2026-09)', () {
+      // curl real com intervalo de lat/lon em vez de ponto fixo, mesmo
+      // dataset — ver conversa.
+      const corpo = 'time,altitude,latitude,longitude,chlor_a\n'
+          'UTC,m,degrees_north,degrees_east,mg m^-3\n'
+          '2026-09-15T12:00:00Z,0.0,-1.6979166,-39.51041,0.10806747\n'
+          '2026-09-15T12:00:00Z,0.0,-1.6979166,-39.489582,0.107283\n'
+          '2026-09-15T12:00:00Z,0.0,-1.6979166,-39.46874,0.10786256\n';
+
+      final pontos = ClorofilaRepository.parseRespostaCsvGrade(corpo);
+
+      expect(pontos, hasLength(3));
+      expect(pontos[0].latitude, -1.6979166);
+      expect(pontos[0].longitude, -39.51041);
+      expect(pontos[0].valorMgM3, 0.10806747);
+      expect(pontos[2].longitude, -39.46874);
+    });
+
+    test('"NaN" vira null em cada célula da grade', () {
+      const corpo = 'time,altitude,latitude,longitude,chlor_a\n'
+          'UTC,m,degrees_north,degrees_east,mg m^-3\n'
+          '2026-09-15T12:00:00Z,0.0,-1.6979166,-39.51041,NaN\n'
+          '2026-09-15T12:00:00Z,0.0,-1.6979166,-39.489582,0.107283\n';
+
+      final pontos = ClorofilaRepository.parseRespostaCsvGrade(corpo);
+
+      expect(pontos, hasLength(2));
+      expect(pontos[0].valorMgM3, isNull);
+      expect(pontos[1].valorMgM3, 0.107283);
+    });
+
+    test('pula linha malformada sem derrubar a grade inteira', () {
+      const corpo = 'time,altitude,latitude,longitude,chlor_a\n'
+          'UTC,m,degrees_north,degrees_east,mg m^-3\n'
+          '2026-09-15T12:00:00Z,0.0,-1.6979166,-39.51041,0.10806747\n'
+          'linha,quebrada\n'
+          '2026-09-15T12:00:00Z,0.0,-1.6979166,-39.489582,0.107283\n';
+
+      final pontos = ClorofilaRepository.parseRespostaCsvGrade(corpo);
+
+      expect(pontos, hasLength(2));
+    });
+
+    test('resposta sem nenhuma linha de dado lança FormatException', () {
+      const corpo = 'time,altitude,latitude,longitude,chlor_a\n'
+          'UTC,m,degrees_north,degrees_east,mg m^-3\n';
+      expect(() => ClorofilaRepository.parseRespostaCsvGrade(corpo),
+          throwsFormatException);
+    });
+  });
 }

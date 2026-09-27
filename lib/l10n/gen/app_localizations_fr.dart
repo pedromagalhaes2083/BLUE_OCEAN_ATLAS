@@ -327,6 +327,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dashboardMapa => 'Carte';
 
   @override
+  String get dashboardPontosMarcadosTitulo => 'Points Marqués';
+
+  @override
+  String get dashboardPontosMarcadosVazio =>
+      'Aucun point marqué pour l\'instant. Marquez un lieu sur la carte pour le voir ici.';
+
+  @override
+  String get dashboardPontosMarcadosVerTodos => 'Voir tout';
+
+  @override
   String get dashboardRodape =>
       'Toutes les données sont enregistrées localement.\nLa synchronisation avec le serveur se fera dès qu\'il y aura une connexion.';
 
@@ -768,6 +778,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get planoRecursoOceanografiaTermoclina => 'Thermocline';
+
+  @override
+  String get planoRecursoIntelligenceOceanica => 'Intelligence Océanique';
 
   @override
   String get planoRecursoRotasAnaliseRota => 'Analyse d\'itinéraire';
@@ -1863,6 +1876,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get drawerTermoclina => 'Thermocline';
 
   @override
+  String get drawerIntelligence => 'Intelligence';
+
+  @override
   String get termoclinaTelaTitulo => 'Thermocline';
 
   @override
@@ -1918,6 +1934,141 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get termoclinaMockAviso =>
       'SST réelle ; la profondeur et le profil de la thermocline restent estimés — aucune source avec profil vertical mesuré n\'est encore connectée.';
+
+  @override
+  String get intelligenceTelaTitulo => 'Intelligence';
+
+  @override
+  String get intelligenceSubtitulo => 'Conditions océanographiques';
+
+  @override
+  String get intelligenceAguardandoPosicao =>
+      'En attente de la position actuelle du navire...';
+
+  @override
+  String get intelligenceErroMensagem =>
+      'Impossible de mettre à jour les conditions océanographiques.';
+
+  @override
+  String get intelligenceSemDadosMensagem =>
+      'Aucune condition océanographique disponible pour cette région.';
+
+  @override
+  String get intelligenceAtualizarBotao => 'Actualiser les données';
+
+  @override
+  String intelligenceAtualizadoAs(String hora) {
+    return 'Mis à jour à $hora';
+  }
+
+  @override
+  String get intelligenceScoreLabel => 'Intelligence Océanique';
+
+  @override
+  String get intelligenceConfiancaLabel => 'Confiance';
+
+  @override
+  String get intelligenceParcialAviso =>
+      'Certaines données océanographiques ne sont pas disponibles actuellement. L\'indice a été calculé avec les variables disponibles.';
+
+  @override
+  String get intelligenceCondicoesTitulo => 'Conditions Actuelles';
+
+  @override
+  String get intelligenceCondSst => 'SST';
+
+  @override
+  String get intelligenceCondCorrente => 'Courant';
+
+  @override
+  String get intelligenceCondOndas => 'Vagues';
+
+  @override
+  String get intelligenceCondSwell => 'Houle';
+
+  @override
+  String get intelligenceCondVento => 'Vent';
+
+  @override
+  String get intelligenceCondMare => 'Marée';
+
+  @override
+  String get intelligenceCondProfundidade => 'Profondeur';
+
+  @override
+  String get intelligenceCondClorofila => 'Chlorophylle';
+
+  @override
+  String get intelligenceEstruturaTermicaTitulo => 'Structure Thermique';
+
+  @override
+  String get intelligencePerfilIndisponivelTitulo =>
+      'Profil vertical indisponible';
+
+  @override
+  String get intelligencePerfilIndisponivelDescricao =>
+      'Des données de température en profondeur sont nécessaires pour calculer la thermocline.';
+
+  @override
+  String get intelligenceFatoresTitulo => 'Facteurs';
+
+  @override
+  String get intelligenceFatorFavoravel => 'Favorable';
+
+  @override
+  String get intelligenceFatorNeutro => 'Neutre';
+
+  @override
+  String get intelligenceFatorDesfavoravel => 'Défavorable';
+
+  @override
+  String get intelligenceFatorIndisponivel => 'Indisponible';
+
+  @override
+  String get intelligenceExplicacaoTitulo => 'Pourquoi ce résultat ?';
+
+  @override
+  String get intelligenceAiTitulo => 'Blue Ocean AI';
+
+  @override
+  String get intelligenceAiTexto =>
+      'Analyse intelligente des conditions océanographiques.';
+
+  @override
+  String get intelligenceAiBotao => 'Demander à Blue Ocean AI';
+
+  @override
+  String get intelligenceAiPreparando =>
+      'Module en préparation — bientôt disponible.';
+
+  @override
+  String get intelligenceCalibracaoTitulo => 'Calibrer l\'Intelligence';
+
+  @override
+  String get intelligenceCalibracaoDescricao =>
+      'Ajustez l\'importance relative de chaque facteur dans le calcul de l\'Indice d\'Intelligence Océanique. Ils n\'ont pas besoin de totaliser 100 — seule la proportion entre eux compte.';
+
+  @override
+  String intelligenceCalibracaoParticipacao(String percentual) {
+    return '$percentual% du poids total';
+  }
+
+  @override
+  String get intelligenceCalibracaoRestaurarPadrao =>
+      'Rétablir les valeurs par défaut';
+
+  @override
+  String get intelligenceCalibracaoRestauradoAviso =>
+      'Poids rétablis aux valeurs par défaut.';
+
+  @override
+  String get intelligenceCalibracaoTooltip => 'Calibrer';
+
+  @override
+  String get intelligenceCalibracaoPesoLabel => 'Poids';
+
+  @override
+  String get intelligenceCalibracaoIdealLabel => 'Quantité idéale';
 
   @override
   String get producaoHistoricoTitulo => 'Historique de Production';

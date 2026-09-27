@@ -1,6 +1,8 @@
 import 'package:atlas/features/cartas/presentation/cartas_screen.dart';
 import 'package:atlas/features/cartas/presentation/solicitar_cartas_screen.dart';
-import 'package:atlas/features/mapa/presentation/mapa_widget.dart';
+import 'package:atlas/features/mapa/domain/models/ponto_marcado.dart';
+import 'package:atlas/features/mapa/presentation/meus_pontos_screen.dart';
+import 'package:atlas/features/mapa/widgets/ponto_marcado_list_tile.dart';
 import 'package:atlas/features/embarcacao/presentation/embarcacao_screen.dart';
 import 'package:atlas/features/metereologia/presentation/alerta_rota_screen.dart';
 import 'package:atlas/features/metereologia/presentation/condicoes_mar_screen.dart';
@@ -8,6 +10,7 @@ import 'package:atlas/features/metereologia/presentation/fase_lua_screen.dart';
 import 'package:atlas/features/metereologia/presentation/mare_pesca_atum_screen.dart';
 import 'package:atlas/features/metereologia/presentation/tabua_mare_screen.dart';
 import 'package:atlas/features/termoclina/presentation/termoclina_screen.dart';
+import 'package:atlas/features/intelligence/presentation/intelligence_screen.dart';
 import 'package:atlas/features/producao/presentation/producao_screen.dart';
 import 'package:atlas/features/rotas/presentation/minhas_rotas_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
@@ -62,6 +65,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ==================== BATIMETRIA / SST (posição atual) ====================
   LeituraProfundidade? _profundidadeAtual;
   double? _sstAtual;
+
+  // ==================== PONTOS MARCADOS (prévia) ====================
+  static const _maxPontosPreview = 5;
+  List<PontoMarcado> _pontosMarcados = [];
 
 // ==================== RASTREAMENTO AUTOMÁTICO ====================
   final LocationTrackingService _trackingService = LocationTrackingService();
@@ -198,11 +205,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         limit: 1,
       );
 
+      final pontosMarcadosMaps = await widget.dbHelper.query('ponto_marcado');
+      final pontosMarcados = pontosMarcadosMaps.map(PontoMarcado.fromMap).toList()
+        ..sort((a, b) => b.dataCriacao.compareTo(a.dataCriacao));
+
       if (!mounted) return;
       setState(() {
         viagemAtual = viagem;
         embarcacaoAtual = embarcacao;
         _posicoesPendentes = pendentes.length;
+        _pontosMarcados = pontosMarcados.take(_maxPontosPreview).toList();
         _ultimaBateria =
             ultimaPosicao.isEmpty ? null : ultimaPosicao.first['bateria_nivel'] as int?;
         _ultimaPosicaoHora = ultimaPosicao.isEmpty
@@ -540,20 +552,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     const SizedBox(height: 32),
-                    Text(l10n.dashboardMapa,
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 450,
-                      width: double.infinity,
-                      // Preview leve — sem GPS/bússola contínuos nem o
-                      // barco 3D (WebView), que só fazem sentido na aba
-                      // Mapa em tela cheia (ver
-                      // MapaWidget.navegacaoTempoReal). Evita rodar esse
-                      // custo pesado toda vez que o app abre no Home.
-                      child: const MapaWidget(navegacaoTempoReal: false),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(l10n.dashboardPontosMarcadosTitulo,
+                            style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold)),
+                        if (_pontosMarcados.isNotEmpty)
+                          TextButton(
+                            onPressed: () => _abrirMeusPontos(context),
+                            child: Text(l10n.dashboardPontosMarcadosVerTodos),
+                          ),
+                      ],
                     ),
+                    const SizedBox(height: 8),
+                    // Prévia leve dos últimos pontos marcados pelo usuário —
+                    // substitui o preview de mapa que ficava aqui (parado,
+                    // sem GPS/bússola/barco 3D — só fazia sentido como
+                    // decoração). Uma lista dá acesso direto ao que o
+                    // usuário quer ver de fato: os próprios pontos.
+                    if (_pontosMarcados.isEmpty)
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Row(
+                            children: [
+                              Icon(Icons.pin_drop_outlined,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(l10n.dashboardPontosMarcadosVazio),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Column(
+                            children: [
+                              for (var i = 0; i < _pontosMarcados.length; i++) ...[
+                                if (i > 0) const Divider(height: 1),
+                                PontoMarcadoListTile(
+                                  ponto: _pontosMarcados[i],
+                                  onTap: () => _abrirMeusPontos(context),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
 
                     const SizedBox(height: 40),
                     Center(
@@ -694,6 +746,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const TermoclinaScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.auto_awesome_outlined),
+              title: Text(l10n.drawerIntelligence),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const IntelligenceScreen()),
                 );
               },
             ),
@@ -946,6 +1009,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (result == true) {
       _carregarDados();
     }
+  }
+
+  Future<void> _abrirMeusPontos(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MeusPontosScreen()),
+    );
+    _carregarDados();
   }
 
   void _abrirCartasNauticas(BuildContext context) {

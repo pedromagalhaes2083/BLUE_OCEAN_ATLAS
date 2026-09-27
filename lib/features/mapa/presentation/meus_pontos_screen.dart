@@ -14,11 +14,13 @@ import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_card.dart';
 import '../../recomendacao/widgets/recomendacao_list_tile.dart';
 import '../../termoclina/presentation/termoclina_screen.dart';
+import '../../intelligence/presentation/intelligence_screen.dart';
 import '../../producao/domain/models/producao_registro.dart';
 import '../../producao/domain/services/producao_pontos_analyzer.dart';
 import '../domain/models/ponto_marcado.dart';
 import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/ponto_marcado_list_tile.dart';
+import '../../widgets/grade_acoes_ponto.dart';
 
 /// Pontos marcados manualmente e recomendações, juntos numa lista só — no
 /// mesmo estilo visual da aba "Recomendações" em `CartasScreen` (linhas com
@@ -431,10 +433,11 @@ class _DetalhePontoMarcado extends StatelessWidget {
         const Divider(height: 20),
         DadosOceanicosPonto(latitude: ponto.latitude, longitude: ponto.longitude),
         const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
+        GradeAcoesPonto(acoes: [
+          AcaoPonto(
+            icon: Icons.map_outlined,
+            label: l10n.drawerSolicitarCarta,
+            onTap: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
@@ -447,15 +450,11 @@ class _DetalhePontoMarcado extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.map_outlined, size: 18),
-            label: Text(l10n.drawerSolicitarCarta),
           ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
+          AcaoPonto(
+            icon: Icons.water_outlined,
+            label: l10n.meusPontosConsultarAqui,
+            onTap: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
@@ -468,15 +467,11 @@ class _DetalhePontoMarcado extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.water_outlined, size: 18),
-            label: Text(l10n.meusPontosConsultarAqui),
           ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
+          AcaoPonto(
+            icon: Icons.phishing,
+            label: l10n.meusPontosMareEPescaAqui,
+            onTap: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
@@ -489,15 +484,11 @@ class _DetalhePontoMarcado extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.phishing, size: 18),
-            label: Text(l10n.meusPontosMareEPescaAqui),
           ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
+          AcaoPonto(
+            icon: Icons.thermostat_outlined,
+            label: l10n.termoclinaTelaTitulo,
+            onTap: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
@@ -510,22 +501,34 @@ class _DetalhePontoMarcado extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.thermostat_outlined, size: 18),
-            label: Text(l10n.termoclinaTelaTitulo),
           ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton.icon(
-            onPressed: () {
+          AcaoPonto(
+            icon: Icons.auto_awesome_outlined,
+            label: l10n.intelligenceTelaTitulo,
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => IntelligenceScreen(
+                    latitude: ponto.latitude,
+                    longitude: ponto.longitude,
+                    nomePonto: ponto.nome,
+                  ),
+                ),
+              );
+            },
+          ),
+          AcaoPonto(
+            icon: Icons.delete_outline,
+            label: l10n.remover,
+            cor: Colors.red,
+            onTap: () {
               Navigator.pop(context);
               onRemovido();
             },
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-            label: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
           ),
-        ),
+        ]),
       ],
     );
   }

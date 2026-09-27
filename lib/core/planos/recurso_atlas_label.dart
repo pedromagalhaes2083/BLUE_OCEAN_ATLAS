@@ -16,6 +16,7 @@ extension RecursoAtlasLabel on RecursoAtlas {
         RecursoAtlas.oceanografiaMareEPescaAtum =>
           l10n.planoRecursoOceanografiaMareEPescaAtum,
         RecursoAtlas.oceanografiaTermoclina => l10n.planoRecursoOceanografiaTermoclina,
+        RecursoAtlas.intelligenceOceanica => l10n.planoRecursoIntelligenceOceanica,
         RecursoAtlas.rotasAnaliseRota => l10n.planoRecursoRotasAnaliseRota,
         RecursoAtlas.recomendacaoScoreEConfianca =>
           l10n.planoRecursoRecomendacaoScoreEConfianca,

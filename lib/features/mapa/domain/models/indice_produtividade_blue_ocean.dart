@@ -44,14 +44,17 @@ class IndiceProdutividadeBlueOcean {
 
   /// Faixa de SST considerada mais favorável pra cardumes de superfície no
   /// litoral cearense (atum/bonito) — heurística simples baseada na
-  /// distância até [_temperaturaIdealC], não um modelo oceanográfico
+  /// distância até [temperaturaIdealC], não um modelo oceanográfico
   /// validado. Fácil de recalibrar depois com dado real de captura x SST
   /// (ver `producao_pontos_analyzer.dart`, que já cruza produção com
   /// posição — um passo natural seguinte seria cruzar com SST também).
-  static const _temperaturaIdealC = 27.0;
+  ///
+  /// Público (não `_`) porque `IntelligenceEngine` reaproveita essa mesma
+  /// faixa pro fator de SST em vez de duplicar a heurística.
+  static const temperaturaIdealC = 27.0;
 
-  static NivelProdutividade _nivelTemperatura(double temperaturaC) {
-    final distancia = (temperaturaC - _temperaturaIdealC).abs();
+  static NivelProdutividade nivelTemperatura(double temperaturaC) {
+    final distancia = (temperaturaC - temperaturaIdealC).abs();
     if (distancia <= 0.5) return NivelProdutividade.excelente;
     if (distancia <= 1.5) return NivelProdutividade.otimo;
     if (distancia <= 3.0) return NivelProdutividade.bom;
@@ -75,7 +78,7 @@ class IndiceProdutividadeBlueOcean {
     final nivelClorofilaCalculado =
         clorofilaMgM3 != null ? nivelClorofila(clorofilaMgM3) : null;
     final nivelTemperaturaCalculado =
-        temperaturaC != null ? _nivelTemperatura(temperaturaC) : null;
+        temperaturaC != null ? nivelTemperatura(temperaturaC) : null;
 
     final niveis = [nivelClorofilaCalculado, nivelTemperaturaCalculado]
         .whereType<NivelProdutividade>()
@@ -93,7 +96,7 @@ class IndiceProdutividadeBlueOcean {
     if (nivelTemperaturaCalculado != null) {
       partes.add('Temperatura: ${nivelTemperaturaCalculado.rotulo} '
           '(${temperaturaC!.toStringAsFixed(1)} °C, ideal ~'
-          '${_temperaturaIdealC.toStringAsFixed(0)} °C)');
+          '${temperaturaIdealC.toStringAsFixed(0)} °C)');
     }
     final explicacao = partes.isEmpty
         ? 'Sem dado de clorofila-a nem de temperatura pra esse ponto agora'

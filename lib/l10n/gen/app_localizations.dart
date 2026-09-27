@@ -638,6 +638,24 @@ abstract class AppLocalizations {
   /// **'Mapa'**
   String get dashboardMapa;
 
+  /// No description provided for @dashboardPontosMarcadosTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pontos Marcados'**
+  String get dashboardPontosMarcadosTitulo;
+
+  /// No description provided for @dashboardPontosMarcadosVazio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum ponto marcado ainda. Marque um local no mapa pra vê-lo aqui.'**
+  String get dashboardPontosMarcadosVazio;
+
+  /// No description provided for @dashboardPontosMarcadosVerTodos.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver todos'**
+  String get dashboardPontosMarcadosVerTodos;
+
   /// No description provided for @dashboardRodape.
   ///
   /// In pt, this message translates to:
@@ -1364,6 +1382,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Termoclina'**
   String get planoRecursoOceanografiaTermoclina;
+
+  /// No description provided for @planoRecursoIntelligenceOceanica.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inteligência Oceânica'**
+  String get planoRecursoIntelligenceOceanica;
 
   /// No description provided for @planoRecursoRotasAnaliseRota.
   ///
@@ -3231,6 +3255,12 @@ abstract class AppLocalizations {
   /// **'Termoclina'**
   String get drawerTermoclina;
 
+  /// No description provided for @drawerIntelligence.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inteligência'**
+  String get drawerIntelligence;
+
   /// No description provided for @termoclinaTelaTitulo.
   ///
   /// In pt, this message translates to:
@@ -3326,6 +3356,246 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'SST real; profundidade e perfil da termoclina ainda são estimados — sem fonte com perfil vertical medido conectada.'**
   String get termoclinaMockAviso;
+
+  /// No description provided for @intelligenceTelaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inteligência'**
+  String get intelligenceTelaTitulo;
+
+  /// No description provided for @intelligenceSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Condições oceanográficas'**
+  String get intelligenceSubtitulo;
+
+  /// No description provided for @intelligenceAguardandoPosicao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando posição atual da embarcação...'**
+  String get intelligenceAguardandoPosicao;
+
+  /// No description provided for @intelligenceErroMensagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível atualizar as condições oceanográficas.'**
+  String get intelligenceErroMensagem;
+
+  /// No description provided for @intelligenceSemDadosMensagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não há condições oceanográficas disponíveis para esta região.'**
+  String get intelligenceSemDadosMensagem;
+
+  /// No description provided for @intelligenceAtualizarBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar dados'**
+  String get intelligenceAtualizarBotao;
+
+  /// No description provided for @intelligenceAtualizadoAs.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizado às {hora}'**
+  String intelligenceAtualizadoAs(String hora);
+
+  /// No description provided for @intelligenceScoreLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inteligência Oceânica'**
+  String get intelligenceScoreLabel;
+
+  /// No description provided for @intelligenceConfiancaLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confiança'**
+  String get intelligenceConfiancaLabel;
+
+  /// No description provided for @intelligenceParcialAviso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alguns dados oceanográficos não estão disponíveis no momento. O índice foi calculado utilizando as variáveis disponíveis.'**
+  String get intelligenceParcialAviso;
+
+  /// No description provided for @intelligenceCondicoesTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Condições Atuais'**
+  String get intelligenceCondicoesTitulo;
+
+  /// No description provided for @intelligenceCondSst.
+  ///
+  /// In pt, this message translates to:
+  /// **'SST'**
+  String get intelligenceCondSst;
+
+  /// No description provided for @intelligenceCondCorrente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Corrente'**
+  String get intelligenceCondCorrente;
+
+  /// No description provided for @intelligenceCondOndas.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ondas'**
+  String get intelligenceCondOndas;
+
+  /// No description provided for @intelligenceCondSwell.
+  ///
+  /// In pt, this message translates to:
+  /// **'Swell'**
+  String get intelligenceCondSwell;
+
+  /// No description provided for @intelligenceCondVento.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vento'**
+  String get intelligenceCondVento;
+
+  /// No description provided for @intelligenceCondMare.
+  ///
+  /// In pt, this message translates to:
+  /// **'Maré'**
+  String get intelligenceCondMare;
+
+  /// No description provided for @intelligenceCondProfundidade.
+  ///
+  /// In pt, this message translates to:
+  /// **'Profundidade'**
+  String get intelligenceCondProfundidade;
+
+  /// No description provided for @intelligenceCondClorofila.
+  ///
+  /// In pt, this message translates to:
+  /// **'Clorofila'**
+  String get intelligenceCondClorofila;
+
+  /// No description provided for @intelligenceEstruturaTermicaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estrutura Térmica'**
+  String get intelligenceEstruturaTermicaTitulo;
+
+  /// No description provided for @intelligencePerfilIndisponivelTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil vertical indisponível'**
+  String get intelligencePerfilIndisponivelTitulo;
+
+  /// No description provided for @intelligencePerfilIndisponivelDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dados de temperatura em profundidade necessários para calcular a termoclina.'**
+  String get intelligencePerfilIndisponivelDescricao;
+
+  /// No description provided for @intelligenceFatoresTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fatores'**
+  String get intelligenceFatoresTitulo;
+
+  /// No description provided for @intelligenceFatorFavoravel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Favorável'**
+  String get intelligenceFatorFavoravel;
+
+  /// No description provided for @intelligenceFatorNeutro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Neutro'**
+  String get intelligenceFatorNeutro;
+
+  /// No description provided for @intelligenceFatorDesfavoravel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desfavorável'**
+  String get intelligenceFatorDesfavoravel;
+
+  /// No description provided for @intelligenceFatorIndisponivel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Indisponível'**
+  String get intelligenceFatorIndisponivel;
+
+  /// No description provided for @intelligenceExplicacaoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Por que este resultado?'**
+  String get intelligenceExplicacaoTitulo;
+
+  /// No description provided for @intelligenceAiTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Blue Ocean AI'**
+  String get intelligenceAiTitulo;
+
+  /// No description provided for @intelligenceAiTexto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Análise inteligente das condições oceanográficas.'**
+  String get intelligenceAiTexto;
+
+  /// No description provided for @intelligenceAiBotao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perguntar à Blue Ocean AI'**
+  String get intelligenceAiBotao;
+
+  /// No description provided for @intelligenceAiPreparando.
+  ///
+  /// In pt, this message translates to:
+  /// **'Módulo em preparação — em breve.'**
+  String get intelligenceAiPreparando;
+
+  /// No description provided for @intelligenceCalibracaoTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Calibrar Inteligência'**
+  String get intelligenceCalibracaoTitulo;
+
+  /// No description provided for @intelligenceCalibracaoDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuste a importância relativa de cada fator no cálculo do Índice de Inteligência Oceânica. Não precisam somar 100 — o que importa é a proporção entre eles.'**
+  String get intelligenceCalibracaoDescricao;
+
+  /// No description provided for @intelligenceCalibracaoParticipacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'{percentual}% do peso total'**
+  String intelligenceCalibracaoParticipacao(String percentual);
+
+  /// No description provided for @intelligenceCalibracaoRestaurarPadrao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restaurar padrão'**
+  String get intelligenceCalibracaoRestaurarPadrao;
+
+  /// No description provided for @intelligenceCalibracaoRestauradoAviso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pesos restaurados ao padrão.'**
+  String get intelligenceCalibracaoRestauradoAviso;
+
+  /// No description provided for @intelligenceCalibracaoTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Calibrar'**
+  String get intelligenceCalibracaoTooltip;
+
+  /// No description provided for @intelligenceCalibracaoPesoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Peso'**
+  String get intelligenceCalibracaoPesoLabel;
+
+  /// No description provided for @intelligenceCalibracaoIdealLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quantidade ideal'**
+  String get intelligenceCalibracaoIdealLabel;
 
   /// No description provided for @producaoHistoricoTitulo.
   ///

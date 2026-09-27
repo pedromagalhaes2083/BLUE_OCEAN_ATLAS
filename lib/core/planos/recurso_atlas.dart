@@ -17,6 +17,7 @@ enum RecursoAtlas {
   mapaIndiceProdutividade(GrupoPermissao.inteligencia),
   oceanografiaMareEPescaAtum(GrupoPermissao.inteligencia),
   oceanografiaTermoclina(GrupoPermissao.inteligencia),
+  intelligenceOceanica(GrupoPermissao.inteligencia),
   rotasAnaliseRota(GrupoPermissao.inteligencia),
   recomendacaoScoreEConfianca(GrupoPermissao.inteligencia),
 

@@ -31,6 +31,27 @@ class Constantes {
   static const String alertaTemperaturaAtivo = 'alerta_temperatura_ativo';
   static const String alertaTemperaturaLimiarC = 'alerta_temperatura_limiar_c';
 
+  /// Pesos relativos de cada fator no cálculo da "Inteligência Oceânica"
+  /// (ver `CalibracaoIntelligence`/`IntelligenceEngine`) — configuráveis na
+  /// tela "Calibrar Inteligência".
+  static const String intelligencePesoSst = 'intelligence_peso_sst';
+  static const String intelligencePesoCorrente = 'intelligence_peso_corrente';
+  static const String intelligencePesoClorofila = 'intelligence_peso_clorofila';
+  static const String intelligencePesoOndas = 'intelligence_peso_ondas';
+  static const String intelligencePesoVento = 'intelligence_peso_vento';
+
+  /// Quantidade ideal de cada variável — o valor que dá a nota máxima no
+  /// fator correspondente (ver `CalibracaoIntelligence`), também
+  /// configurável na tela "Calibrar Inteligência".
+  static const String intelligenceIdealSstC = 'intelligence_ideal_sst_c';
+  static const String intelligenceIdealCorrenteNos =
+      'intelligence_ideal_corrente_nos';
+  static const String intelligenceIdealClorofilaMgM3 =
+      'intelligence_ideal_clorofila_mg_m3';
+  static const String intelligenceIdealOndaM = 'intelligence_ideal_onda_m';
+  static const String intelligenceIdealVentoKmh =
+      'intelligence_ideal_vento_kmh';
+
   /// Id do usuário do último login bem-sucedido — comparado a cada login
   /// novo pra detectar troca de usuário no mesmo aparelho (ver
   /// `AuthService._tratarTrocaDeUsuario`) e decidir se limpa os dados

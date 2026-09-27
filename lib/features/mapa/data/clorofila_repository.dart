@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import '../../../core/utils/proximidade.dart';
 import '../domain/models/leitura_clorofila.dart';
 
 /// Única classe que conhece a URL/parâmetros do NOAA CoastWatch ERDDAP pra
@@ -44,6 +45,43 @@ class ClorofilaRepository {
     return parseRespostaCsv(response.body);
   }
 
+  /// Busca clorofila-a numa grade ao redor de (latitude, longitude), num
+  /// raio de [raioNm] milhas náuticas — **uma única chamada HTTP**, ao
+  /// contrário de [buscarPonto] (mesmo padrão de lote de
+  /// [WaveForecastRepository.buscarGrade]/[ProfundidadeRepository.buscarVarios]).
+  ///
+  /// Griddap (o protocolo do ERDDAP) aceita nativamente um intervalo de
+  /// lat/lon em vez de um valor fixo — construído aqui com
+  /// [projetarPontoNoRumo] pros 4 pontos cardeais a partir do centro, em vez
+  /// de aproximar com graus fixos (a distância de 1° de longitude varia com
+  /// a latitude). A resolução devolvida é a nativa do dataset (~2km —
+  /// confirmado com curl real: um pouco mais de 1 milha náutica por célula,
+  /// já próximo do "1 ponto por milha quadrada" — nenhuma reamostragem
+  /// adicional necessária).
+  Future<List<LeituraClorofilaPonto>> buscarGrade({
+    required double latitude,
+    required double longitude,
+    double raioNm = 10,
+  }) async {
+    final norte = projetarPontoNoRumo(latitude, longitude, 0, raioNm);
+    final sul = projetarPontoNoRumo(latitude, longitude, 180, raioNm);
+    final leste = projetarPontoNoRumo(latitude, longitude, 90, raioNm);
+    final oeste = projetarPontoNoRumo(latitude, longitude, 270, raioNm);
+
+    final uri = Uri.parse(
+      '$_baseUrl?chlor_a%5B(last)%5D%5B(0.0):1:(0.0)%5D'
+      '%5B(${sul.latitude}):1:(${norte.latitude})%5D'
+      '%5B(${oeste.longitude}):1:(${leste.longitude})%5D',
+    );
+
+    final response = await http.get(uri).timeout(const Duration(seconds: 25));
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Erro ao buscar grade de clorofila-a: ${response.statusCode}');
+    }
+    return parseRespostaCsvGrade(response.body);
+  }
+
   /// Parsing separado do fetch só pra dar pra testar sem rede — resposta
   /// CSV do ERDDAP: linha 0 = nomes das colunas, linha 1 = unidades, linha
   /// 2 = dado. Colunas: time, altitude, latitude, longitude, chlor_a.
@@ -70,5 +108,38 @@ class ClorofilaRepository {
       valorMgM3: valor,
       data: DateTime.parse(campos[0]),
     );
+  }
+
+  /// Mesmo formato de [parseRespostaCsv], mas devolve um ponto por linha de
+  /// dado (linhas 2 em diante) em vez de assumir uma única — usado por
+  /// [buscarGrade]. Best-effort: pula silenciosamente uma linha malformada
+  /// em vez de derrubar a grade inteira por causa de uma célula ruim.
+  static List<LeituraClorofilaPonto> parseRespostaCsvGrade(String corpo) {
+    final linhas = const LineSplitter().convert(corpo);
+    if (linhas.length < 3) {
+      throw FormatException('Resposta inesperada do ERDDAP (clorofila): $corpo');
+    }
+
+    final pontos = <LeituraClorofilaPonto>[];
+    for (var i = 2; i < linhas.length; i++) {
+      final campos = linhas[i].split(',');
+      if (campos.length < 5) continue;
+
+      final valorBruto = campos[4].trim();
+      final valor =
+          valorBruto.toUpperCase() == 'NAN' ? null : double.tryParse(valorBruto);
+      final lat = double.tryParse(campos[2]);
+      final lon = double.tryParse(campos[3]);
+      final data = DateTime.tryParse(campos[0]);
+      if (lat == null || lon == null || data == null) continue;
+
+      pontos.add(LeituraClorofilaPonto(
+        latitude: lat,
+        longitude: lon,
+        valorMgM3: valor,
+        data: data,
+      ));
+    }
+    return pontos;
   }
 }
