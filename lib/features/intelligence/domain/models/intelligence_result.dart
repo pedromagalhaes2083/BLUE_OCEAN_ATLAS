@@ -42,4 +42,21 @@ class IntelligenceResult {
     required this.thermocline,
     required this.explicacao,
   });
+
+  /// Classificação do [score] — faixas literais do prompt original
+  /// ("especialista em oceanografia pesqueira... índice de favorabilidade
+  /// para presença de atum"): 0–30 baixa, 31–60 moderada, 61–80 favorável,
+  /// 81–100 muito favorável. Só o discriminador — o texto exibido vem de
+  /// `AppLocalizations` na tela (ver `IntelligenceScreen`), nunca fixo em
+  /// português aqui.
+  IntelligenceClassificacao get classificacao {
+    if (score <= 30) return IntelligenceClassificacao.baixa;
+    if (score <= 60) return IntelligenceClassificacao.moderada;
+    if (score <= 80) return IntelligenceClassificacao.favoravel;
+    return IntelligenceClassificacao.muitoFavoravel;
+  }
 }
+
+/// Faixas de classificação do [IntelligenceResult.score] — ver doc do
+/// getter `classificacao`.
+enum IntelligenceClassificacao { baixa, moderada, favoravel, muitoFavoravel }

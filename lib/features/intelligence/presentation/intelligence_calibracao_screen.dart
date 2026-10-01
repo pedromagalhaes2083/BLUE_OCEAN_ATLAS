@@ -6,13 +6,23 @@ import '../../../core/planos/recurso_atlas.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../widgets/recurso_protegido.dart';
 
-/// Tela pra ajustar os dois eixos de calibração do cálculo da
-/// "Inteligência Oceânica" (ver `IntelligenceEngine`/
-/// `CalibracaoIntelligence`) — por fator: **peso** (importância relativa
-/// no score) e **quantidade ideal** (o valor que dá nota máxima àquele
-/// fator, ex: qual SST é considerada ideal). Mesmo padrão visual/de
-/// persistência de `AlertaConfigScreen` (`LimiaresAlerta`): um card por
-/// fator, salvando a cada mudança, sem botão "Salvar" separado.
+/// Tela pra ajustar a calibração do "Índice de Inteligência Oceânica" —
+/// hoje um índice de favorabilidade para presença de atum (ver
+/// `IntelligenceEngine`/`CalibracaoIntelligence`), com pesos e faixas
+/// pré-configurados a partir de um prompt de especialista em oceanografia
+/// pesqueira, mas ajustáveis aqui. Três eixos por fator:
+///
+/// - **Peso**: importância relativa no score final.
+/// - **Faixa ideal**: intervalo (min–max) que dá nota máxima
+///   ("Excelente" no prompt original) — um [RangeSlider], não um valor só,
+///   já que os fatores originais são faixas, não um ponto único.
+/// - **Margem**: até quanto além da faixa ideal ainda dá nota parcial
+///   ("Moderada") antes de virar "Baixa" — ver doc de
+///   [CalibracaoIntelligence] pra onde isso simplifica uma margem
+///   assimétrica do prompt original.
+///
+/// Mesmo padrão visual/de persistência da versão anterior desta tela: um
+/// card por fator, salvando a cada mudança, sem botão "Salvar" separado.
 class IntelligenceCalibracaoScreen extends StatefulWidget {
   const IntelligenceCalibracaoScreen({super.key});
 
@@ -93,42 +103,66 @@ class _IntelligenceCalibracaoScreenState
                       icon: Icons.thermostat,
                       titulo: l10n.intelligenceCondSst,
                       calibracao: _calibracao,
-                      peso: _calibracao.pesoSst,
-                      ideal: _calibracao.sstIdealC,
-                      idealMin: 15,
-                      idealMax: 32,
-                      idealDivisoes: 34,
-                      idealUnidade: '°C',
-                      idealCasasDecimais: 1,
-                      onPesoChanged: (v) =>
-                          _atualizarLocal(_calibracao.copyWith(pesoSst: v)),
+                      peso: _calibracao.pesoTemperatura,
+                      idealMin: _calibracao.temperaturaIdealMinC,
+                      idealMax: _calibracao.temperaturaIdealMaxC,
+                      margem: _calibracao.temperaturaMargemC,
+                      faixaMin: 10,
+                      faixaMax: 35,
+                      faixaDivisoes: 50,
+                      unidade: '°C',
+                      casasDecimais: 1,
+                      margemMax: 5,
+                      margemDivisoes: 20,
+                      onPesoChanged: (v) => _atualizarLocal(
+                          _calibracao.copyWith(pesoTemperatura: v)),
                       onPesoChangedFim: (v) =>
-                          _atualizar(_calibracao.copyWith(pesoSst: v)),
-                      onIdealChanged: (v) =>
-                          _atualizarLocal(_calibracao.copyWith(sstIdealC: v)),
-                      onIdealChangedFim: (v) =>
-                          _atualizar(_calibracao.copyWith(sstIdealC: v)),
+                          _atualizar(_calibracao.copyWith(pesoTemperatura: v)),
+                      onIdealChanged: (min, max) => _atualizarLocal(_calibracao
+                          .copyWith(
+                              temperaturaIdealMinC: min,
+                              temperaturaIdealMaxC: max)),
+                      onIdealChangedFim: (min, max) => _atualizar(_calibracao
+                          .copyWith(
+                              temperaturaIdealMinC: min,
+                              temperaturaIdealMaxC: max)),
+                      onMargemChanged: (v) => _atualizarLocal(
+                          _calibracao.copyWith(temperaturaMargemC: v)),
+                      onMargemChangedFim: (v) => _atualizar(
+                          _calibracao.copyWith(temperaturaMargemC: v)),
                     ),
                     const SizedBox(height: 12),
                     _CardFator(
-                      icon: Icons.water,
-                      titulo: l10n.intelligenceCondCorrente,
+                      icon: Icons.water_drop_outlined,
+                      titulo: l10n.salinidadeTitulo,
                       calibracao: _calibracao,
-                      peso: _calibracao.pesoCorrente,
-                      ideal: _calibracao.correnteIdealNos,
-                      idealMin: 0.1,
-                      idealMax: 2.0,
-                      idealDivisoes: 19,
-                      idealUnidade: 'nós',
-                      idealCasasDecimais: 1,
+                      peso: _calibracao.pesoSalinidade,
+                      idealMin: _calibracao.salinidadeIdealMinUps,
+                      idealMax: _calibracao.salinidadeIdealMaxUps,
+                      margem: _calibracao.salinidadeMargemUps,
+                      faixaMin: 30,
+                      faixaMax: 40,
+                      faixaDivisoes: 50,
+                      unidade: 'PSU',
+                      casasDecimais: 1,
+                      margemMax: 2,
+                      margemDivisoes: 20,
                       onPesoChanged: (v) => _atualizarLocal(
-                          _calibracao.copyWith(pesoCorrente: v)),
+                          _calibracao.copyWith(pesoSalinidade: v)),
                       onPesoChangedFim: (v) =>
-                          _atualizar(_calibracao.copyWith(pesoCorrente: v)),
-                      onIdealChanged: (v) => _atualizarLocal(
-                          _calibracao.copyWith(correnteIdealNos: v)),
-                      onIdealChangedFim: (v) =>
-                          _atualizar(_calibracao.copyWith(correnteIdealNos: v)),
+                          _atualizar(_calibracao.copyWith(pesoSalinidade: v)),
+                      onIdealChanged: (min, max) => _atualizarLocal(_calibracao
+                          .copyWith(
+                              salinidadeIdealMinUps: min,
+                              salinidadeIdealMaxUps: max)),
+                      onIdealChangedFim: (min, max) => _atualizar(_calibracao
+                          .copyWith(
+                              salinidadeIdealMinUps: min,
+                              salinidadeIdealMaxUps: max)),
+                      onMargemChanged: (v) => _atualizarLocal(
+                          _calibracao.copyWith(salinidadeMargemUps: v)),
+                      onMargemChangedFim: (v) => _atualizar(
+                          _calibracao.copyWith(salinidadeMargemUps: v)),
                     ),
                     const SizedBox(height: 12),
                     _CardFator(
@@ -136,62 +170,98 @@ class _IntelligenceCalibracaoScreenState
                       titulo: l10n.intelligenceCondClorofila,
                       calibracao: _calibracao,
                       peso: _calibracao.pesoClorofila,
-                      ideal: _calibracao.clorofilaIdealMgM3,
-                      idealMin: 0.05,
-                      idealMax: 0.5,
-                      idealDivisoes: 45,
-                      idealUnidade: 'mg/m³',
-                      idealCasasDecimais: 2,
+                      idealMin: _calibracao.clorofilaIdealMinMgM3,
+                      idealMax: _calibracao.clorofilaIdealMaxMgM3,
+                      margem: _calibracao.clorofilaMargemMgM3,
+                      faixaMin: 0,
+                      faixaMax: 0.5,
+                      faixaDivisoes: 50,
+                      unidade: 'mg/m³',
+                      casasDecimais: 2,
+                      margemMax: 0.2,
+                      margemDivisoes: 20,
                       onPesoChanged: (v) => _atualizarLocal(
                           _calibracao.copyWith(pesoClorofila: v)),
                       onPesoChangedFim: (v) =>
                           _atualizar(_calibracao.copyWith(pesoClorofila: v)),
-                      onIdealChanged: (v) => _atualizarLocal(
-                          _calibracao.copyWith(clorofilaIdealMgM3: v)),
-                      onIdealChangedFim: (v) => _atualizar(
-                          _calibracao.copyWith(clorofilaIdealMgM3: v)),
+                      onIdealChanged: (min, max) => _atualizarLocal(_calibracao
+                          .copyWith(
+                              clorofilaIdealMinMgM3: min,
+                              clorofilaIdealMaxMgM3: max)),
+                      onIdealChangedFim: (min, max) => _atualizar(_calibracao
+                          .copyWith(
+                              clorofilaIdealMinMgM3: min,
+                              clorofilaIdealMaxMgM3: max)),
+                      onMargemChanged: (v) => _atualizarLocal(
+                          _calibracao.copyWith(clorofilaMargemMgM3: v)),
+                      onMargemChangedFim: (v) => _atualizar(
+                          _calibracao.copyWith(clorofilaMargemMgM3: v)),
                     ),
                     const SizedBox(height: 12),
                     _CardFator(
-                      icon: Icons.waves,
-                      titulo: l10n.intelligenceCondOndas,
+                      icon: Icons.water,
+                      titulo: l10n.intelligenceCondCorrente,
                       calibracao: _calibracao,
-                      peso: _calibracao.pesoOndas,
-                      ideal: _calibracao.ondaIdealM,
-                      idealMin: 0.2,
-                      idealMax: 2.0,
-                      idealDivisoes: 18,
-                      idealUnidade: 'm',
-                      idealCasasDecimais: 1,
-                      onPesoChanged: (v) =>
-                          _atualizarLocal(_calibracao.copyWith(pesoOndas: v)),
+                      peso: _calibracao.pesoCorrente,
+                      idealMin: _calibracao.correnteIdealMinNos,
+                      idealMax: _calibracao.correnteIdealMaxNos,
+                      margem: _calibracao.correnteMargemNos,
+                      faixaMin: 0,
+                      faixaMax: 3,
+                      faixaDivisoes: 30,
+                      unidade: 'nós',
+                      casasDecimais: 1,
+                      margemMax: 1.5,
+                      margemDivisoes: 15,
+                      onPesoChanged: (v) => _atualizarLocal(
+                          _calibracao.copyWith(pesoCorrente: v)),
                       onPesoChangedFim: (v) =>
-                          _atualizar(_calibracao.copyWith(pesoOndas: v)),
-                      onIdealChanged: (v) =>
-                          _atualizarLocal(_calibracao.copyWith(ondaIdealM: v)),
-                      onIdealChangedFim: (v) =>
-                          _atualizar(_calibracao.copyWith(ondaIdealM: v)),
+                          _atualizar(_calibracao.copyWith(pesoCorrente: v)),
+                      onIdealChanged: (min, max) => _atualizarLocal(_calibracao
+                          .copyWith(
+                              correnteIdealMinNos: min,
+                              correnteIdealMaxNos: max)),
+                      onIdealChangedFim: (min, max) => _atualizar(_calibracao
+                          .copyWith(
+                              correnteIdealMinNos: min,
+                              correnteIdealMaxNos: max)),
+                      onMargemChanged: (v) => _atualizarLocal(
+                          _calibracao.copyWith(correnteMargemNos: v)),
+                      onMargemChangedFim: (v) => _atualizar(
+                          _calibracao.copyWith(correnteMargemNos: v)),
                     ),
                     const SizedBox(height: 12),
                     _CardFator(
-                      icon: Icons.air,
-                      titulo: l10n.intelligenceCondVento,
+                      icon: Icons.terrain,
+                      titulo: l10n.intelligenceCondProfundidade,
                       calibracao: _calibracao,
-                      peso: _calibracao.pesoVento,
-                      ideal: _calibracao.ventoIdealKmh,
-                      idealMin: 2,
-                      idealMax: 30,
-                      idealDivisoes: 28,
-                      idealUnidade: 'km/h',
-                      idealCasasDecimais: 0,
-                      onPesoChanged: (v) =>
-                          _atualizarLocal(_calibracao.copyWith(pesoVento: v)),
+                      peso: _calibracao.pesoBatimetria,
+                      idealMin: _calibracao.batimetriaIdealMinM,
+                      idealMax: _calibracao.batimetriaIdealMaxM,
+                      margem: _calibracao.batimetriaMargemM,
+                      faixaMin: 0,
+                      faixaMax: 4000,
+                      faixaDivisoes: 40,
+                      unidade: 'm',
+                      casasDecimais: 0,
+                      margemMax: 1500,
+                      margemDivisoes: 30,
+                      onPesoChanged: (v) => _atualizarLocal(
+                          _calibracao.copyWith(pesoBatimetria: v)),
                       onPesoChangedFim: (v) =>
-                          _atualizar(_calibracao.copyWith(pesoVento: v)),
-                      onIdealChanged: (v) => _atualizarLocal(
-                          _calibracao.copyWith(ventoIdealKmh: v)),
-                      onIdealChangedFim: (v) =>
-                          _atualizar(_calibracao.copyWith(ventoIdealKmh: v)),
+                          _atualizar(_calibracao.copyWith(pesoBatimetria: v)),
+                      onIdealChanged: (min, max) => _atualizarLocal(_calibracao
+                          .copyWith(
+                              batimetriaIdealMinM: min,
+                              batimetriaIdealMaxM: max)),
+                      onIdealChangedFim: (min, max) => _atualizar(_calibracao
+                          .copyWith(
+                              batimetriaIdealMinM: min,
+                              batimetriaIdealMaxM: max)),
+                      onMargemChanged: (v) => _atualizarLocal(
+                          _calibracao.copyWith(batimetriaMargemM: v)),
+                      onMargemChangedFim: (v) => _atualizar(
+                          _calibracao.copyWith(batimetriaMargemM: v)),
                     ),
                   ],
                 ),
@@ -208,14 +278,21 @@ class _CardFator extends StatelessWidget {
   final ValueChanged<double> onPesoChanged;
   final ValueChanged<double> onPesoChangedFim;
 
-  final double ideal;
   final double idealMin;
   final double idealMax;
-  final int idealDivisoes;
-  final String idealUnidade;
-  final int idealCasasDecimais;
-  final ValueChanged<double> onIdealChanged;
-  final ValueChanged<double> onIdealChangedFim;
+  final double faixaMin;
+  final double faixaMax;
+  final int faixaDivisoes;
+  final String unidade;
+  final int casasDecimais;
+  final void Function(double min, double max) onIdealChanged;
+  final void Function(double min, double max) onIdealChangedFim;
+
+  final double margem;
+  final double margemMax;
+  final int margemDivisoes;
+  final ValueChanged<double> onMargemChanged;
+  final ValueChanged<double> onMargemChangedFim;
 
   const _CardFator({
     required this.icon,
@@ -224,14 +301,20 @@ class _CardFator extends StatelessWidget {
     required this.peso,
     required this.onPesoChanged,
     required this.onPesoChangedFim,
-    required this.ideal,
     required this.idealMin,
     required this.idealMax,
-    required this.idealDivisoes,
-    required this.idealUnidade,
-    required this.idealCasasDecimais,
+    required this.faixaMin,
+    required this.faixaMax,
+    required this.faixaDivisoes,
+    required this.unidade,
+    required this.casasDecimais,
     required this.onIdealChanged,
     required this.onIdealChangedFim,
+    required this.margem,
+    required this.margemMax,
+    required this.margemDivisoes,
+    required this.onMargemChanged,
+    required this.onMargemChangedFim,
   });
 
   static const _pesoMin = 0.0;
@@ -242,6 +325,10 @@ class _CardFator extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     final participacao = calibracao.participacao(peso);
+    final faixaValores = RangeValues(
+      idealMin.clamp(faixaMin, faixaMax),
+      idealMax.clamp(faixaMin, faixaMax),
+    );
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -295,28 +382,58 @@ class _CardFator extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 96,
-                  child: Text(l10n.intelligenceCalibracaoIdealLabel,
+                  child: Text(l10n.intelligenceCalibracaoFaixaIdealLabel,
                       style: TextStyle(fontSize: 12, color: onSurfaceVariant)),
                 ),
                 Expanded(
-                  child: Slider(
-                    value: ideal.clamp(idealMin, idealMax),
-                    min: idealMin,
-                    max: idealMax,
-                    divisions: idealDivisoes,
-                    label:
-                        '${ideal.toStringAsFixed(idealCasasDecimais)} $idealUnidade',
-                    onChanged: onIdealChanged,
-                    onChangeEnd: onIdealChangedFim,
+                  child: RangeSlider(
+                    values: faixaValores,
+                    min: faixaMin,
+                    max: faixaMax,
+                    divisions: faixaDivisoes,
+                    labels: RangeLabels(
+                      faixaValores.start.toStringAsFixed(casasDecimais),
+                      faixaValores.end.toStringAsFixed(casasDecimais),
+                    ),
+                    onChanged: (v) => onIdealChanged(v.start, v.end),
+                    onChangeEnd: (v) => onIdealChangedFim(v.start, v.end),
                   ),
                 ),
                 SizedBox(
                   width: 68,
                   child: Text(
-                    '${ideal.toStringAsFixed(idealCasasDecimais)} $idealUnidade',
+                    '${faixaValores.start.toStringAsFixed(casasDecimais)}–'
+                    '${faixaValores.end.toStringAsFixed(casasDecimais)} $unidade',
                     textAlign: TextAlign.right,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 12),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                SizedBox(
+                  width: 96,
+                  child: Text(l10n.intelligenceCalibracaoMargemLabel,
+                      style: TextStyle(fontSize: 12, color: onSurfaceVariant)),
+                ),
+                Expanded(
+                  child: Slider(
+                    value: margem.clamp(0, margemMax),
+                    min: 0,
+                    max: margemMax,
+                    divisions: margemDivisoes,
+                    label: '±${margem.toStringAsFixed(casasDecimais)}',
+                    onChanged: onMargemChanged,
+                    onChangeEnd: onMargemChangedFim,
+                  ),
+                ),
+                SizedBox(
+                  width: 68,
+                  child: Text(
+                    '±${margem.toStringAsFixed(casasDecimais)} $unidade',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
               ],

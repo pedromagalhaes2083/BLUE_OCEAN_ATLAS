@@ -2,48 +2,49 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:atlas/core/config/calibracao_intelligence.dart';
 import 'package:atlas/features/intelligence/domain/models/intelligence_factor.dart';
+import 'package:atlas/features/intelligence/domain/models/intelligence_result.dart';
 import 'package:atlas/features/intelligence/domain/models/ocean_conditions.dart';
 import 'package:atlas/features/intelligence/domain/services/intelligence_engine.dart';
 
 void main() {
-  group('IntelligenceEngine.avaliar', () {
-    test('condições ótimas em todos os fatores dá score alto (perto de 100)',
-        () {
+  group('IntelligenceEngine.avaliar — índice de favorabilidade de atum', () {
+    test('condições excelentes em todos os fatores dá score 100', () {
       final resultado = IntelligenceEngine.avaliar(
         latitude: -2.9,
         longitude: -39.6,
         instante: DateTime(2026, 9, 26),
         conditions: const OceanConditions(
-          sst: 27.0, // exatamente a ideal
-          correnteNos: 0.2, // fraca
-          ondaAlturaM: 0.3, // calmo
-          ventoKmh: 5, // calmo
-          clorofilaMgM3: 0.22, // ótimo/excelente
+          sst: 27.5, // dentro de 22-30 (excelente)
+          salinidadeUps: 35.4, // dentro de 34.9-35.8 (excelente)
+          clorofilaMgM3: 0.11, // dentro de 0.08-0.14 (excelente)
+          correnteNos: 0.6, // dentro de 0.3-1.0 (excelente)
+          profundidadeM: 1800, // dentro de 100-2000 (excelente)
         ),
       );
 
-      expect(resultado.score, greaterThan(90));
+      expect(resultado.score, 100);
       expect(resultado.confianca, 100);
+      expect(resultado.classificacao, IntelligenceClassificacao.muitoFavoravel);
     });
 
-    test(
-        'condições ruins em todos os fatores dá score baixo (perto de 0)',
+    test('condições fora de qualquer faixa (baixa) em todos os fatores dá score baixo',
         () {
       final resultado = IntelligenceEngine.avaliar(
         latitude: -2.9,
         longitude: -39.6,
         instante: DateTime(2026, 9, 26),
         conditions: const OceanConditions(
-          sst: 15.0, // longe da ideal
-          correnteNos: 3.0, // extrema
-          ondaAlturaM: 5.0, // tempestuoso
-          ventoKmh: 60, // muito forte
-          clorofilaMgM3: 0.01, // ruim
+          sst: 15.0, // bem longe de 22-30
+          salinidadeUps: 20.0, // bem longe de 34.9-35.8
+          clorofilaMgM3: 0.01, // bem abaixo de 0.08-0.14
+          correnteNos: 5.0, // bem acima de 0.3-1.0
+          profundidadeM: 5, // bem abaixo de 100-2000 (raso demais)
         ),
       );
 
-      expect(resultado.score, lessThan(30));
+      expect(resultado.score, 25);
       expect(resultado.confianca, 100);
+      expect(resultado.classificacao, IntelligenceClassificacao.baixa);
     });
 
     test('nenhum dado disponível: score e confiança ficam em 0, sem lançar',
@@ -67,10 +68,10 @@ void main() {
         instante: DateTime(2026, 9, 26),
         conditions: const OceanConditions(
           sst: 27.0,
-          correnteNos: 0.2,
-          ondaAlturaM: 0.3,
-          ventoKmh: 5,
-          clorofilaMgM3: 0.22,
+          salinidadeUps: 35.4,
+          clorofilaMgM3: 0.11,
+          correnteNos: 0.6,
+          profundidadeM: 1800,
         ),
       );
       final semClorofila = IntelligenceEngine.avaliar(
@@ -79,25 +80,23 @@ void main() {
         instante: DateTime(2026, 9, 26),
         conditions: const OceanConditions(
           sst: 27.0,
-          correnteNos: 0.2,
-          ondaAlturaM: 0.3,
-          ventoKmh: 5,
+          salinidadeUps: 35.4,
+          correnteNos: 0.6,
+          profundidadeM: 1800,
         ),
       );
 
       expect(semClorofila.confianca, lessThan(completo.confianca));
-      final fatorClorofila = semClorofila.factors
-          .firstWhere((f) => f.nome == 'Clorofila');
+      final fatorClorofila =
+          semClorofila.factors.firstWhere((f) => f.nome == 'Clorofila');
       expect(fatorClorofila.disponivel, isFalse);
       expect(fatorClorofila.pontuacao, isNull);
       expect(fatorClorofila.status, IntelligenceFactorStatus.indisponivel);
     });
 
-    test('peso é redistribuído: score não cai só por faltar um fator neutro',
-        () {
-      // Só SST disponível, e ótima — mesmo com os outros 4 fatores
-      // ausentes, o score deve refletir só o que está disponível (SST alta),
-      // não ser arrastado pra baixo por "faltar" nota nos outros.
+    test('peso é redistribuído: score reflete só o que está disponível', () {
+      // Só temperatura disponível, e excelente — mesmo com os outros 4
+      // fatores ausentes, o score deve refletir só o que está disponível.
       final resultado = IntelligenceEngine.avaliar(
         latitude: 0,
         longitude: 0,
@@ -105,8 +104,9 @@ void main() {
         conditions: const OceanConditions(sst: 27.0),
       );
 
-      expect(resultado.score, greaterThan(90));
-      expect(resultado.confianca, closeTo(25, 1)); // só o peso da SST (25%)
+      expect(resultado.score, 100);
+      // Só o peso da temperatura (35 de 110 = ~31.8%).
+      expect(resultado.confianca, closeTo(31.8, 0.5));
     });
 
     test('score nunca é menor que 0 nem maior que 100 (limites)', () {
@@ -116,10 +116,10 @@ void main() {
         instante: DateTime(2026, 9, 26),
         conditions: const OceanConditions(
           sst: -5,
-          correnteNos: 10,
-          ondaAlturaM: 20,
-          ventoKmh: 200,
+          salinidadeUps: 0,
           clorofilaMgM3: 0,
+          correnteNos: 10,
+          profundidadeM: 0,
         ),
       );
       expect(extremoRuim.score, greaterThanOrEqualTo(0));
@@ -144,48 +144,48 @@ void main() {
         instante: DateTime(2026, 9, 26),
         conditions: const OceanConditions(sst: 27.0),
       );
-      expect(resultado.explicacao, contains('Corrente'));
+      expect(resultado.explicacao, contains('Salinidade'));
       expect(resultado.explicacao, contains('indisponível'));
     });
 
     test('calibração customizada muda o quanto cada fator pesa no score', () {
       const conditions = OceanConditions(
         sst: 27.0, // excelente (100)
-        correnteNos: 3.0, // extrema (10)
+        salinidadeUps: 20.0, // baixa (25)
       );
 
-      // Peso todo em SST: score deve ficar perto de 100 (domina o cálculo).
-      final comPesoEmSst = IntelligenceEngine.avaliar(
+      // Peso todo em temperatura: score deve ficar perto de 100.
+      final comPesoEmTemperatura = IntelligenceEngine.avaliar(
         latitude: 0,
         longitude: 0,
         instante: DateTime(2026, 9, 26),
         conditions: conditions,
         calibracao: CalibracaoIntelligence.padrao.copyWith(
-          pesoSst: 100,
-          pesoCorrente: 1,
+          pesoTemperatura: 100,
+          pesoSalinidade: 1,
           pesoClorofila: 0,
-          pesoOndas: 0,
-          pesoVento: 0,
+          pesoCorrente: 0,
+          pesoBatimetria: 0,
         ),
       );
-      // Peso todo em corrente: score deve ficar perto de 10 (domina o cálculo).
-      final comPesoEmCorrente = IntelligenceEngine.avaliar(
+      // Peso todo em salinidade: score deve ficar perto de 25.
+      final comPesoEmSalinidade = IntelligenceEngine.avaliar(
         latitude: 0,
         longitude: 0,
         instante: DateTime(2026, 9, 26),
         conditions: conditions,
         calibracao: CalibracaoIntelligence.padrao.copyWith(
-          pesoSst: 1,
-          pesoCorrente: 100,
+          pesoTemperatura: 1,
+          pesoSalinidade: 100,
           pesoClorofila: 0,
-          pesoOndas: 0,
-          pesoVento: 0,
+          pesoCorrente: 0,
+          pesoBatimetria: 0,
         ),
       );
 
-      expect(comPesoEmSst.score, greaterThan(comPesoEmCorrente.score));
-      expect(comPesoEmSst.score, greaterThan(90));
-      expect(comPesoEmCorrente.score, lessThan(20));
+      expect(comPesoEmTemperatura.score, greaterThan(comPesoEmSalinidade.score));
+      expect(comPesoEmTemperatura.score, greaterThan(90));
+      expect(comPesoEmSalinidade.score, lessThan(30));
     });
 
     test('pesos de calibração não precisam somar 100 — só a razão importa',
@@ -197,11 +197,11 @@ void main() {
         instante: DateTime(2026, 9, 26),
         conditions: conditions,
         calibracao: CalibracaoIntelligence.padrao.copyWith(
-          pesoSst: 3,
-          pesoCorrente: 3,
-          pesoClorofila: 3,
-          pesoOndas: 2,
-          pesoVento: 1,
+          pesoTemperatura: 3,
+          pesoSalinidade: 3,
+          pesoClorofila: 2,
+          pesoCorrente: 1,
+          pesoBatimetria: 1,
         ),
       );
       final pesosGrandes = IntelligenceEngine.avaliar(
@@ -210,11 +210,11 @@ void main() {
         instante: DateTime(2026, 9, 26),
         conditions: conditions,
         calibracao: CalibracaoIntelligence.padrao.copyWith(
-          pesoSst: 30,
-          pesoCorrente: 30,
-          pesoClorofila: 30,
-          pesoOndas: 20,
-          pesoVento: 10,
+          pesoTemperatura: 30,
+          pesoSalinidade: 30,
+          pesoClorofila: 20,
+          pesoCorrente: 10,
+          pesoBatimetria: 10,
         ),
       );
 
@@ -222,74 +222,105 @@ void main() {
       expect(pesosPequenos.confianca, closeTo(pesosGrandes.confianca, 0.01));
     });
 
-    test('quantidade ideal calibrada desloca a curva de SST', () {
-      // 30°C é ótimo pro padrão (ideal 27°C, distância 3 → "bom" = 55),
-      // mas vira excelente (100) se o usuário recalibrar o ideal pra 30°C.
-      const conditions = OceanConditions(sst: 30.0);
-      final comIdealPadrao = IntelligenceEngine.avaliar(
+    test('faixa ideal recalibrada muda a nota de temperatura', () {
+      // 32°C é "baixa" pro padrão (fora de 22-30 + margem de 1.5 = até 31.5),
+      // mas vira "excelente" (100) se a faixa ideal for recalibrada.
+      const conditions = OceanConditions(sst: 32.0);
+      final comFaixaPadrao = IntelligenceEngine.avaliar(
         latitude: 0,
         longitude: 0,
         instante: DateTime(2026, 9, 26),
         conditions: conditions,
       );
-      final comIdealRecalibrado = IntelligenceEngine.avaliar(
+      final comFaixaRecalibrada = IntelligenceEngine.avaliar(
         latitude: 0,
         longitude: 0,
         instante: DateTime(2026, 9, 26),
         conditions: conditions,
-        calibracao: CalibracaoIntelligence.padrao.copyWith(sstIdealC: 30.0),
-      );
-
-      expect(comIdealRecalibrado.score, greaterThan(comIdealPadrao.score));
-      final fatorRecalibrado =
-          comIdealRecalibrado.factors.firstWhere((f) => f.nome == 'SST');
-      expect(fatorRecalibrado.pontuacao, 100);
-    });
-
-    test('quantidade ideal calibrada desloca a curva de vento', () {
-      // 25 km/h é "moderado" (55) pro padrão (ideal 10 km/h → 25 está entre
-      // 2x e 3x o ideal), mas vira "calmo" (100) se o ideal for recalibrado
-      // pra acima de 25 km/h.
-      const conditions = OceanConditions(ventoKmh: 25);
-      final comIdealPadrao = IntelligenceEngine.avaliar(
-        latitude: 0,
-        longitude: 0,
-        instante: DateTime(2026, 9, 26),
-        conditions: conditions,
-      );
-      final comIdealRecalibrado = IntelligenceEngine.avaliar(
-        latitude: 0,
-        longitude: 0,
-        instante: DateTime(2026, 9, 26),
-        conditions: conditions,
-        calibracao: CalibracaoIntelligence.padrao.copyWith(ventoIdealKmh: 30),
+        calibracao: CalibracaoIntelligence.padrao
+            .copyWith(temperaturaIdealMinC: 30, temperaturaIdealMaxC: 34),
       );
 
       final fatorPadrao =
-          comIdealPadrao.factors.firstWhere((f) => f.nome == 'Vento');
-      final fatorRecalibrado =
-          comIdealRecalibrado.factors.firstWhere((f) => f.nome == 'Vento');
-      expect(fatorRecalibrado.pontuacao, greaterThan(fatorPadrao.pontuacao!));
+          comFaixaPadrao.factors.firstWhere((f) => f.nome == 'Temperatura');
+      final fatorRecalibrado = comFaixaRecalibrada.factors
+          .firstWhere((f) => f.nome == 'Temperatura');
+      expect(fatorPadrao.pontuacao, 25);
       expect(fatorRecalibrado.pontuacao, 100);
     });
 
-    test('quantidade ideal de clorofila é monotônica (mais é sempre >= nota)',
+    test('margem recalibrada muda a nota de um valor logo fora da faixa ideal',
         () {
-      final baixo = IntelligenceEngine.avaliar(
+      // 31°C está a 1°C além do máximo ideal (30) — "moderada" com a margem
+      // padrão (1.5), mas vira "baixa" se a margem for recalibrada pra 0.
+      const conditions = OceanConditions(sst: 31.0);
+      final comMargemPadrao = IntelligenceEngine.avaliar(
         latitude: 0,
         longitude: 0,
         instante: DateTime(2026, 9, 26),
-        conditions: const OceanConditions(clorofilaMgM3: 0.05),
+        conditions: conditions,
       );
-      final alto = IntelligenceEngine.avaliar(
+      final semMargem = IntelligenceEngine.avaliar(
         latitude: 0,
         longitude: 0,
         instante: DateTime(2026, 9, 26),
-        conditions: const OceanConditions(clorofilaMgM3: 0.5),
+        conditions: conditions,
+        calibracao:
+            CalibracaoIntelligence.padrao.copyWith(temperaturaMargemC: 0),
       );
-      final fatorBaixo = baixo.factors.firstWhere((f) => f.nome == 'Clorofila');
-      final fatorAlto = alto.factors.firstWhere((f) => f.nome == 'Clorofila');
-      expect(fatorAlto.pontuacao, greaterThan(fatorBaixo.pontuacao!));
+
+      final fatorComMargem =
+          comMargemPadrao.factors.firstWhere((f) => f.nome == 'Temperatura');
+      final fatorSemMargem =
+          semMargem.factors.firstWhere((f) => f.nome == 'Temperatura');
+      expect(fatorComMargem.pontuacao, 60);
+      expect(fatorSemMargem.pontuacao, 25);
+    });
+
+    test('classificacao segue as faixas do prompt original (0-30/31-60/61-80/81-100)',
+        () {
+      // Um único fator (temperatura) com peso 100% pra controlar o score
+      // com precisão: pontuações por banda são 100/60/25 (ver
+      // `IntelligenceEngine._fatorBanda`), então testamos as bordas com
+      // essas pontuações possíveis, não valores arbitrários.
+      CalibracaoIntelligence calibracaoSoTemperatura() =>
+          CalibracaoIntelligence.padrao.copyWith(
+            pesoTemperatura: 1,
+            pesoSalinidade: 0,
+            pesoClorofila: 0,
+            pesoCorrente: 0,
+            pesoBatimetria: 0,
+          );
+
+      final baixa = IntelligenceEngine.avaliar(
+        latitude: 0,
+        longitude: 0,
+        instante: DateTime(2026, 9, 26),
+        conditions: const OceanConditions(sst: 0),
+        calibracao: calibracaoSoTemperatura(),
+      );
+      final moderada = IntelligenceEngine.avaliar(
+        latitude: 0,
+        longitude: 0,
+        instante: DateTime(2026, 9, 26),
+        conditions: const OceanConditions(sst: 31.0),
+        calibracao: calibracaoSoTemperatura(),
+      );
+      final muitoFavoravel = IntelligenceEngine.avaliar(
+        latitude: 0,
+        longitude: 0,
+        instante: DateTime(2026, 9, 26),
+        conditions: const OceanConditions(sst: 27.0),
+        calibracao: calibracaoSoTemperatura(),
+      );
+
+      expect(baixa.score, 25);
+      expect(baixa.classificacao, IntelligenceClassificacao.baixa);
+      expect(moderada.score, 60);
+      expect(moderada.classificacao, IntelligenceClassificacao.moderada);
+      expect(muitoFavoravel.score, 100);
+      expect(muitoFavoravel.classificacao,
+          IntelligenceClassificacao.muitoFavoravel);
     });
   });
 
@@ -297,16 +328,17 @@ void main() {
     test('participacao calcula a fração de cada peso sobre o total', () {
       const calibracao = CalibracaoIntelligence.padrao;
       final total = calibracao.somaTotal;
-      expect(total, 120);
-      expect(calibracao.participacao(calibracao.pesoSst), closeTo(25, 0.01));
-      expect(calibracao.participacao(calibracao.pesoVento),
-          closeTo(8.33, 0.1));
+      expect(total, 110);
+      expect(calibracao.participacao(calibracao.pesoTemperatura),
+          closeTo(31.8, 0.1));
+      expect(calibracao.participacao(calibracao.pesoBatimetria),
+          closeTo(9.1, 0.1));
     });
 
     test('copyWith troca só o campo pedido', () {
       const calibracao = CalibracaoIntelligence.padrao;
-      final novo = calibracao.copyWith(pesoSst: 50);
-      expect(novo.pesoSst, 50);
+      final novo = calibracao.copyWith(pesoTemperatura: 50);
+      expect(novo.pesoTemperatura, 50);
       expect(novo.pesoCorrente, calibracao.pesoCorrente);
     });
   });

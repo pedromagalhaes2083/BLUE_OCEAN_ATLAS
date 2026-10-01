@@ -32,25 +32,51 @@ class Constantes {
   static const String alertaTemperaturaLimiarC = 'alerta_temperatura_limiar_c';
 
   /// Pesos relativos de cada fator no cálculo da "Inteligência Oceânica"
-  /// (ver `CalibracaoIntelligence`/`IntelligenceEngine`) — configuráveis na
-  /// tela "Calibrar Inteligência".
-  static const String intelligencePesoSst = 'intelligence_peso_sst';
-  static const String intelligencePesoCorrente = 'intelligence_peso_corrente';
+  /// — hoje o índice de favorabilidade de atum (temperatura, salinidade,
+  /// clorofila, corrente, batimetria; ver `CalibracaoIntelligence`/
+  /// `IntelligenceEngine`) — configuráveis na tela "Calibrar Inteligência".
+  static const String intelligencePesoTemperatura =
+      'intelligence_peso_temperatura';
+  static const String intelligencePesoSalinidade =
+      'intelligence_peso_salinidade';
   static const String intelligencePesoClorofila = 'intelligence_peso_clorofila';
-  static const String intelligencePesoOndas = 'intelligence_peso_ondas';
-  static const String intelligencePesoVento = 'intelligence_peso_vento';
+  static const String intelligencePesoCorrente = 'intelligence_peso_corrente';
+  static const String intelligencePesoBatimetria =
+      'intelligence_peso_batimetria';
 
-  /// Quantidade ideal de cada variável — o valor que dá a nota máxima no
-  /// fator correspondente (ver `CalibracaoIntelligence`), também
-  /// configurável na tela "Calibrar Inteligência".
-  static const String intelligenceIdealSstC = 'intelligence_ideal_sst_c';
-  static const String intelligenceIdealCorrenteNos =
-      'intelligence_ideal_corrente_nos';
-  static const String intelligenceIdealClorofilaMgM3 =
-      'intelligence_ideal_clorofila_mg_m3';
-  static const String intelligenceIdealOndaM = 'intelligence_ideal_onda_m';
-  static const String intelligenceIdealVentoKmh =
-      'intelligence_ideal_vento_kmh';
+  /// Faixa ideal (nota máxima) e margem além dela (nota parcial, "moderada")
+  /// de cada variável (ver `CalibracaoIntelligence`), configuráveis na tela
+  /// "Calibrar Inteligência".
+  static const String intelligenceTemperaturaIdealMinC =
+      'intelligence_temperatura_ideal_min_c';
+  static const String intelligenceTemperaturaIdealMaxC =
+      'intelligence_temperatura_ideal_max_c';
+  static const String intelligenceTemperaturaMargemC =
+      'intelligence_temperatura_margem_c';
+  static const String intelligenceSalinidadeIdealMinUps =
+      'intelligence_salinidade_ideal_min_ups';
+  static const String intelligenceSalinidadeIdealMaxUps =
+      'intelligence_salinidade_ideal_max_ups';
+  static const String intelligenceSalinidadeMargemUps =
+      'intelligence_salinidade_margem_ups';
+  static const String intelligenceClorofilaIdealMinMgM3 =
+      'intelligence_clorofila_ideal_min_mg_m3';
+  static const String intelligenceClorofilaIdealMaxMgM3 =
+      'intelligence_clorofila_ideal_max_mg_m3';
+  static const String intelligenceClorofilaMargemMgM3 =
+      'intelligence_clorofila_margem_mg_m3';
+  static const String intelligenceCorrenteIdealMinNos =
+      'intelligence_corrente_ideal_min_nos';
+  static const String intelligenceCorrenteIdealMaxNos =
+      'intelligence_corrente_ideal_max_nos';
+  static const String intelligenceCorrenteMargemNos =
+      'intelligence_corrente_margem_nos';
+  static const String intelligenceBatimetriaIdealMinM =
+      'intelligence_batimetria_ideal_min_m';
+  static const String intelligenceBatimetriaIdealMaxM =
+      'intelligence_batimetria_ideal_max_m';
+  static const String intelligenceBatimetriaMargemM =
+      'intelligence_batimetria_margem_m';
 
   /// Id do usuário do último login bem-sucedido — comparado a cada login
   /// novo pra detectar troca de usuário no mesmo aparelho (ver

@@ -3,6 +3,7 @@ import '../../metereologia/data/previsao_tempo_repository.dart';
 import '../../metereologia/data/profundidade_repository.dart';
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../mapa/data/clorofila_repository.dart';
+import '../../termoclina/data/rfrom_ocean_repository.dart';
 import '../../termoclina/data/termoclina_repository.dart';
 import '../domain/models/intelligence_result.dart';
 import '../domain/models/ocean_conditions.dart';
@@ -11,10 +12,10 @@ import '../domain/services/intelligence_engine.dart';
 /// Única classe que a tela (`IntelligenceScreen`) conhece pra montar um
 /// [IntelligenceResult] — reaproveita os repositories que o app já tem
 /// (`WaveForecastRepository`, `PrevisaoTempoRepository`,
-/// `ProfundidadeRepository`, `ClorofilaRepository`, `TermoclinaRepository`)
-/// em vez de qualquer chamada nova, e entrega tudo pro [IntelligenceEngine]
-/// calcular — esta classe só busca e monta [OceanConditions], nunca calcula
-/// score/confiança ela mesma.
+/// `ProfundidadeRepository`, `ClorofilaRepository`, `TermoclinaRepository`,
+/// `RfromOceanRepository` pra salinidade) em vez de qualquer chamada nova,
+/// e entrega tudo pro [IntelligenceEngine] calcular — esta classe só busca
+/// e monta [OceanConditions], nunca calcula score/confiança ela mesma.
 ///
 /// Cada fonte é buscada em paralelo e isolada num `try/catch` próprio (ver
 /// [_tentar]) — a falha de uma (ex: clorofila fora de cobertura) nunca
@@ -28,6 +29,7 @@ class IntelligenceRepository {
   final ProfundidadeRepository _profundidadeRepository;
   final ClorofilaRepository _clorofilaRepository;
   final TermoclinaRepository _termoclinaRepository;
+  final RfromOceanRepository _rfromOceanRepository;
 
   IntelligenceRepository({
     WaveForecastRepository? waveForecastRepository,
@@ -35,6 +37,7 @@ class IntelligenceRepository {
     ProfundidadeRepository? profundidadeRepository,
     ClorofilaRepository? clorofilaRepository,
     TermoclinaRepository? termoclinaRepository,
+    RfromOceanRepository? rfromOceanRepository,
   })  : _waveForecastRepository =
             waveForecastRepository ?? WaveForecastRepository(),
         _previsaoTempoRepository =
@@ -43,7 +46,8 @@ class IntelligenceRepository {
             profundidadeRepository ?? ProfundidadeRepository(),
         _clorofilaRepository = clorofilaRepository ?? ClorofilaRepository(),
         _termoclinaRepository =
-            termoclinaRepository ?? TermoclinaRepository();
+            termoclinaRepository ?? TermoclinaRepository(),
+        _rfromOceanRepository = rfromOceanRepository ?? RfromOceanRepository();
 
   Future<IntelligenceResult> avaliarPonto({
     required double latitude,
@@ -61,19 +65,23 @@ class IntelligenceRepository {
         latitude: latitude, longitude: longitude));
     final termoclinaFuture = _tentar(() => _termoclinaRepository.buscar(
         latitude: latitude, longitude: longitude));
+    final salinidadeFuture = _tentar(() => _rfromOceanRepository.buscarPerfil(
+        latitude: latitude, longitude: longitude));
 
     final onda = await ondaFuture;
     final previsao = await previsaoFuture;
     final profundidade = await profundidadeFuture;
     final clorofila = await clorofilaFuture;
     final termoclina = await termoclinaFuture;
+    final perfilRfrom = await salinidadeFuture;
     final calibracao = await CalibracaoIntelligence.carregar();
 
     if (onda == null &&
         previsao == null &&
         profundidade == null &&
         clorofila == null &&
-        termoclina == null) {
+        termoclina == null &&
+        perfilRfrom == null) {
       throw Exception(
           'Não foi possível obter nenhuma condição ambiental para esta região.');
     }
@@ -98,6 +106,7 @@ class IntelligenceRepository {
           ? profundidade.profundidadeMetros
           : null,
       clorofilaMgM3: clorofila?.valorMgM3,
+      salinidadeUps: perfilRfrom?.salinidadeSuperficieUps,
     );
 
     return IntelligenceEngine.avaliar(

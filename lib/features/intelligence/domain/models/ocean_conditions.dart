@@ -16,6 +16,12 @@ class OceanConditions {
   final double? profundidadeM;
   final double? clorofilaMgM3;
 
+  /// Salinidade de superfície (PSU) — bóias Argo (mapa global RFROM v2.3
+  /// da NOAA/PMEL, ver `RfromOceanRepository`), mesma fonte/limitação de
+  /// cobertura da salinidade mostrada em `CondicoesMarScreen`: comum vir
+  /// nula perto da costa (bóias não sobem a plataforma continental).
+  final double? salinidadeUps;
+
   const OceanConditions({
     this.sst,
     this.correnteNos,
@@ -28,5 +34,6 @@ class OceanConditions {
     this.mareAlturaM,
     this.profundidadeM,
     this.clorofilaMgM3,
+    this.salinidadeUps,
   });
 }

@@ -299,6 +299,18 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
   }
 }
 
+String _rotuloClassificacao(
+    AppLocalizations l10n, IntelligenceClassificacao classificacao) =>
+    switch (classificacao) {
+      IntelligenceClassificacao.baixa => l10n.intelligenceClassificacaoBaixa,
+      IntelligenceClassificacao.moderada =>
+        l10n.intelligenceClassificacaoModerada,
+      IntelligenceClassificacao.favoravel =>
+        l10n.intelligenceClassificacaoFavoravel,
+      IntelligenceClassificacao.muitoFavoravel =>
+        l10n.intelligenceClassificacaoMuitoFavoravel,
+    };
+
 class _CardScoreConfianca extends StatelessWidget {
   final IntelligenceResult resultado;
   const _CardScoreConfianca({required this.resultado});
@@ -327,6 +339,11 @@ class _CardScoreConfianca extends StatelessWidget {
                   Text('${resultado.score.round()}/100',
                       style: const TextStyle(
                           fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text(_rotuloClassificacao(l10n, resultado.classificacao),
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -373,6 +390,9 @@ class _CondicoesAtuais extends StatelessWidget {
       if (c.correnteNos != null)
         _cardCondicao(context, Icons.water, l10n.intelligenceCondCorrente,
             '${c.correnteNos!.toStringAsFixed(1)} nós'),
+      if (c.salinidadeUps != null)
+        _cardCondicao(context, Icons.water_drop_outlined, l10n.salinidadeTitulo,
+            '${c.salinidadeUps!.toStringAsFixed(1)} PSU'),
       if (c.ondaAlturaM != null)
         _cardCondicao(context, Icons.waves, l10n.intelligenceCondOndas,
             '${c.ondaAlturaM!.toStringAsFixed(1)} m'),
