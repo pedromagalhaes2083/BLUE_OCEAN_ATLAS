@@ -2,25 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../core/database/database_helper.dart';
-import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../../l10n/gen/app_localizations.dart';
-import '../../cartas/presentation/solicitar_cartas_screen.dart';
-import '../../metereologia/presentation/condicoes_ponto_screen.dart';
-import '../../metereologia/presentation/mare_pesca_atum_screen.dart';
 import '../../recomendacao/data/recomendacao_repository.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_card.dart';
 import '../../recomendacao/widgets/recomendacao_list_tile.dart';
-import '../../termoclina/presentation/termoclina_screen.dart';
-import '../../intelligence/presentation/intelligence_screen.dart';
 import '../../producao/domain/models/producao_registro.dart';
 import '../../producao/domain/services/producao_pontos_analyzer.dart';
 import '../domain/models/ponto_marcado.dart';
-import '../widgets/dados_oceanicos_ponto.dart';
+import '../widgets/detalhe_ponto_marcado.dart';
 import '../widgets/ponto_marcado_list_tile.dart';
-import '../../widgets/grade_acoes_ponto.dart';
 
 /// Pontos marcados manualmente e recomendações, juntos numa lista só — no
 /// mesmo estilo visual da aba "Recomendações" em `CartasScreen` (linhas com
@@ -132,7 +125,7 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
     }
 
     _abrirCardFlutuante(
-      _DetalhePontoMarcado(
+      DetalhePontoMarcado(
         ponto: ponto,
         distanciaNm: distanciaNm,
         rumoGraus: rumoGraus,
@@ -152,41 +145,11 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
   /// Mesmo chrome do card flutuante da aba "Recomendações" (Dialog
   /// arredondado, largura máxima, X no canto) — usado tanto pra uma
   /// recomendação quanto pra um ponto marcado, pra as duas listas abrirem
-  /// o detalhe do mesmo jeito.
-  void _abrirCardFlutuante(Widget conteudo) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 8,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: 480,
-            maxHeight: MediaQuery.of(dialogContext).size.height * 0.8,
-          ),
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 44, 20),
-                child: conteudo,
-              ),
-              Positioned(
-                top: 4,
-                right: 4,
-                child: IconButton(
-                  icon: const Icon(Icons.close),
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  onPressed: () => Navigator.pop(dialogContext),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  /// o detalhe do mesmo jeito. Compartilhado com `MapaWidget` (ver
+  /// `abrirCardFlutuantePonto`), pra um ponto marcado abrir com o mesmo
+  /// layout não importa se o toque veio da lista ou de um marcador no mapa.
+  void _abrirCardFlutuante(Widget conteudo) =>
+      abrirCardFlutuantePonto(context, conteudo);
 
   @override
   Widget build(BuildContext context) {
@@ -353,183 +316,3 @@ class _MeusPontosScreenState extends State<MeusPontosScreen> {
   }
 }
 
-/// Conteúdo do card flutuante de um ponto marcado — mesma estrutura do
-/// `RecomendacaoCard` (sem Card/elevação própria, o Dialog já cuida disso):
-/// coordenadas, data, distância/rumo do GPS atual, dados oceânicos ao vivo
-/// e as ações que só fazem sentido pra um ponto marcado (pedir carta,
-/// consultar condições ali, remover).
-class _DetalhePontoMarcado extends StatelessWidget {
-  final PontoMarcado ponto;
-  final double? distanciaNm;
-  final double? rumoGraus;
-  final ProducaoPorPonto? producao;
-  final String Function(DateTime) formatarDataHora;
-  final VoidCallback onRemovido;
-
-  const _DetalhePontoMarcado({
-    required this.ponto,
-    required this.distanciaNm,
-    required this.rumoGraus,
-    required this.producao,
-    required this.formatarDataHora,
-    required this.onRemovido,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.push_pin, color: Colors.green),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                ponto.nome?.isNotEmpty == true
-                    ? ponto.nome!
-                    : l10n.mapaPontoMarcadoTitulo,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        LinhaInfoPonto(
-          icon: Icons.explore_outlined,
-          label: l10n.mapaLabelCoordenadas,
-          valor: formatarCoordenadasDMS(ponto.latitude, ponto.longitude),
-        ),
-        const Divider(height: 20),
-        LinhaInfoPonto(
-          icon: Icons.event_outlined,
-          label: l10n.meusPontosMarcadoEm,
-          valor: formatarDataHora(ponto.dataCriacao),
-        ),
-        if (distanciaNm != null && rumoGraus != null) ...[
-          const Divider(height: 20),
-          LinhaInfoPonto(
-            icon: Icons.social_distance_outlined,
-            label: l10n.mapaLabelDistancia,
-            valor: '${distanciaNm!.toStringAsFixed(1)} mn',
-          ),
-          const SizedBox(height: 8),
-          LinhaInfoPonto(
-            icon: Icons.navigation_outlined,
-            label: l10n.mapaLabelRumo,
-            valor: '${rumoGraus!.toStringAsFixed(0)}°',
-          ),
-        ],
-        if (producao != null) ...[
-          const Divider(height: 20),
-          LinhaInfoPonto(
-            icon: Icons.set_meal_outlined,
-            label: l10n.meusPontosProducaoAqui,
-            valor: l10n.meusPontosProducaoAquiValor(
-                producao!.totalKg.toStringAsFixed(1), producao!.totalRegistros),
-          ),
-        ],
-        const Divider(height: 20),
-        DadosOceanicosPonto(latitude: ponto.latitude, longitude: ponto.longitude),
-        const SizedBox(height: 16),
-        GradeAcoesPonto(acoes: [
-          AcaoPonto(
-            icon: Icons.map_outlined,
-            label: l10n.drawerSolicitarCarta,
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SolicitarCartaScreen(
-                    dbHelper: DatabaseHelper.instance,
-                    latitudeInicial: ponto.latitude,
-                    longitudeInicial: ponto.longitude,
-                  ),
-                ),
-              );
-            },
-          ),
-          AcaoPonto(
-            icon: Icons.water_outlined,
-            label: l10n.meusPontosConsultarAqui,
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CondicoesPontoScreen(
-                    latitude: ponto.latitude,
-                    longitude: ponto.longitude,
-                    nome: ponto.nome,
-                  ),
-                ),
-              );
-            },
-          ),
-          AcaoPonto(
-            icon: Icons.phishing,
-            label: l10n.meusPontosMareEPescaAqui,
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MareEPescaAtumScreen(
-                    latitude: ponto.latitude,
-                    longitude: ponto.longitude,
-                    nomePonto: ponto.nome,
-                  ),
-                ),
-              );
-            },
-          ),
-          AcaoPonto(
-            icon: Icons.thermostat_outlined,
-            label: l10n.termoclinaTelaTitulo,
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TermoclinaScreen(
-                    latitude: ponto.latitude,
-                    longitude: ponto.longitude,
-                    nomePonto: ponto.nome,
-                  ),
-                ),
-              );
-            },
-          ),
-          AcaoPonto(
-            icon: Icons.auto_awesome_outlined,
-            label: l10n.intelligenceTelaTitulo,
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => IntelligenceScreen(
-                    latitude: ponto.latitude,
-                    longitude: ponto.longitude,
-                    nomePonto: ponto.nome,
-                  ),
-                ),
-              );
-            },
-          ),
-          AcaoPonto(
-            icon: Icons.delete_outline,
-            label: l10n.remover,
-            cor: Colors.red,
-            onTap: () {
-              Navigator.pop(context);
-              onRemovido();
-            },
-          ),
-        ]),
-      ],
-    );
-  }
-}

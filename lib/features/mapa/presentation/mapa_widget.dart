@@ -39,10 +39,14 @@ import '../data/clorofila_repository.dart';
 import '../domain/models/indice_produtividade_blue_ocean.dart';
 import '../domain/models/leitura_clorofila.dart';
 import '../domain/models/ponto_marcado.dart';
+import '../../intelligence/data/intelligence_repository.dart';
+import '../../intelligence/domain/models/intelligence_result.dart';
+import '../../intelligence/presentation/intelligence_screen.dart';
 import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
 import '../widgets/barco_navegacao_3d.dart';
 import '../widgets/dados_oceanicos_ponto.dart';
+import '../widgets/detalhe_ponto_marcado.dart';
 import '../widgets/compasso_circular.dart';
 import '../widgets/download_regiao_dialog.dart';
 import '../widgets/legenda_clorofila.dart';
@@ -77,7 +81,7 @@ enum _MapMode { none, mbtiles, geotiff }
 /// Qual camada está usando o seletor de posição (mesmo reticulado de
 /// "Marcar um ponto") pra escolher onde consultar — ver
 /// `MapaWidgetState._consultaPontoAtiva`.
-enum _TipoConsultaPonto { temperatura, clorofila, indiceProdutividade }
+enum _TipoConsultaPonto { temperatura, clorofila, indiceProdutividade, intelligence }
 
 /// Mapa interativo completo — carta offline (MBTiles/GeoTIFF), pontos,
 /// posição GPS e marcação manual de pontos.
@@ -239,6 +243,14 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   // de vários pontos + remoção individual da clorofila.
   bool _mostrarIndiceProdutividade = false;
   List<IndiceProdutividadeBlueOcean> _indicePontos = [];
+
+  // ── Inteligência Oceânica (Blue Ocean Intelligence) ──────────────────────
+  // Mesmo padrão de vários pontos + remoção individual das camadas acima —
+  // cada ponto chama `IntelligenceRepository.avaliarPonto` (SST/corrente/
+  // clorofila/ondas/vento em paralelo, ver `IntelligenceEngine`), nunca
+  // recalculado aqui. Nunca é probabilidade de pesca.
+  bool _mostrarIntelligence = false;
+  List<IntelligenceResult> _intelligencePontos = [];
 
   // ── Trilha ao vivo da viagem em andamento ────────────────────────────────
   // Diferente de `widget.rota` (uma trilha estática passada de fora, ex: a
@@ -864,6 +876,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
       final chave =
           '${lat.toStringAsFixed(3)},${lon.toStringAsFixed(3)}';
 
+      final registro = ProducaoRegistro.fromMap(r);
       final existente = grupos[chave];
       if (existente == null) {
         grupos[chave] = _ClusterProducao(
@@ -871,6 +884,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
           lon: lon,
           totalKg: kg,
           porEspecie: {especie: kg},
+          registros: [registro],
         );
       } else {
         existente.totalKg += kg;
@@ -879,6 +893,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
           (v) => v + kg,
           ifAbsent: () => kg,
         );
+        existente.registros.add(registro);
       }
     }
 
@@ -916,13 +931,22 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   }
 
   void _mostrarInfoProducao(_ClusterProducao cluster) {
+    // Um grupo com uma única captura não precisa de tela intermediária —
+    // vai direto pro detalhe (espécie + coordenada exata daquela captura).
+    if (cluster.registros.length == 1) {
+      _mostrarInfoRegistroProducao(cluster.registros.first);
+      return;
+    }
+
     final l10n = AppLocalizations.of(context);
     final especies = cluster.porEspecie.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
+    final registrosOrdenados = cluster.registros.toList()
+      ..sort((a, b) => b.dataHora.compareTo(a.dataHora));
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -959,12 +983,53 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                   ),
                 ),
               ),
+              const Divider(height: 20),
+              Text(
+                l10n.mapaProducaoCapturasIndividuais,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              ...registrosOrdenados.map(
+                (registro) => InkWell(
+                  onTap: () {
+                    Navigator.pop(dialogContext);
+                    _mostrarInfoRegistroProducao(registro);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.set_meal,
+                            size: 18, color: Colors.deepOrange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(registro.especie),
+                              Text(
+                                formatarCoordenadasDMSCompacta(
+                                  registro.latitude!,
+                                  registro.longitude!,
+                                ),
+                                style: TextStyle(
+                                    color: Colors.grey[600], fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text('${registro.quantidadeKg.toStringAsFixed(1)} kg'),
+                        const Icon(Icons.chevron_right, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(l10n.fechar),
           ),
         ],
@@ -1020,6 +1085,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     var bottom = 140.0;
     if (_mostrarClorofila) bottom += 64;
     if (_mostrarIndiceProdutividade) bottom += 64;
+    if (_mostrarIntelligence) bottom += 64;
     return Positioned(
       right: 12,
       bottom: bottom,
@@ -1577,11 +1643,12 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   /// enquanto a camada está ligada — mesmo papel de
   /// [_buildAdicionarPontoClorofilaButton].
   Widget _buildAdicionarPontoIndiceButton() {
+    var bottom = 140.0;
+    if (_mostrarClorofila) bottom += 64;
+    if (_mostrarIntelligence) bottom += 64;
     return Positioned(
       right: 12,
-      // 64px acima do de clorofila — dá pra ter os dois ligados ao mesmo
-      // tempo sem um FAB cobrir o outro.
-      bottom: _mostrarClorofila ? 204 : 140,
+      bottom: bottom,
       child: FloatingActionButton(
         heroTag: 'adicionarIndiceFab',
         onPressed: _iniciarConsultaIndiceProdutividade,
@@ -1681,6 +1748,159 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     );
   }
 
+  // ── Inteligência Oceânica (Blue Ocean Intelligence) ──────────────────────
+
+  /// Liga/desliga a camada. Mesmo padrão de [_alternarIndiceProdutividade].
+  void _alternarIntelligence() {
+    if (_consultaPontoAtiva == _TipoConsultaPonto.intelligence) {
+      setState(() => _consultaPontoAtiva = null);
+      return;
+    }
+    if (_mostrarIntelligence) {
+      setState(() => _mostrarIntelligence = false);
+      return;
+    }
+    if (_intelligencePontos.isEmpty) {
+      _iniciarConsultaIntelligence();
+    } else {
+      setState(() => _mostrarIntelligence = true);
+    }
+  }
+
+  /// Abre o seletor de posição pra adicionar mais um ponto de inteligência,
+  /// sem mexer nos que já estão marcados — mesmo papel de
+  /// [_iniciarConsultaIndiceProdutividade].
+  void _iniciarConsultaIntelligence() {
+    _fecharMenuLateral();
+    setState(() {
+      _consultaPontoAtiva = _TipoConsultaPonto.intelligence;
+      _centroMira = _mapController.camera.center;
+    });
+  }
+
+  /// Botão "+" flutuante pra marcar mais um ponto de inteligência, visível
+  /// só enquanto a camada está ligada — mesmo papel de
+  /// [_buildAdicionarPontoIndiceButton], empilhado acima dele.
+  Widget _buildAdicionarPontoIntelligenceButton() {
+    var bottom = 140.0;
+    if (_mostrarClorofila) bottom += 64;
+    if (_mostrarIndiceProdutividade) bottom += 64;
+    return Positioned(
+      right: 12,
+      bottom: bottom,
+      child: FloatingActionButton(
+        heroTag: 'adicionarIntelligenceFab',
+        onPressed: _iniciarConsultaIntelligence,
+        tooltip: AppLocalizations.of(context).mapaAdicionarPontoIntelligence,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  /// Cor do marcador pelo score — mesma faixa de `RecomendacaoScoreBadge`
+  /// (≥80 verde, ≥50 laranja, senão vermelho), pra ler igual em qualquer
+  /// lugar do app que mostre um score 0–100.
+  Color _corIntelligence(double score) {
+    if (score >= 80) return Colors.green;
+    if (score >= 50) return Colors.orange;
+    return Colors.red;
+  }
+
+  /// Um marcador por ponto consultado, cor pelo score — ícone de estrela
+  /// contornada pra diferenciar do Índice de Produtividade (estrela cheia).
+  List<Widget> _buildCamadaIntelligence() {
+    if (_intelligencePontos.isEmpty) return const [];
+    return [
+      MarkerLayer(
+        markers: _intelligencePontos.map((resultado) {
+          return Marker(
+            point: LatLng(resultado.latitude, resultado.longitude),
+            width: 32,
+            height: 32,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _mostrarInfoIntelligence(resultado),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _corIntelligence(resultado.score),
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Icon(Icons.auto_awesome_outlined,
+                    color: Colors.white, size: 16),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    ];
+  }
+
+  void _mostrarInfoIntelligence(IntelligenceResult resultado) {
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.mapaIntelligenceTitulo),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _corIntelligence(resultado.score),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('${resultado.score.round()}/100 · '
+                    '${resultado.confianca.round()}% ${l10n.intelligenceConfiancaLabel}'
+                        .toLowerCase(),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(resultado.explicacao, style: const TextStyle(fontSize: 13)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _intelligencePontos =
+                  _intelligencePontos.where((p) => p != resultado).toList());
+            },
+            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => IntelligenceScreen(
+                    latitude: resultado.latitude,
+                    longitude: resultado.longitude,
+                  ),
+                ),
+              );
+            },
+            child: Text(l10n.mapaIntelligenceVerDetalhes),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.fechar),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Seletor de posição pra consultar temperatura/clorofila ───────────────
   // Mesmo reticulado/cartão de "Marcar um ponto" (ver
   // [_buildOverlayMarcarPonto]) — pedido explícito: "exibir o seletor de
@@ -1697,6 +1917,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
       _TipoConsultaPonto.clorofila => l10n.mapaClorofilaTitulo,
       _TipoConsultaPonto.indiceProdutividade =>
         l10n.mapaIndiceProdutividadeTitulo,
+      _TipoConsultaPonto.intelligence => l10n.mapaIntelligenceTitulo,
     };
 
     return [
@@ -1811,7 +2032,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
           _consultaPontoAtiva = null;
         });
         _mostrarInfoClorofila(resultado);
-      } else {
+      } else if (tipo == _TipoConsultaPonto.indiceProdutividade) {
         // Índice de Produtividade Blue Ocean — busca clorofila e
         // temperatura em paralelo e tolera falha de uma das duas (ex: SST
         // fora de cobertura marinha, clorofila sem dado por nuvem): o
@@ -1860,6 +2081,21 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
           _consultaPontoAtiva = null;
         });
         _mostrarInfoIndiceProdutividade(indice);
+      } else {
+        // Inteligência Oceânica — `IntelligenceRepository` já tolera falha
+        // parcial internamente (ver doc da classe); só propaga erro daqui
+        // se NENHUMA fonte respondeu.
+        final resultado = await IntelligenceRepository().avaliarPonto(
+          latitude: ponto.latitude,
+          longitude: ponto.longitude,
+        );
+        if (!mounted) return;
+        setState(() {
+          _intelligencePontos = [..._intelligencePontos, resultado];
+          _mostrarIntelligence = true;
+          _consultaPontoAtiva = null;
+        });
+        _mostrarInfoIntelligence(resultado);
       }
     } catch (e) {
       if (!mounted) return;
@@ -1873,6 +2109,8 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                 _TipoConsultaPonto.clorofila => l10n.mapaErroBuscarClorofila,
                 _TipoConsultaPonto.indiceProdutividade =>
                   l10n.mapaErroCalcularIndice,
+                _TipoConsultaPonto.intelligence =>
+                  l10n.mapaErroCalcularIntelligence,
               })),
         ),
       );
@@ -2099,6 +2337,16 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                             _TipoConsultaPonto.indiceProdutividade,
                     recurso: RecursoAtlas.mapaIndiceProdutividade,
                   ),
+                  _itemMenuToggle(
+                    icone: Icons.auto_awesome_outlined,
+                    titulo: l10n.mapaIntelligenceTitulo,
+                    subtitulo: l10n.mapaIntelligenceSubtitulo,
+                    ativo: _mostrarIntelligence,
+                    onTap: _alternarIntelligence,
+                    carregando: _consultandoPonto &&
+                        _consultaPontoAtiva == _TipoConsultaPonto.intelligence,
+                    recurso: RecursoAtlas.intelligenceOceanica,
+                  ),
                   if (_camadaRuas) ...[
                     const Divider(height: 1),
                     ListTile(
@@ -2276,8 +2524,13 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     );
   }
 
+  /// Mesmo layout/ações de um ponto marcado que `MeusPontosScreen` usa na
+  /// lista (ver `DetalhePontoMarcado`/`abrirCardFlutuantePonto`) — antes
+  /// esta tela tinha seu próprio `AlertDialog` com um subconjunto menor de
+  /// ações (sem "Maré e Pesca aqui"/"Inteligência"); agora as duas
+  /// mostram o mesmo card, não importa se o toque veio da lista ou de um
+  /// marcador no mapa.
   void _mostrarInfoPontoMarcado(PontoMarcado ponto) {
-    final l10n = AppLocalizations.of(context);
     double? distanciaNm;
     double? rumoGraus;
     final gps = _gpsPosition;
@@ -2297,127 +2550,21 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
       if (rumoGraus < 0) rumoGraus += 360;
     }
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.push_pin, color: Colors.green),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                ponto.nome?.isNotEmpty == true
-                    ? ponto.nome!
-                    : l10n.mapaPontoMarcadoTitulo,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              LinhaInfoPonto(
-                icon: Icons.explore_outlined,
-                label: l10n.mapaLabelCoordenadas,
-                valor:
-                    formatarCoordenadasDMS(ponto.latitude, ponto.longitude),
-              ),
-              const Divider(height: 20),
-              LinhaInfoPonto(
-                icon: Icons.event_outlined,
-                label: l10n.mapaLabelMarcadoEm,
-                valor: _formatarDataHora(ponto.dataCriacao),
-              ),
-              if (distanciaNm != null && rumoGraus != null) ...[
-                const Divider(height: 20),
-                LinhaInfoPonto(
-                  icon: Icons.social_distance_outlined,
-                  label: l10n.mapaLabelDistancia,
-                  valor: '${distanciaNm.toStringAsFixed(1)} mn',
-                ),
-                const SizedBox(height: 8),
-                LinhaInfoPonto(
-                  icon: Icons.navigation_outlined,
-                  label: l10n.mapaLabelRumo,
-                  valor: '${rumoGraus.toStringAsFixed(0)}°',
-                ),
-              ],
-              const Divider(height: 20),
-              DadosOceanicosPonto(
-                latitude: ponto.latitude,
-                longitude: ponto.longitude,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.fechar),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SolicitarCartaScreen(
-                    dbHelper: _dbHelper,
-                    latitudeInicial: ponto.latitude,
-                    longitudeInicial: ponto.longitude,
-                  ),
-                ),
-              );
-            },
-            child: Text(l10n.drawerSolicitarCarta),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CondicoesPontoScreen(
-                    latitude: ponto.latitude,
-                    longitude: ponto.longitude,
-                    nome: ponto.nome,
-                  ),
-                ),
-              );
-            },
-            child: Text(l10n.mapaConsultarAqui),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TermoclinaScreen(
-                    latitude: ponto.latitude,
-                    longitude: ponto.longitude,
-                    nomePonto: ponto.nome,
-                  ),
-                ),
-              );
-            },
-            child: Text(l10n.termoclinaTelaTitulo),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              if (ponto.id != null) {
-                await _dbHelper.delete('ponto_marcado', id: ponto.id!);
-              }
-              if (!mounted) return;
-              setState(() => _pontosMarcados.remove(ponto));
-            },
-            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
-          ),
-        ],
+    abrirCardFlutuantePonto(
+      context,
+      DetalhePontoMarcado(
+        ponto: ponto,
+        distanciaNm: distanciaNm,
+        rumoGraus: rumoGraus,
+        producao: null,
+        formatarDataHora: _formatarDataHora,
+        onRemovido: () async {
+          if (ponto.id != null) {
+            await _dbHelper.delete('ponto_marcado', id: ponto.id!);
+          }
+          if (!mounted) return;
+          setState(() => _pontosMarcados.remove(ponto));
+        },
       ),
     );
   }
@@ -2673,6 +2820,11 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
               _consultaPontoAtiva == null &&
               _mostrarIndiceProdutividade)
             _buildAdicionarPontoIndiceButton(),
+          if (!_modoMarcarPonto &&
+              !widget.modoPlanejarRota &&
+              _consultaPontoAtiva == null &&
+              _mostrarIntelligence)
+            _buildAdicionarPontoIntelligenceButton(),
           // Por cima de tudo — inclusive do scrim que fecha ao tocar fora.
           _buildMenuLateral(),
         ],
@@ -3061,6 +3213,10 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
         // IndiceProdutividadeBlueOcean). Também aceita mais de um ponto.
         if (_mostrarIndiceProdutividade && _indicePontos.isNotEmpty)
           ..._buildCamadaIndiceProdutividade(),
+        // Inteligência Oceânica — score 0-100 por ponto (ver
+        // IntelligenceEngine). Também aceita mais de um ponto.
+        if (_mostrarIntelligence && _intelligencePontos.isNotEmpty)
+          ..._buildCamadaIntelligence(),
         // Rota sendo planejada manualmente — cada toque no mapa adiciona um
         // ponto numerado em sequência.
         if (widget.modoPlanejarRota && _pontosRotaPlanejada.length > 1)
@@ -3509,17 +3665,24 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
 
 /// Um agrupamento de registros de produção próximos entre si (~100m),
 /// somados por espécie — usado pela camada de calor de produção no mapa.
+///
+/// Guarda também os [registros] individuais do grupo: o total por espécie é
+/// só um resumo no topo do diálogo, mas cada captura tem sua própria
+/// coordenada exata (podem estar a até ~100m umas das outras dentro do
+/// mesmo grupo) e precisa ser consultável isoladamente.
 class _ClusterProducao {
   final double lat;
   final double lon;
   double totalKg;
   final Map<String, double> porEspecie;
+  final List<ProducaoRegistro> registros;
 
   _ClusterProducao({
     required this.lat,
     required this.lon,
     required this.totalKg,
     required this.porEspecie,
+    required this.registros,
   });
 }
 

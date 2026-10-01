@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_3d_controller/flutter_3d_controller.dart';
 
@@ -78,6 +80,24 @@ class _BarcoNavegacao3dState extends State<BarcoNavegacao3d>
   late final AnimationController _animController;
   bool _modeloCarregado = false;
 
+  /// true quando o `onError` do WebView dispara — o caso mais comum na
+  /// prática é o WebView do sistema Android ainda não ter terminado de
+  /// atualizar num aparelho recém-configurado (a Play Store atualiza o
+  /// "Android System WebView" em segundo plano; até isso terminar,
+  /// qualquer WebView do app, não só este, mostra o ícone genérico de
+  /// pacote do Android no lugar do conteúdo). Sem isso, o usuário via
+  /// esse ícone cru do Android; com isso, cai num ícone de barco estático
+  /// — nunca um estado quebrado visível.
+  bool _erro = false;
+
+  /// Timeout de segurança — se nem `onLoad` nem `onError` disparar até
+  /// aqui (WebView do sistema travado/no meio de uma atualização costuma
+  /// nem chegar a chamar esses callbacks, só fica com o ícone genérico de
+  /// pacote do Android parado na tela), cai pro fallback estático mesmo
+  /// assim, em vez de esperar pra sempre.
+  static const _timeoutCarregamento = Duration(seconds: 8);
+  Timer? _timeoutTimer;
+
   double _rumoOrigem = 0;
   double _rumoDestino = 0;
   double _rumoExibido = 0;
@@ -93,6 +113,9 @@ class _BarcoNavegacao3dState extends State<BarcoNavegacao3d>
       vsync: this,
       duration: _duracaoTransicao,
     )..addListener(_aoAvancarTransicao);
+    _timeoutTimer = Timer(_timeoutCarregamento, () {
+      if (mounted && !_modeloCarregado) setState(() => _erro = true);
+    });
   }
 
   @override
@@ -109,6 +132,7 @@ class _BarcoNavegacao3dState extends State<BarcoNavegacao3d>
 
   @override
   void dispose() {
+    _timeoutTimer?.cancel();
     _animController.dispose();
     super.dispose();
   }
@@ -151,6 +175,15 @@ class _BarcoNavegacao3dState extends State<BarcoNavegacao3d>
 
   @override
   Widget build(BuildContext context) {
+    if (_erro) {
+      // Fallback estático — nunca deixa o ícone genérico de pacote do
+      // Android (WebView quebrado/ainda atualizando) visível pro usuário.
+      return Icon(
+        Icons.directions_boat_filled,
+        size: widget.tamanho * 0.6,
+        color: Colors.white,
+      );
+    }
     return IgnorePointer(
       child: SizedBox(
         width: widget.tamanho,
@@ -161,13 +194,17 @@ class _BarcoNavegacao3dState extends State<BarcoNavegacao3d>
           enableTouch: false,
           progressBarColor: Colors.transparent,
           onLoad: (_) {
+            _timeoutTimer?.cancel();
             _modeloCarregado = true;
             _ultimoEnvio = DateTime.now();
             _controller.setCameraOrbit(
                 _rumoExibido + _offsetProaGraus, _phiGraus, _raioPercentual);
           },
-          onError: (erro) =>
-              debugPrint('BarcoNavegacao3d: erro ao carregar o modelo ($erro)'),
+          onError: (erro) {
+            debugPrint('BarcoNavegacao3d: erro ao carregar o modelo ($erro)');
+            _timeoutTimer?.cancel();
+            if (mounted) setState(() => _erro = true);
+          },
         ),
       ),
     );
