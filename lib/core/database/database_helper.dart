@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 16,
+      version: 17,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -115,7 +115,8 @@ class DatabaseHelper {
         classificacao TEXT,
         quantidade_unidades INTEGER,
         peso_medio_unitario REAL,
-        precisao_metros REAL
+        precisao_metros REAL,
+        especie_id TEXT
       )
     ''');
 
@@ -235,6 +236,26 @@ class DatabaseHelper {
       // `_criarTabelasRotaPlanejada`.
       await db.execute('ALTER TABLE rota_planejada ADD COLUMN embarcacao_id TEXT');
       await db.execute('ALTER TABLE rota_planejada ADD COLUMN viagem_id INTEGER');
+    }
+    if (oldVersion < 17) {
+      // ID da espécie já resolvido no catálogo remoto (ver
+      // `EspecieRepository`/`ProducaoScreen`) — capturado no momento do
+      // registro quando o usuário escolhe uma sugestão do catálogo, em vez
+      // de resolvido só na hora de sincronizar (ver
+      // `ProducaoReporterService`). Registros antigos (sem esta coluna)
+      // continuam sincronizando pelo nome em `especie`, como já faziam.
+      //
+      // Checa se a tabela existe antes de alterar — mesmo motivo da
+      // checagem em `embarcacao` acima (testes reabrindo um banco "antigo"
+      // simulado só com `viagem`, sem `producao_registro`).
+      final tabelas = await db.query(
+        'sqlite_master',
+        where: 'type = ? AND name = ?',
+        whereArgs: ['table', 'producao_registro'],
+      );
+      if (tabelas.isNotEmpty) {
+        await db.execute('ALTER TABLE producao_registro ADD COLUMN especie_id TEXT');
+      }
     }
   }
 

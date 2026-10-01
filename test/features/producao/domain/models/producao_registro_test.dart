@@ -18,7 +18,7 @@ void main() {
         observacao: 'primeira captura do dia',
         viagemId: 42,
         sincronizado: false,
-        tipoPeixe: TipoPeixe.kihada,
+        especieId: 'especie-uuid-123',
         classificacao: Classificacao.faixa40mais,
         quantidadeUnidades: 12,
         pesoMedioUnitario: 47.5,
@@ -40,14 +40,14 @@ void main() {
       expect(reconstruido.observacao, original.observacao);
       expect(reconstruido.viagemId, original.viagemId);
       expect(reconstruido.sincronizado, original.sincronizado);
-      expect(reconstruido.tipoPeixe, TipoPeixe.kihada);
+      expect(reconstruido.especieId, 'especie-uuid-123');
       expect(reconstruido.classificacao, Classificacao.faixa40mais);
       expect(reconstruido.quantidadeUnidades, 12);
       expect(reconstruido.pesoMedioUnitario, 47.5);
     });
 
     test(
-        'fromMap lê registros antigos (sem tipo_peixe/classificacao) sem quebrar',
+        'fromMap lê registros antigos (sem especie_id/classificacao) sem quebrar',
         () {
       final mapaAntigo = {
         'id': 1,
@@ -61,13 +61,14 @@ void main() {
         'observacao': null,
         'viagem_id': null,
         'sincronizado': 0,
-        // colunas novas (v11) ausentes — como num registro salvo antes da migração
+        // colunas novas (v11/v17) ausentes — como num registro salvo antes
+        // dessas migrações.
       };
 
       final registro = ProducaoRegistro.fromMap(mapaAntigo);
 
       expect(registro.especie, 'Tainha');
-      expect(registro.tipoPeixe, isNull);
+      expect(registro.especieId, isNull);
       expect(registro.classificacao, isNull);
       expect(registro.quantidadeUnidades, isNull);
       expect(registro.pesoMedioUnitario, isNull);
@@ -93,21 +94,38 @@ void main() {
           isTrue);
     });
 
-    test('toMap grava tipo_peixe/classificacao pelo .name do enum', () {
+    test('toMap grava especie_id direto e classificacao pelo .name do enum',
+        () {
       final registro = ProducaoRegistro(
         id: 0,
         embarcacaoId: 'PE-1234',
         dataHora: DateTime(2026, 1, 1),
         especie: 'Bati',
         quantidadeKg: 100,
-        tipoPeixe: TipoPeixe.bati,
+        especieId: 'especie-uuid-atum',
         classificacao: Classificacao.faixa10a15,
       );
 
       final mapa = registro.toMap();
 
-      expect(mapa['tipo_peixe'], 'bati');
+      expect(mapa['especie_id'], 'especie-uuid-atum');
       expect(mapa['classificacao'], 'faixa10a15');
+    });
+
+    test('especieId nulo quando a espécie foi digitada livremente', () {
+      final registro = ProducaoRegistro(
+        id: 0,
+        embarcacaoId: 'PE-1234',
+        dataHora: DateTime(2026, 1, 1),
+        especie: 'Carapitanga',
+        quantidadeKg: 100,
+        classificacao: Classificacao.faixa10a15,
+      );
+
+      final mapa = registro.toMap();
+
+      expect(mapa['especie_id'], isNull);
+      expect(mapa['especie'], 'Carapitanga');
     });
   });
 }

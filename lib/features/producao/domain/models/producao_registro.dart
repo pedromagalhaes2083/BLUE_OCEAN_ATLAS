@@ -13,9 +13,14 @@ class ProducaoRegistro {
   final int? viagemId;
   final bool sincronizado;
 
-  /// Tipo do peixe capturado (Kihada/Bati). Nulo em registros antigos,
-  /// salvos antes da classificação por tipo/faixa existir.
-  final TipoPeixe? tipoPeixe;
+  /// ID da espécie no catálogo remoto (`base/resultado/especies`, ver
+  /// `EspecieRepository`), quando o usuário escolheu uma sugestão do
+  /// catálogo em vez de digitar um nome livre — evita ter que resolver por
+  /// nome de novo na hora de sincronizar (ver `ProducaoReporterService`).
+  /// Nulo em registros com nome digitado livremente ou salvos antes desta
+  /// coluna existir; nesses casos a sincronização ainda resolve pelo nome
+  /// em [especie].
+  final String? especieId;
 
   /// Faixa de classificação por peso usada para estimar [quantidadeKg]
   /// automaticamente (ver [classificacao_peso.dart]).
@@ -45,7 +50,7 @@ class ProducaoRegistro {
     this.observacao,
     this.viagemId,
     this.sincronizado = false,
-    this.tipoPeixe,
+    this.especieId,
     this.classificacao,
     this.quantidadeUnidades,
     this.pesoMedioUnitario,
@@ -65,7 +70,7 @@ class ProducaoRegistro {
       observacao: map['observacao'],
       viagemId: map['viagem_id'],
       sincronizado: map['sincronizado'] == 1,
-      tipoPeixe: _tipoPeixeDoTexto(map['tipo_peixe'] as String?),
+      especieId: map['especie_id'] as String?,
       classificacao: _classificacaoDoTexto(map['classificacao'] as String?),
       quantidadeUnidades: map['quantidade_unidades'],
       pesoMedioUnitario: map['peso_medio_unitario'],
@@ -85,20 +90,12 @@ class ProducaoRegistro {
       'observacao': observacao,
       'viagem_id': viagemId,
       'sincronizado': sincronizado ? 1 : 0,
-      'tipo_peixe': tipoPeixe?.name,
+      'especie_id': especieId,
       'classificacao': classificacao?.name,
       'quantidade_unidades': quantidadeUnidades,
       'peso_medio_unitario': pesoMedioUnitario,
       'precisao_metros': precisaoMetros,
     };
-  }
-
-  static TipoPeixe? _tipoPeixeDoTexto(String? nome) {
-    if (nome == null) return null;
-    for (final tipo in TipoPeixe.values) {
-      if (tipo.name == nome) return tipo;
-    }
-    return null;
   }
 
   static Classificacao? _classificacaoDoTexto(String? nome) {

@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 
 import '../../features/producao/data/especie_repository.dart';
 import '../../features/producao/data/producao_repository.dart';
-import '../../features/producao/domain/classificacao_peso.dart';
 import '../../features/producao/domain/models/producao_envio.dart';
 import '../../features/producao/domain/models/producao_registro.dart';
 import '../auth/auth_service.dart';
@@ -12,28 +11,23 @@ import '../database/database_helper.dart';
 /// enviados (`sincronizado = 0`) — mesmo padrão de
 /// [LocalizacaoReporterService], adaptado pra `producao_registro`.
 ///
-/// O backend não modela tipo/classificação de peixe (ver
-/// [ProducaoScreen]) — só `especieId` (catálogo genérico) e peso/
-/// quantidade totais — nem aceita captura sem viagem (`viagemId` é
-/// obrigatório em `POST base/resultado/capturas`). Por isso cada registro
-/// pendente precisa, antes de enviar:
+/// O backend não modela classificação por peso (ver [ProducaoScreen]) — só
+/// `especieId` (catálogo genérico cadastrado na plataforma, ver
+/// `EspecieRepository`) e peso/quantidade totais — nem aceita captura sem
+/// viagem (`viagemId` é obrigatório em `POST base/resultado/capturas`). Por
+/// isso cada registro pendente precisa, antes de enviar:
 /// 1. ter [ProducaoRegistro.viagemId] preenchido, e a viagem local
 ///    correspondente já ter um `remoto_id` salvo (ver
 ///    `ViagemRepository.criar`/`NovaViagemScreen`) — sem viagem em
 ///    andamento no momento do registro, ou enquanto o registro remoto da
 ///    viagem ainda não terminou, a captura fica pendente, não falha;
-/// 2. ter [ProducaoRegistro.tipoPeixe] preenchido, pra resolver o
-///    `especieId` correspondente no catálogo (ver [_nomeEspecieRemota]).
+/// 2. ter um `especieId` resolvido — ou já veio pronto de
+///    [ProducaoRegistro.especieId] (usuário escolheu uma sugestão do
+///    catálogo na hora do registro, ver `ProducaoScreen`), ou é resolvido
+///    aqui por nome (ver [_resolverEspecieId]) — cobre tanto texto livre
+///    quanto registros salvos antes desta coluna existir.
 class ProducaoReporterService {
   static const bool sincronizacaoHabilitada = true;
-
-  /// Nome da espécie no catálogo remoto (cadastrado na plataforma) pra
-  /// cada [TipoPeixe] local — o catálogo genérico não distingue Kihada de
-  /// Bati, só tem uma entrada de atum pra ambos.
-  static const Map<TipoPeixe, String> _nomeEspecieRemota = {
-    TipoPeixe.kihada: 'Atum',
-    TipoPeixe.bati: 'Atum',
-  };
 
   /// Chame depois de salvar um registro em `producao_registro` — mesmo
   /// papel que [LocalizacaoReporterService.sincronizarPendentes] tem lá,
@@ -56,18 +50,16 @@ class ProducaoReporterService {
     );
     if (pendentes.isEmpty) return;
 
-    // Cache de especieId por tipo — resolvido no máximo uma vez por
-    // chamada, mesmo com vários registros pendentes do mesmo tipo.
-    final especieIdPorTipo = <TipoPeixe, String>{};
+    // Cache de especieId por nome — resolvido no máximo uma vez por
+    // chamada, mesmo com vários registros pendentes da mesma espécie.
+    final especieIdPorNome = <String, String>{};
 
     var enviados = 0;
     for (final mapa in pendentes) {
       final registro = ProducaoRegistro.fromMap(mapa);
 
-      // Registros salvos antes da v11 (sem tipo/classificação) não têm
-      // como virar o payload novo — ficam pendentes até alguém editá-los
-      // (funcionalidade ainda não existe) em vez de travar a fila inteira.
-      if (registro.tipoPeixe == null || registro.quantidadeUnidades == null) {
+      if (registro.especie.trim().isEmpty ||
+          registro.quantidadeUnidades == null) {
         debugPrint(
             '⚠️ Registro de produção ${registro.id} sem classificação — pulado.');
         continue;
@@ -86,11 +78,11 @@ class ProducaoReporterService {
         continue;
       }
 
-      final especieId = await _resolverEspecieId(
-          registro.tipoPeixe!, especieIdPorTipo);
+      final especieId = registro.especieId ??
+          await _resolverEspecieId(registro.especie, especieIdPorNome);
       if (especieId == null) {
         debugPrint(
-            '⚠️ Espécie "${_nomeEspecieRemota[registro.tipoPeixe]}" não encontrada no catálogo — captura ${registro.id} pulada.');
+            '⚠️ Espécie "${registro.especie}" não encontrada no catálogo — captura ${registro.id} pulada.');
         continue;
       }
 
@@ -131,25 +123,24 @@ class ProducaoReporterService {
     return linhas.first['remoto_id'] as String?;
   }
 
-  /// Resolve o ID da espécie no catálogo remoto pro [tipo] dado, usando
-  /// [cache] pra não bater na rede de novo dentro da mesma sincronização.
-  /// Melhor-esforço: erro de rede ou espécie não encontrada retornam nulo
-  /// em vez de lançar, pra não travar a fila inteira por um registro.
+  /// Resolve o ID da espécie no catálogo remoto pelo nome digitado/exibido
+  /// no registro, usando [cache] pra não bater na rede de novo dentro da
+  /// mesma sincronização. Melhor-esforço: erro de rede ou espécie não
+  /// encontrada retornam nulo em vez de lançar, pra não travar a fila
+  /// inteira por um registro.
   static Future<String?> _resolverEspecieId(
-    TipoPeixe tipo,
-    Map<TipoPeixe, String> cache,
+    String nomeEspecie,
+    Map<String, String> cache,
   ) async {
-    final cacheado = cache[tipo];
+    final nome = nomeEspecie.trim();
+    final cacheado = cache[nome.toLowerCase()];
     if (cacheado != null) return cacheado;
-
-    final nome = _nomeEspecieRemota[tipo];
-    if (nome == null) return null;
 
     try {
       final resultados = await EspecieRepository().listar(nome: nome);
       for (final especie in resultados) {
         if (especie.nome.trim().toLowerCase() == nome.toLowerCase()) {
-          cache[tipo] = especie.id;
+          cache[nome.toLowerCase()] = especie.id;
           return especie.id;
         }
       }
