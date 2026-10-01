@@ -529,6 +529,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get producaoSelecioneTipoPeixe => 'Sélectionnez le type de poisson';
 
   @override
+  String get producaoEspecieLabel => 'Espèce *';
+
+  @override
+  String get producaoEspecieDica =>
+      'Tapez pour rechercher dans le catalogue, ou saisissez librement';
+
+  @override
+  String get producaoInformeEspecie => 'Indiquez l\'espèce capturée';
+
+  @override
   String get producaoPesoEstimadoLabel => 'Poids estimé';
 
   @override
@@ -590,6 +600,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get mapaProducaoCapturasIndividuais =>
+      'Prises à ce point (touchez pour voir les détails)';
+
+  @override
   String get mapaEspecieNaoInformada => 'Non renseigné';
 
   @override
@@ -637,6 +651,24 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get mapaIndiceDisclaimer =>
       'Estimation combinant la chlorophylle-a et la température de surface de la mer — ne représente pas directement la quantité de poissons, seulement un indicateur indirect de productivité.';
+
+  @override
+  String get mapaIntelligenceTitulo => 'Intelligence Océanique';
+
+  @override
+  String get mapaIntelligenceSubtitulo =>
+      'Indice de conditions environnementales — pas une probabilité de pêche';
+
+  @override
+  String get mapaAdicionarPontoIntelligence =>
+      'Marquer un autre point d\'intelligence océanique';
+
+  @override
+  String get mapaErroCalcularIntelligence =>
+      'Erreur lors du calcul de l\'intelligence océanique';
+
+  @override
+  String get mapaIntelligenceVerDetalhes => 'Voir les détails';
 
   @override
   String get mapaTemperaturaTitulo => 'Température de surface de la mer';
@@ -1396,6 +1428,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sstSuperficieDoMar => 'Surface de la mer';
 
   @override
+  String get salinidadeTitulo => 'Salinité';
+
+  @override
+  String get salinidadeSuperficieDoMar => 'Surface de la mer (Argo/RFROM)';
+
+  @override
+  String get salinidadeSemCobertura =>
+      'Aucune couverture de flotteurs Argo ici';
+
+  @override
   String mareNivelAgora(String nivel) {
     return '$nivel m maintenant';
   }
@@ -1903,8 +1945,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get termoclinaProfundidadeEstimada => 'Profondeur estimée';
 
   @override
+  String get termoclinaProfundidadeMedida =>
+      'Profondeur mesurée (flotteurs Argo)';
+
+  @override
   String termoclinaAtualizadoAs(String hora) {
     return 'Mis à jour à $hora';
+  }
+
+  @override
+  String termoclinaProfundidadeLocal(String metros) {
+    return 'Profondeur locale (fond) : $metros m';
   }
 
   @override
@@ -1912,7 +1963,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get termoclinaIndicadorTemperaturaProfundidade =>
-      'Température en profondeur';
+      'Température à la thermocline';
 
   @override
   String get termoclinaIndicadorConfianca => 'Confiance';
@@ -1934,6 +1985,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get termoclinaMockAviso =>
       'SST réelle ; la profondeur et le profil de la thermocline restent estimés — aucune source avec profil vertical mesuré n\'est encore connectée.';
+
+  @override
+  String get termoclinaMedidaAviso =>
+      'Profondeur calculée à partir du gradient réel mesuré par des flotteurs Argo (NOAA/PMEL RFROM) — pas une estimation.';
 
   @override
   String get intelligenceTelaTitulo => 'Intelligence';
@@ -1963,6 +2018,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get intelligenceScoreLabel => 'Intelligence Océanique';
+
+  @override
+  String get intelligenceClassificacaoBaixa => 'Faible probabilité';
+
+  @override
+  String get intelligenceClassificacaoModerada => 'Modérée';
+
+  @override
+  String get intelligenceClassificacaoFavoravel => 'Favorable';
+
+  @override
+  String get intelligenceClassificacaoMuitoFavoravel => 'Très favorable';
 
   @override
   String get intelligenceConfiancaLabel => 'Confiance';
@@ -2069,6 +2136,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get intelligenceCalibracaoIdealLabel => 'Quantité idéale';
+
+  @override
+  String get intelligenceCalibracaoFaixaIdealLabel => 'Plage idéale';
+
+  @override
+  String get intelligenceCalibracaoMargemLabel => 'Marge modérée';
 
   @override
   String get producaoHistoricoTitulo => 'Historique de Production';

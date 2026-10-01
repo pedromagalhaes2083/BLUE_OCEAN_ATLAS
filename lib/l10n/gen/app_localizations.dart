@@ -969,6 +969,24 @@ abstract class AppLocalizations {
   /// **'Selecione o tipo do peixe'**
   String get producaoSelecioneTipoPeixe;
 
+  /// No description provided for @producaoEspecieLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Espécie *'**
+  String get producaoEspecieLabel;
+
+  /// No description provided for @producaoEspecieDica.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite pra buscar no catálogo, ou informe livremente'**
+  String get producaoEspecieDica;
+
+  /// No description provided for @producaoInformeEspecie.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe a espécie capturada'**
+  String get producaoInformeEspecie;
+
   /// No description provided for @producaoPesoEstimadoLabel.
   ///
   /// In pt, this message translates to:
@@ -1065,6 +1083,12 @@ abstract class AppLocalizations {
   /// **'{kg} kg no total'**
   String mapaProducaoTotal(String kg);
 
+  /// No description provided for @mapaProducaoCapturasIndividuais.
+  ///
+  /// In pt, this message translates to:
+  /// **'Capturas neste ponto (toque para ver detalhes)'**
+  String get mapaProducaoCapturasIndividuais;
+
   /// No description provided for @mapaEspecieNaoInformada.
   ///
   /// In pt, this message translates to:
@@ -1136,6 +1160,36 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Estimativa combinando clorofila-a e temperatura da superfície do mar — não representa diretamente quantidade de peixe, só um indicador indireto de produtividade.'**
   String get mapaIndiceDisclaimer;
+
+  /// No description provided for @mapaIntelligenceTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inteligência Oceânica'**
+  String get mapaIntelligenceTitulo;
+
+  /// No description provided for @mapaIntelligenceSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Índice de condições ambientais — não é probabilidade de pesca'**
+  String get mapaIntelligenceSubtitulo;
+
+  /// No description provided for @mapaAdicionarPontoIntelligence.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar outro ponto de inteligência oceânica'**
+  String get mapaAdicionarPontoIntelligence;
+
+  /// No description provided for @mapaErroCalcularIntelligence.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao calcular a inteligência oceânica'**
+  String get mapaErroCalcularIntelligence;
+
+  /// No description provided for @mapaIntelligenceVerDetalhes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver detalhes'**
+  String get mapaIntelligenceVerDetalhes;
 
   /// No description provided for @mapaTemperaturaTitulo.
   ///
@@ -2403,6 +2457,24 @@ abstract class AppLocalizations {
   /// **'Superfície do mar'**
   String get sstSuperficieDoMar;
 
+  /// No description provided for @salinidadeTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salinidade'**
+  String get salinidadeTitulo;
+
+  /// No description provided for @salinidadeSuperficieDoMar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Superfície do mar (Argo/RFROM)'**
+  String get salinidadeSuperficieDoMar;
+
+  /// No description provided for @salinidadeSemCobertura.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem cobertura de bóias Argo aqui'**
+  String get salinidadeSemCobertura;
+
   /// No description provided for @mareNivelAgora.
   ///
   /// In pt, this message translates to:
@@ -3303,11 +3375,23 @@ abstract class AppLocalizations {
   /// **'Profundidade estimada'**
   String get termoclinaProfundidadeEstimada;
 
+  /// No description provided for @termoclinaProfundidadeMedida.
+  ///
+  /// In pt, this message translates to:
+  /// **'Profundidade medida (bóias Argo)'**
+  String get termoclinaProfundidadeMedida;
+
   /// No description provided for @termoclinaAtualizadoAs.
   ///
   /// In pt, this message translates to:
   /// **'Atualizado às {hora}'**
   String termoclinaAtualizadoAs(String hora);
+
+  /// No description provided for @termoclinaProfundidadeLocal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Profundidade local (fundo): {metros} m'**
+  String termoclinaProfundidadeLocal(String metros);
 
   /// No description provided for @termoclinaIndicadorSst.
   ///
@@ -3318,7 +3402,7 @@ abstract class AppLocalizations {
   /// No description provided for @termoclinaIndicadorTemperaturaProfundidade.
   ///
   /// In pt, this message translates to:
-  /// **'Temperatura em profundidade'**
+  /// **'Temperatura na termoclina'**
   String get termoclinaIndicadorTemperaturaProfundidade;
 
   /// No description provided for @termoclinaIndicadorConfianca.
@@ -3356,6 +3440,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'SST real; profundidade e perfil da termoclina ainda são estimados — sem fonte com perfil vertical medido conectada.'**
   String get termoclinaMockAviso;
+
+  /// No description provided for @termoclinaMedidaAviso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Profundidade calculada a partir do gradiente real medido por bóias Argo (NOAA/PMEL RFROM) — não é uma estimativa.'**
+  String get termoclinaMedidaAviso;
 
   /// No description provided for @intelligenceTelaTitulo.
   ///
@@ -3404,6 +3494,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Inteligência Oceânica'**
   String get intelligenceScoreLabel;
+
+  /// No description provided for @intelligenceClassificacaoBaixa.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixa probabilidade'**
+  String get intelligenceClassificacaoBaixa;
+
+  /// No description provided for @intelligenceClassificacaoModerada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Moderada'**
+  String get intelligenceClassificacaoModerada;
+
+  /// No description provided for @intelligenceClassificacaoFavoravel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Favorável'**
+  String get intelligenceClassificacaoFavoravel;
+
+  /// No description provided for @intelligenceClassificacaoMuitoFavoravel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Muito favorável'**
+  String get intelligenceClassificacaoMuitoFavoravel;
 
   /// No description provided for @intelligenceConfiancaLabel.
   ///
@@ -3596,6 +3710,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Quantidade ideal'**
   String get intelligenceCalibracaoIdealLabel;
+
+  /// No description provided for @intelligenceCalibracaoFaixaIdealLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faixa ideal'**
+  String get intelligenceCalibracaoFaixaIdealLabel;
+
+  /// No description provided for @intelligenceCalibracaoMargemLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Margem moderada'**
+  String get intelligenceCalibracaoMargemLabel;
 
   /// No description provided for @producaoHistoricoTitulo.
   ///
