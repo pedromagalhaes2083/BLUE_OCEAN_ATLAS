@@ -54,6 +54,22 @@ class LeituraTermoclina {
   /// ainda são estimados (ver `TermoclinaScreen`, `perfilEstimado`).
   final String fonte;
 
+  /// Profundidade real do fundo (batimetria, ver `ProfundidadeRepository`)
+  /// nesta coordenada, em metros — quando disponível. Usada por
+  /// [FonteTermoclinaEstimada] pra nunca estimar uma termoclina ou um
+  /// ponto do perfil abaixo do fundo do mar (senão o app mostra, por
+  /// exemplo, termoclina a 45m numa área de 13m de profundidade). Nula
+  /// quando a consulta de batimetria falhou — nesse caso a estimativa
+  /// segue sem esse limite, como antes.
+  final double? profundidadeLocalM;
+
+  /// `true` quando [profundidadeTermoclina] foi calculada a partir de um
+  /// gradiente real (pontos medidos de [perfil], ver `RfromOceanRepository`)
+  /// em vez do modelo estimado de [FonteTermoclinaEstimada]. Independente
+  /// de [perfilEstimado]: mesmo com essa profundidade medida, partes do
+  /// perfil abaixo do último ponto real continuam estimadas.
+  final bool profundidadeTermoclinaMedida;
+
   const LeituraTermoclina({
     required this.latitude,
     required this.longitude,
@@ -63,6 +79,8 @@ class LeituraTermoclina {
     required this.confianca,
     required this.perfil,
     required this.fonte,
+    this.profundidadeLocalM,
+    this.profundidadeTermoclinaMedida = false,
   });
 
   /// `true` enquanto o perfil vertical/profundidade da termoclina forem
@@ -72,11 +90,35 @@ class LeituraTermoclina {
   /// real (ver `FonteTermoclinaEstimada`), porque só ela é medida.
   bool get perfilEstimado => fonte != 'copernicus_marine';
 
-  /// Temperatura no nível mais profundo do perfil — o "temperatura em
-  /// profundidade" mostrado no card compacto (diferente da SST, que é só
-  /// o primeiro ponto).
-  double? get temperaturaMaisProfunda =>
-      perfil.isEmpty ? null : perfil.last.temperaturaC;
+  /// Temperatura interpolada linearmente no nível de [profundidadeTermoclina]
+  /// — o "temperatura em profundidade" mostrado no card compacto (diferente
+  /// da SST, que é o primeiro ponto do perfil). **Não** é a temperatura do
+  /// ponto mais profundo do perfil (esse pode estar bem além da termoclina,
+  /// principalmente quando ela vem do modelo estimado) — é a temperatura
+  /// exatamente onde a termoclina está, interpolada entre os dois pontos
+  /// do perfil mais próximos dessa profundidade (ou o valor do extremo mais
+  /// próximo, se [profundidadeTermoclina] cair fora do alcance do perfil).
+  double? get temperaturaNaTermoclina {
+    if (perfil.isEmpty) return null;
+    final ordenado = [...perfil]
+      ..sort((a, b) => a.profundidadeM.compareTo(b.profundidadeM));
+    final alvo = profundidadeTermoclina;
+
+    if (alvo <= ordenado.first.profundidadeM) return ordenado.first.temperaturaC;
+    if (alvo >= ordenado.last.profundidadeM) return ordenado.last.temperaturaC;
+
+    for (var i = 0; i < ordenado.length - 1; i++) {
+      final a = ordenado[i];
+      final b = ordenado[i + 1];
+      if (alvo >= a.profundidadeM && alvo <= b.profundidadeM) {
+        final fracao = (b.profundidadeM - a.profundidadeM) == 0
+            ? 0.0
+            : (alvo - a.profundidadeM) / (b.profundidadeM - a.profundidadeM);
+        return a.temperaturaC + (b.temperaturaC - a.temperaturaC) * fracao;
+      }
+    }
+    return ordenado.last.temperaturaC; // inatingível (alvo já foi limitado acima)
+  }
 
   factory LeituraTermoclina.fromJson(Map<String, dynamic> json) {
     return LeituraTermoclina(
@@ -90,6 +132,9 @@ class LeituraTermoclina {
           .map((e) => PerfilTemperaturaPonto.fromJson(e as Map<String, dynamic>))
           .toList(),
       fonte: json['source'] as String? ?? 'mock',
+      profundidadeLocalM: (json['localDepth'] as num?)?.toDouble(),
+      profundidadeTermoclinaMedida:
+          json['thermoclineDepthMedida'] as bool? ?? false,
     );
   }
 
@@ -102,5 +147,7 @@ class LeituraTermoclina {
         'confidence': confianca,
         'temperatureProfile': perfil.map((p) => p.toJson()).toList(),
         'source': fonte,
+        if (profundidadeLocalM != null) 'localDepth': profundidadeLocalM,
+        'thermoclineDepthMedida': profundidadeTermoclinaMedida,
       };
 }

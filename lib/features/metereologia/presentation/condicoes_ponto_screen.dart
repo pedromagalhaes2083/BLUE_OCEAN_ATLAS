@@ -6,11 +6,13 @@ import '../../../l10n/gen/app_localizations.dart';
 import '../../widgets/offline_dados_banner.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
+import '../../widgets/wave_forecast/salinidade_card.dart';
 import '../../widgets/wave_forecast/wave_forecast_widgets.dart';
 import '../data/previsao_tempo_repository.dart';
 import '../data/profundidade_repository.dart';
 import '../data/wave_forecast_repository.dart';
 import '../domain/models/leitura_profundidade.dart';
+import '../../termoclina/data/rfrom_ocean_repository.dart';
 
 /// Condições do mar travadas num único ponto de referência — diferente de
 /// [CondicoesMarScreen], não tem GPS nem campo de posição manual, então não
@@ -47,10 +49,33 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
   bool _dadosOffline = false;
   DateTime? _dadosOfflineEm;
 
+  // Salinidade de superfície (RFROM/Argo) — busca à parte, mesmo motivo de
+  // `CondicoesMarScreen`: sem cobertura Argo é comum perto da costa, nunca
+  // deve derrubar o resto da tela.
+  double? _salinidadeSuperficieUps;
+  bool _salinidadeConsultada = false;
+
   @override
   void initState() {
     super.initState();
     _buscarDadosOceano();
+    _buscarSalinidade();
+  }
+
+  Future<void> _buscarSalinidade() async {
+    try {
+      final perfil = await RfromOceanRepository().buscarPerfil(
+          latitude: widget.latitude, longitude: widget.longitude);
+      if (!mounted) return;
+      setState(() {
+        _salinidadeSuperficieUps = perfil.salinidadeSuperficieUps;
+        _salinidadeConsultada = true;
+      });
+    } catch (e) {
+      debugPrint('Erro ao buscar salinidade (RFROM/Argo): $e');
+      if (!mounted) return;
+      setState(() => _salinidadeConsultada = true);
+    }
   }
 
   Future<void> _buscarDadosOceano() async {
@@ -198,6 +223,10 @@ class _CondicoesPontoScreenState extends State<CondicoesPontoScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+            ],
+            if (_salinidadeConsultada) ...[
+              SalinidadeCard(salinidadeUps: _salinidadeSuperficieUps),
               const SizedBox(height: 16),
             ],
             if (_previsaoTempo != null) ...[

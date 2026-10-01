@@ -341,17 +341,55 @@ class _CardProfundidadeTermoclina extends StatelessWidget {
               '${leitura.profundidadeTermoclina.toStringAsFixed(0)} m',
               style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
             ),
-            Text(l10n.termoclinaProfundidadeEstimada,
+            Text(
+                leitura.profundidadeTermoclinaMedida
+                    ? l10n.termoclinaProfundidadeMedida
+                    : l10n.termoclinaProfundidadeEstimada,
                 style: const TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 8),
             Text(l10n.termoclinaAtualizadoAs(hora),
                 style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            if (leitura.perfilEstimado) ...[
+            if (leitura.profundidadeLocalM != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                l10n.termoclinaProfundidadeLocal(
+                    leitura.profundidadeLocalM!.toStringAsFixed(0)),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+            if (leitura.profundidadeTermoclinaMedida) ...[
+              const SizedBox(height: 12),
+              _avisoMedido(context, l10n),
+            ] else if (leitura.perfilEstimado) ...[
               const SizedBox(height: 12),
               _avisoMock(context, l10n),
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _avisoMedido(BuildContext context, AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified_outlined, size: 14, color: Colors.green.shade800),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              l10n.termoclinaMedidaAviso,
+              style: TextStyle(fontSize: 11, color: Colors.green.shade900),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -388,7 +426,7 @@ class _IndicadoresOceanograficos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final temperaturaProfundidade = leitura.temperaturaMaisProfunda;
+    final temperaturaProfundidade = leitura.temperaturaNaTermoclina;
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -463,6 +501,7 @@ class _CardPerfilTemperatura extends StatelessWidget {
             GraficoPerfilTermico(
               perfil: leitura.perfil,
               profundidadeTermoclinaM: leitura.profundidadeTermoclina,
+              temperaturaNaTermoclinaC: leitura.temperaturaNaTermoclina,
             ),
             const SizedBox(height: 8),
             Text(

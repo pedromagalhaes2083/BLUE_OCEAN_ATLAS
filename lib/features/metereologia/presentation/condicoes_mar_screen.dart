@@ -9,6 +9,7 @@ import '../../widgets/posicao_atual_widget.dart';
 import '../../widgets/previsao_tempo/previsao_tempo_widgets.dart';
 import '../../widgets/profundidade_card.dart';
 import '../../widgets/wave_forecast/fase_lua_card.dart';
+import '../../widgets/wave_forecast/salinidade_card.dart';
 import '../../widgets/wave_forecast/tabela_solunar_card.dart';
 import '../../widgets/wave_forecast/wave_forecast_widgets.dart';
 import 'mare_pesca_atum_screen.dart';
@@ -19,6 +20,7 @@ import '../data/wave_forecast_repository.dart';
 import '../domain/models/dia_lunar.dart';
 import '../domain/models/leitura_profundidade.dart';
 import 'fase_lua_screen.dart';
+import '../../termoclina/data/rfrom_ocean_repository.dart';
 
 /// Tela com as condições do mar (temperatura da água, corrente, ondas/swell
 /// e clima) na posição atual da embarcação — ou em qualquer outra posição
@@ -54,6 +56,14 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
   // (ver [_periodosSolunaresHoje]) — busca à parte, best-effort: uma falha
   // aqui não deve derrubar o resto da tela (ver [_buscarDiasLunares]).
   List<DiaLunar>? _diasLunares;
+
+  // Salinidade de superfície (RFROM/Argo, ver `RfromOceanRepository`) —
+  // busca à parte da principal, mesmo motivo dos dias lunares acima: sem
+  // cobertura Argo é comum perto da costa (bóias não sobem a plataforma
+  // continental), então uma falha aqui nunca deve derrubar onda/vento/maré
+  // que já carregaram certo.
+  double? _salinidadeSuperficieUps;
+  bool _salinidadeConsultada = false;
 
   Future<void> _buscarDadosOceano() async {
     if (_lat == null || _lon == null) return;
@@ -108,6 +118,27 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
     }
 
     _buscarDiasLunares();
+    _buscarSalinidade();
+  }
+
+  /// Busca à parte da principal (ver comentário do campo `_salinidadeSuperficieUps`)
+  /// — mesmo motivo de [_buscarDiasLunares]: nunca deve derrubar o resto
+  /// da tela, e sem cobertura Argo é esperado, não um erro pra avisar.
+  Future<void> _buscarSalinidade() async {
+    if (_lat == null || _lon == null) return;
+    try {
+      final perfil = await RfromOceanRepository()
+          .buscarPerfil(latitude: _lat!, longitude: _lon!);
+      if (!mounted) return;
+      setState(() {
+        _salinidadeSuperficieUps = perfil.salinidadeSuperficieUps;
+        _salinidadeConsultada = true;
+      });
+    } catch (e) {
+      debugPrint('Erro ao buscar salinidade (RFROM/Argo): $e');
+      if (!mounted) return;
+      setState(() => _salinidadeConsultada = true);
+    }
   }
 
   /// Busca à parte da principal (ver comentário do campo) — não usa o
@@ -241,6 +272,10 @@ class _CondicoesMarScreenState extends State<CondicoesMarScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+            ],
+            if (_salinidadeConsultada) ...[
+              SalinidadeCard(salinidadeUps: _salinidadeSuperficieUps),
               const SizedBox(height: 16),
             ],
             if (_previsaoTempo != null) ...[

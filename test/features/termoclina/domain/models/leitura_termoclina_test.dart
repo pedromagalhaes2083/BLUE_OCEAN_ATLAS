@@ -5,7 +5,11 @@ import 'package:atlas/features/termoclina/domain/models/perfil_temperatura_ponto
 
 void main() {
   group('LeituraTermoclina', () {
-    LeituraTermoclina construir({String fonte = 'mock'}) => LeituraTermoclina(
+    LeituraTermoclina construir({
+      String fonte = 'mock',
+      bool profundidadeTermoclinaMedida = false,
+    }) =>
+        LeituraTermoclina(
           latitude: -2.90,
           longitude: -39.65,
           instante: DateTime.parse('2026-09-26T14:32:00'),
@@ -13,11 +17,13 @@ void main() {
           profundidadeTermoclina: 48,
           confianca: 0.82,
           perfil: const [
-            PerfilTemperaturaPonto(profundidadeM: 0, temperaturaC: 28.6),
+            PerfilTemperaturaPonto(
+                profundidadeM: 0, temperaturaC: 28.6, medido: true),
             PerfilTemperaturaPonto(profundidadeM: 10, temperaturaC: 28.4),
             PerfilTemperaturaPonto(profundidadeM: 20, temperaturaC: 28.1),
           ],
           fonte: fonte,
+          profundidadeTermoclinaMedida: profundidadeTermoclinaMedida,
         );
 
     test('perfilEstimado é true enquanto não há fonte com perfil real', () {
@@ -26,11 +32,35 @@ void main() {
       expect(construir(fonte: 'copernicus_marine').perfilEstimado, isFalse);
     });
 
-    test('temperaturaMaisProfunda é o último ponto do perfil', () {
-      expect(construir().temperaturaMaisProfunda, 28.1);
+    test(
+        'temperaturaNaTermoclina interpola entre os dois pontos do perfil '
+        'mais próximos da profundidade da termoclina', () {
+      final leitura = LeituraTermoclina(
+        latitude: -2.90,
+        longitude: -39.65,
+        instante: DateTime.now(),
+        sst: 28.6,
+        profundidadeTermoclina: 15, // meio do caminho entre 10m e 20m
+        confianca: 0.82,
+        perfil: const [
+          PerfilTemperaturaPonto(profundidadeM: 0, temperaturaC: 28.6),
+          PerfilTemperaturaPonto(profundidadeM: 10, temperaturaC: 28.4),
+          PerfilTemperaturaPonto(profundidadeM: 20, temperaturaC: 28.0),
+        ],
+        fonte: 'mock',
+      );
+      // Interpolação linear entre 28.4 (10m) e 28.0 (20m) na metade: 28.2.
+      expect(leitura.temperaturaNaTermoclina, closeTo(28.2, 0.001));
     });
 
-    test('temperaturaMaisProfunda é nulo com perfil vazio', () {
+    test(
+        'temperaturaNaTermoclina usa o extremo mais próximo quando a '
+        'profundidade da termoclina cai fora do alcance do perfil', () {
+      // Mesmo dado de `construir()`: perfil só vai até 20m, termoclina a 48m.
+      expect(construir().temperaturaNaTermoclina, 28.1);
+    });
+
+    test('temperaturaNaTermoclina é nulo com perfil vazio', () {
       final leitura = LeituraTermoclina(
         latitude: 0,
         longitude: 0,
@@ -41,11 +71,11 @@ void main() {
         perfil: const [],
         fonte: 'mock',
       );
-      expect(leitura.temperaturaMaisProfunda, isNull);
+      expect(leitura.temperaturaNaTermoclina, isNull);
     });
 
     test('toJson/fromJson fazem round-trip fiel', () {
-      final original = construir();
+      final original = construir(profundidadeTermoclinaMedida: true);
       final json = original.toJson();
       final reconstruida = LeituraTermoclina.fromJson(json);
 
@@ -56,9 +86,12 @@ void main() {
       expect(reconstruida.profundidadeTermoclina, original.profundidadeTermoclina);
       expect(reconstruida.confianca, original.confianca);
       expect(reconstruida.fonte, original.fonte);
+      expect(reconstruida.profundidadeTermoclinaMedida,
+          original.profundidadeTermoclinaMedida);
       expect(reconstruida.perfil.length, original.perfil.length);
       expect(reconstruida.perfil.first.profundidadeM, original.perfil.first.profundidadeM);
       expect(reconstruida.perfil.first.temperaturaC, original.perfil.first.temperaturaC);
+      expect(reconstruida.perfil.first.medido, original.perfil.first.medido);
     });
 
     test('fromJson entende o formato de exemplo do contrato de API futuro', () {

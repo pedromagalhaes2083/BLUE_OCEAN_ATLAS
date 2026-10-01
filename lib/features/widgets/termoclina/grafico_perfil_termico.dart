@@ -7,25 +7,27 @@ import '../../termoclina/domain/models/perfil_temperatura_ponto.dart';
 /// Gráfico do perfil vertical de temperatura (temperatura × profundidade)
 /// da tela de Termoclina — desenhado com [CustomPainter], mesmo padrão do
 /// projeto pra gráficos simples (ver `GraficoMare24h`, "Maré e Pesca de
-/// Atum"): o projeto não usa nenhuma lib de gráfico, e este dataset é
-/// pequeno o bastante (poucos pontos de profundidade) pra não precisar
-/// de uma.
+/// Atum").
 ///
 /// Eixo Y é a profundidade, crescendo pra baixo (0 no topo — convenção de
-/// "olhar a coluna d'água de cima"); eixo X é a temperatura. A faixa
-/// sombreada marca onde o gradiente de temperatura entre dois pontos
-/// consecutivos do próprio perfil é mais acentuado — só uma pista visual
-/// de "olha, é aqui que a temperatura despenca", **não** um recálculo da
-/// termoclina (o valor oficial, [profundidadeTermoclinaM], vem do
-/// model/service e é marcado à parte, com uma linha tracejada).
+/// "olhar a coluna d'água de cima"); eixo X é a temperatura. Enxuto de
+/// propósito: uma grade fixa de poucas linhas (não uma por ponto do
+/// perfil — a fonte real, RFROM/Argo, pode trazer dezenas de níveis, o que
+/// deixaria a grade e os rótulos ilegíveis), sem rótulo de temperatura em
+/// cada ponto (só a curva + os marcadores já mostram a forma do perfil), e
+/// uma única linha tracejada com um rótulo pra profundidade oficial da
+/// termoclina (vem do model/service, [profundidadeTermoclinaM] — nunca
+/// recalculada aqui).
 class GraficoPerfilTermico extends StatelessWidget {
   final List<PerfilTemperaturaPonto> perfil;
   final double profundidadeTermoclinaM;
+  final double? temperaturaNaTermoclinaC;
 
   const GraficoPerfilTermico({
     super.key,
     required this.perfil,
     required this.profundidadeTermoclinaM,
+    this.temperaturaNaTermoclinaC,
   });
 
   @override
@@ -44,14 +46,14 @@ class GraficoPerfilTermico extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) => SizedBox(
         width: constraints.maxWidth,
-        height: 240,
+        height: 220,
         child: CustomPaint(
           painter: _PerfilTermicoPainter(
             perfil: perfil,
             profundidadeTermoclinaM: profundidadeTermoclinaM,
+            temperaturaNaTermoclinaC: temperaturaNaTermoclinaC,
             corTexto: corRotulo(context),
-            corDestaque: Theme.of(context).colorScheme.onSurface,
-            textoTermoclina: l10n.termoclinaGraficoLegendaFaixa,
+            rotuloTermoclina: l10n.termoclinaGraficoLegendaFaixa,
           ),
         ),
       ),
@@ -62,43 +64,26 @@ class GraficoPerfilTermico extends StatelessWidget {
 class _PerfilTermicoPainter extends CustomPainter {
   final List<PerfilTemperaturaPonto> perfil;
   final double profundidadeTermoclinaM;
+  final double? temperaturaNaTermoclinaC;
   final Color corTexto;
-  final Color corDestaque;
-  final String textoTermoclina;
+  final String rotuloTermoclina;
 
   _PerfilTermicoPainter({
     required this.perfil,
     required this.profundidadeTermoclinaM,
+    required this.temperaturaNaTermoclinaC,
     required this.corTexto,
-    required this.corDestaque,
-    required this.textoTermoclina,
+    required this.rotuloTermoclina,
   });
 
-  /// Faixa de profundidade [de, ate] onde o gradiente entre dois pontos
-  /// consecutivos do perfil é o mais acentuado — só um destaque visual
-  /// (ver doc da classe), calculado sempre a partir do perfil inteiro,
-  /// nunca só da SST.
-  (double de, double ate) get _faixaMaiorGradiente {
-    var melhorIndice = 0;
-    var melhorGradiente = 0.0;
-    for (var i = 0; i < perfil.length - 1; i++) {
-      final gradiente =
-          (perfil[i].temperaturaC - perfil[i + 1].temperaturaC).abs() /
-              (perfil[i + 1].profundidadeM - perfil[i].profundidadeM).clamp(0.01, double.infinity);
-      if (gradiente > melhorGradiente) {
-        melhorGradiente = gradiente;
-        melhorIndice = i;
-      }
-    }
-    return (perfil[melhorIndice].profundidadeM, perfil[melhorIndice + 1].profundidadeM);
-  }
+  static const _divisoesGrade = 4;
 
   @override
   void paint(Canvas canvas, Size size) {
-    const margemEsquerda = 42.0;
+    const margemEsquerda = 38.0;
     const margemDireita = 12.0;
     const margemTopo = 8.0;
-    const margemBase = 22.0;
+    const margemBase = 18.0;
     final larguraGrafico = size.width - margemEsquerda - margemDireita;
     final alturaGrafico = size.height - margemTopo - margemBase;
 
@@ -113,23 +98,16 @@ class _PerfilTermicoPainter extends CustomPainter {
     double yDe(double profundidade) =>
         margemTopo + (profundidade / zMax) * alturaGrafico;
 
-    // Faixa sombreada da termoclina (maior gradiente do próprio perfil).
-    final (faixaDe, faixaAte) = _faixaMaiorGradiente;
-    canvas.drawRect(
-      Rect.fromLTRB(margemEsquerda, yDe(faixaDe), size.width - margemDireita, yDe(faixaAte)),
-      Paint()..color = Colors.deepOrange.withValues(alpha: 0.10),
-    );
-    _texto(textoTermoclina, Colors.deepOrange.shade700, 9, bold: true)
-        .paint(canvas, Offset(margemEsquerda + 4, yDe(faixaDe) + 2));
-
-    // Grade horizontal (profundidade) com rótulo à esquerda.
+    // Grade horizontal fixa (poucas linhas, não uma por ponto do perfil —
+    // ver doc da classe) com rótulo de profundidade à esquerda.
     final gradePaint = Paint()
       ..color = corTexto.withValues(alpha: 0.12)
       ..strokeWidth = 1;
-    for (final p in profundidades) {
-      final y = yDe(p);
+    for (var i = 0; i <= _divisoesGrade; i++) {
+      final profundidade = zMax * i / _divisoesGrade;
+      final y = yDe(profundidade);
       canvas.drawLine(Offset(margemEsquerda, y), Offset(size.width - margemDireita, y), gradePaint);
-      _texto('${p.toStringAsFixed(0)}m', corTexto, 9)
+      _texto('${profundidade.toStringAsFixed(0)}m', corTexto, 9)
           .paint(canvas, Offset(2, y - 6));
     }
 
@@ -148,16 +126,28 @@ class _PerfilTermicoPainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round,
     );
 
-    // Pontos + rótulo de temperatura de cada nível amostrado.
+    // Marcadores dos níveis amostrados, sem rótulo por ponto (a curva já
+    // mostra a forma do perfil) — preenchido quando é um dado medido de
+    // verdade (SST/RFROM), só contorno quando é do modelo estimado (ver
+    // `PerfilTemperaturaPonto.medido`).
     for (final p in perfil) {
       final ponto = Offset(xDe(p.temperaturaC), yDe(p.profundidadeM));
-      canvas.drawCircle(ponto, 3.5, Paint()..color = Colors.blue.shade700);
-      _texto('${p.temperaturaC.toStringAsFixed(1)}°', corDestaque, 9)
-          .paint(canvas, ponto + const Offset(6, -12));
+      if (p.medido) {
+        canvas.drawCircle(ponto, 3.0, Paint()..color = Colors.blue.shade700);
+      } else {
+        canvas.drawCircle(
+          ponto,
+          3.0,
+          Paint()
+            ..color = Colors.blue.shade700
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.4,
+        );
+      }
     }
 
-    // Linha tracejada na profundidade oficial da termoclina (vem do
-    // model/service, não deste gráfico).
+    // Linha tracejada + rótulo único na profundidade oficial da termoclina
+    // (vem do model/service, nunca recalculada aqui).
     final yOficial = yDe(profundidadeTermoclinaM.clamp(0, zMax));
     _tracejada(
       canvas,
@@ -167,6 +157,12 @@ class _PerfilTermicoPainter extends CustomPainter {
         ..color = Colors.deepOrange
         ..strokeWidth = 1.6,
     );
+    final temperaturaTexto = temperaturaNaTermoclinaC != null
+        ? ' · ${temperaturaNaTermoclinaC!.toStringAsFixed(1)}°'
+        : '';
+    _texto('$rotuloTermoclina$temperaturaTexto', Colors.deepOrange.shade700, 10,
+            bold: true)
+        .paint(canvas, Offset(margemEsquerda + 4, yOficial - 14));
   }
 
   void _tracejada(Canvas canvas, Offset inicio, Offset fim, Paint paint) {
@@ -197,5 +193,6 @@ class _PerfilTermicoPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _PerfilTermicoPainter oldDelegate) =>
       oldDelegate.perfil != perfil ||
-      oldDelegate.profundidadeTermoclinaM != profundidadeTermoclinaM;
+      oldDelegate.profundidadeTermoclinaM != profundidadeTermoclinaM ||
+      oldDelegate.temperaturaNaTermoclinaC != temperaturaNaTermoclinaC;
 }
