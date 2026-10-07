@@ -14,6 +14,8 @@ import 'package:atlas/features/intelligence/presentation/intelligence_screen.dar
 import 'package:atlas/features/producao/presentation/producao_screen.dart';
 import 'package:atlas/features/rotas/presentation/minhas_rotas_screen.dart';
 import 'package:atlas/features/viagem/presentation/historico_localizacoes_screen.dart';
+import 'package:atlas/features/viagem/presentation/diario_bordo_screen.dart';
+import 'package:atlas/features/viagem/presentation/progresso_viagem_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:share_plus/share_plus.dart';
@@ -667,6 +669,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => ProducaoScreen(dbHelper: widget.dbHelper),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.menu_book_outlined),
+              title: Text(l10n.drawerDiarioBordo),
+              onTap: () async {
+                Navigator.pop(context);
+                final temViagem = await _exigirViagemAtiva(
+                    motivo: l10n.dashboardMotivoDiarioBordo);
+                if (!temViagem || !context.mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DiarioBordoScreen(
+                      dbHelper: widget.dbHelper,
+                      viagemId: viagemAtual!.id,
+                      viagemNome: viagemAtual!.nome,
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.donut_large_outlined),
+              title: Text(l10n.drawerProgressoViagem),
+              onTap: () async {
+                Navigator.pop(context);
+                final temViagem = await _exigirViagemAtiva(
+                    motivo: l10n.dashboardMotivoProgressoViagem);
+                if (!temViagem || !context.mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ProgressoViagemScreen(viagem: viagemAtual!),
                   ),
                 );
               },

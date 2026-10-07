@@ -82,9 +82,24 @@ class ContextoViagemService {
       whereArgs: [remota.id],
     );
     if (porRemotoId.isNotEmpty) {
+      // nome/data_inicio só sobrescrevem quando o backend manda valor (são
+      // opcionais em `ViagemAtualRemota` — ver nota da classe); já
+      // data_termino espelha sempre, inclusive voltando a null, porque é
+      // exatamente o campo que muda depois de criada a viagem (sem
+      // previsão → previsão definida) e a tela de progresso depende dele
+      // estar atualizado a cada sincronização, não só na primeira.
+      final atualizacoes = <String, dynamic>{
+        'embarcacao_id': remota.embarcacaoId,
+        'status': 'em_andamento',
+        'data_termino': remota.dataTermino?.toIso8601String(),
+      };
+      if (remota.nome != null) atualizacoes['nome'] = remota.nome;
+      if (remota.dataInicio != null) {
+        atualizacoes['data_inicio'] = remota.dataInicio!.toIso8601String();
+      }
       await dbHelper.update(
         'viagem',
-        {'embarcacao_id': remota.embarcacaoId, 'status': 'em_andamento'},
+        atualizacoes,
         id: porRemotoId.first['id'] as int,
       );
       return;
