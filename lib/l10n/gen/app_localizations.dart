@@ -128,11 +128,137 @@ abstract class AppLocalizations {
   /// **'Salvar'**
   String get salvar;
 
+  /// No description provided for @editar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar'**
+  String get editar;
+
   /// No description provided for @sincronizar.
   ///
   /// In pt, this message translates to:
   /// **'Sincronizar'**
   String get sincronizar;
+
+  /// No description provided for @drawerDiarioBordo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diário de Bordo'**
+  String get drawerDiarioBordo;
+
+  /// No description provided for @diarioBordoTelaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diário de Bordo'**
+  String get diarioBordoTelaTitulo;
+
+  /// No description provided for @diarioBordoVazio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma anotação ainda. Escreva uma nota ou grave um áudio abaixo.'**
+  String get diarioBordoVazio;
+
+  /// No description provided for @diarioBordoCampoDica.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escreva uma nota...'**
+  String get diarioBordoCampoDica;
+
+  /// No description provided for @diarioBordoEditarNota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar nota'**
+  String get diarioBordoEditarNota;
+
+  /// No description provided for @diarioBordoRemoverNotaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover nota?'**
+  String get diarioBordoRemoverNotaTitulo;
+
+  /// No description provided for @diarioBordoRemoverNotaMensagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Essa nota (e o áudio, se houver) será apagada permanentemente.'**
+  String get diarioBordoRemoverNotaMensagem;
+
+  /// No description provided for @diarioBordoSemPermissaoMicrofone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem permissão de microfone — habilite nas configurações do aparelho pra gravar áudio.'**
+  String get diarioBordoSemPermissaoMicrofone;
+
+  /// No description provided for @diarioBordoGravando.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gravando... {duracao}'**
+  String diarioBordoGravando(String duracao);
+
+  /// No description provided for @diarioBordoPararGravacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parar'**
+  String get diarioBordoPararGravacao;
+
+  /// No description provided for @dashboardMotivoDiarioBordo.
+  ///
+  /// In pt, this message translates to:
+  /// **'abrir o diário de bordo'**
+  String get dashboardMotivoDiarioBordo;
+
+  /// No description provided for @drawerProgressoViagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Progresso da Viagem'**
+  String get drawerProgressoViagem;
+
+  /// No description provided for @progressoViagemTelaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Progresso da Viagem'**
+  String get progressoViagemTelaTitulo;
+
+  /// No description provided for @progressoViagemIniciadaEm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Iniciada em {data}'**
+  String progressoViagemIniciadaEm(String data);
+
+  /// No description provided for @progressoViagemDecorrido.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tempo decorrido'**
+  String get progressoViagemDecorrido;
+
+  /// No description provided for @progressoViagemRestante.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tempo restante'**
+  String get progressoViagemRestante;
+
+  /// No description provided for @progressoViagemPrevisaoPadraoAviso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem data de término informada pela viagem — usando um período de referência de 30 dias a partir do início.'**
+  String get progressoViagemPrevisaoPadraoAviso;
+
+  /// No description provided for @progressoViagemAtrasada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atrasada'**
+  String get progressoViagemAtrasada;
+
+  /// No description provided for @progressoViagemPrevisaoTermino.
+  ///
+  /// In pt, this message translates to:
+  /// **'Previsão de término'**
+  String get progressoViagemPrevisaoTermino;
+
+  /// No description provided for @dashboardMotivoProgressoViagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'ver o progresso da viagem'**
+  String get dashboardMotivoProgressoViagem;
 
   /// No description provided for @idiomaSistema.
   ///
@@ -2324,6 +2450,108 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'+{trecho} mn desde o ponto {indice}'**
   String rotasTrechoDesdePonto(String trecho, int indice);
+
+  /// No description provided for @rotasSeguirTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seguir esta rota'**
+  String get rotasSeguirTooltip;
+
+  /// No description provided for @rotasSeguirSemViagemAtiva.
+  ///
+  /// In pt, this message translates to:
+  /// **'É preciso ter uma viagem em andamento para seguir uma rota.'**
+  String get rotasSeguirSemViagemAtiva;
+
+  /// No description provided for @rotasEmUso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em uso'**
+  String get rotasEmUso;
+
+  /// No description provided for @rotasNavegarTelaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegação'**
+  String get rotasNavegarTelaTitulo;
+
+  /// No description provided for @rotasNavegarAguardandoGps.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando sinal de GPS...'**
+  String get rotasNavegarAguardandoGps;
+
+  /// No description provided for @rotasNavegarConcluido.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concluído'**
+  String get rotasNavegarConcluido;
+
+  /// No description provided for @rotasNavegarRestante.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restante'**
+  String get rotasNavegarRestante;
+
+  /// No description provided for @rotasNavegarDesvio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desvio'**
+  String get rotasNavegarDesvio;
+
+  /// No description provided for @rotasNavegarForaDaRota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fora da rota planejada'**
+  String get rotasNavegarForaDaRota;
+
+  /// No description provided for @rotasCompartilharTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar rota'**
+  String get rotasCompartilharTooltip;
+
+  /// No description provided for @rotasCompartilharMensagem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rota \"{nome}\": {link}'**
+  String rotasCompartilharMensagem(String nome, String link);
+
+  /// No description provided for @rotasPontoCondicaoNormal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Condições normais'**
+  String get rotasPontoCondicaoNormal;
+
+  /// No description provided for @rotasNavegarSeguirTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seguir minha posição'**
+  String get rotasNavegarSeguirTooltip;
+
+  /// No description provided for @configMapaOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mapa Offline'**
+  String get configMapaOffline;
+
+  /// No description provided for @configCacheCamadasOceanicas.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar camadas náuticas pra uso offline'**
+  String get configCacheCamadasOceanicas;
+
+  /// No description provided for @configCacheCamadasOceanicasSubtitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Profundidade, isóbatas e marcas náuticas da Navegação de Rota ficam salvas no aparelho conforme você visita a área, disponíveis depois sem sinal.'**
+  String get configCacheCamadasOceanicasSubtitulo;
+
+  /// No description provided for @rotasPontosDaRotaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n, plural, =1{1 ponto da rota} other{{n} pontos da rota}}'**
+  String rotasPontosDaRotaTitulo(int n);
 
   /// No description provided for @metricaVento.
   ///

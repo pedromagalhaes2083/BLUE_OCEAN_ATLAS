@@ -21,7 +21,78 @@ class AppLocalizationsFr extends AppLocalizations {
   String get salvar => 'Enregistrer';
 
   @override
+  String get editar => 'Modifier';
+
+  @override
   String get sincronizar => 'Synchroniser';
+
+  @override
+  String get drawerDiarioBordo => 'Journal de Bord';
+
+  @override
+  String get diarioBordoTelaTitulo => 'Journal de Bord';
+
+  @override
+  String get diarioBordoVazio =>
+      'Aucune note pour l\'instant. Écrivez une note ou enregistrez un audio ci-dessous.';
+
+  @override
+  String get diarioBordoCampoDica => 'Écrivez une note...';
+
+  @override
+  String get diarioBordoEditarNota => 'Modifier la note';
+
+  @override
+  String get diarioBordoRemoverNotaTitulo => 'Supprimer la note ?';
+
+  @override
+  String get diarioBordoRemoverNotaMensagem =>
+      'Cette note (et son audio, le cas échéant) sera supprimée définitivement.';
+
+  @override
+  String get diarioBordoSemPermissaoMicrofone =>
+      'Pas d\'autorisation du microphone — activez-la dans les paramètres de l\'appareil pour enregistrer de l\'audio.';
+
+  @override
+  String diarioBordoGravando(String duracao) {
+    return 'Enregistrement... $duracao';
+  }
+
+  @override
+  String get diarioBordoPararGravacao => 'Arrêter';
+
+  @override
+  String get dashboardMotivoDiarioBordo => 'ouvrir le journal de bord';
+
+  @override
+  String get drawerProgressoViagem => 'Progression du Voyage';
+
+  @override
+  String get progressoViagemTelaTitulo => 'Progression du Voyage';
+
+  @override
+  String progressoViagemIniciadaEm(String data) {
+    return 'Commencé le $data';
+  }
+
+  @override
+  String get progressoViagemDecorrido => 'Temps écoulé';
+
+  @override
+  String get progressoViagemRestante => 'Temps restant';
+
+  @override
+  String get progressoViagemPrevisaoPadraoAviso =>
+      'Aucune date de fin indiquée pour ce voyage — utilisation d\'une période de référence de 30 jours à partir du début.';
+
+  @override
+  String get progressoViagemAtrasada => 'En retard';
+
+  @override
+  String get progressoViagemPrevisaoTermino => 'Fin prévue';
+
+  @override
+  String get dashboardMotivoProgressoViagem => 'voir la progression du voyage';
 
   @override
   String get idiomaSistema => 'Langue du système';
@@ -1351,6 +1422,70 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String rotasTrechoDesdePonto(String trecho, int indice) {
     return '+$trecho mn depuis le point $indice';
+  }
+
+  @override
+  String get rotasSeguirTooltip => 'Suivre cette route';
+
+  @override
+  String get rotasSeguirSemViagemAtiva =>
+      'Il faut un voyage en cours pour suivre une route.';
+
+  @override
+  String get rotasEmUso => 'En cours d\'utilisation';
+
+  @override
+  String get rotasNavegarTelaTitulo => 'Navigation';
+
+  @override
+  String get rotasNavegarAguardandoGps => 'En attente du signal GPS...';
+
+  @override
+  String get rotasNavegarConcluido => 'Terminé';
+
+  @override
+  String get rotasNavegarRestante => 'Restant';
+
+  @override
+  String get rotasNavegarDesvio => 'Écart';
+
+  @override
+  String get rotasNavegarForaDaRota => 'Hors de la route prévue';
+
+  @override
+  String get rotasCompartilharTooltip => 'Partager l\'itinéraire';
+
+  @override
+  String rotasCompartilharMensagem(String nome, String link) {
+    return 'Itinéraire \"$nome\" : $link';
+  }
+
+  @override
+  String get rotasPontoCondicaoNormal => 'Conditions normales';
+
+  @override
+  String get rotasNavegarSeguirTooltip => 'Suivre ma position';
+
+  @override
+  String get configMapaOffline => 'Carte Hors Ligne';
+
+  @override
+  String get configCacheCamadasOceanicas =>
+      'Enregistrer les couches nautiques pour usage hors ligne';
+
+  @override
+  String get configCacheCamadasOceanicasSubtitulo =>
+      'Profondeur, isobathes et marques nautiques de la Navigation de Route sont enregistrées sur l\'appareil au fur et à mesure que vous visitez la zone, disponibles ensuite sans signal.';
+
+  @override
+  String rotasPontosDaRotaTitulo(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n points de la route',
+      one: '1 point de la route',
+    );
+    return '$_temp0';
   }
 
   @override

@@ -21,7 +21,78 @@ class AppLocalizationsEs extends AppLocalizations {
   String get salvar => 'Guardar';
 
   @override
+  String get editar => 'Editar';
+
+  @override
   String get sincronizar => 'Sincronizar';
+
+  @override
+  String get drawerDiarioBordo => 'Diario de a Bordo';
+
+  @override
+  String get diarioBordoTelaTitulo => 'Diario de a Bordo';
+
+  @override
+  String get diarioBordoVazio =>
+      'Todavía no hay anotaciones. Escribe una nota o graba un audio abajo.';
+
+  @override
+  String get diarioBordoCampoDica => 'Escribe una nota...';
+
+  @override
+  String get diarioBordoEditarNota => 'Editar nota';
+
+  @override
+  String get diarioBordoRemoverNotaTitulo => '¿Eliminar nota?';
+
+  @override
+  String get diarioBordoRemoverNotaMensagem =>
+      'Esta nota (y el audio, si lo tiene) se eliminará permanentemente.';
+
+  @override
+  String get diarioBordoSemPermissaoMicrofone =>
+      'Sin permiso de micrófono — habilítalo en los ajustes del dispositivo para grabar audio.';
+
+  @override
+  String diarioBordoGravando(String duracao) {
+    return 'Grabando... $duracao';
+  }
+
+  @override
+  String get diarioBordoPararGravacao => 'Detener';
+
+  @override
+  String get dashboardMotivoDiarioBordo => 'abrir el diario de a bordo';
+
+  @override
+  String get drawerProgressoViagem => 'Progreso del Viaje';
+
+  @override
+  String get progressoViagemTelaTitulo => 'Progreso del Viaje';
+
+  @override
+  String progressoViagemIniciadaEm(String data) {
+    return 'Iniciado el $data';
+  }
+
+  @override
+  String get progressoViagemDecorrido => 'Tiempo transcurrido';
+
+  @override
+  String get progressoViagemRestante => 'Tiempo restante';
+
+  @override
+  String get progressoViagemPrevisaoPadraoAviso =>
+      'No hay fecha de término informada para este viaje — usando un período de referencia de 30 días desde el inicio.';
+
+  @override
+  String get progressoViagemAtrasada => 'Atrasado';
+
+  @override
+  String get progressoViagemPrevisaoTermino => 'Término previsto';
+
+  @override
+  String get dashboardMotivoProgressoViagem => 'ver el progreso del viaje';
 
   @override
   String get idiomaSistema => 'Idioma del sistema';
@@ -1345,6 +1416,70 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String rotasTrechoDesdePonto(String trecho, int indice) {
     return '+$trecho mn desde el punto $indice';
+  }
+
+  @override
+  String get rotasSeguirTooltip => 'Seguir esta ruta';
+
+  @override
+  String get rotasSeguirSemViagemAtiva =>
+      'Es necesario tener un viaje en curso para seguir una ruta.';
+
+  @override
+  String get rotasEmUso => 'En uso';
+
+  @override
+  String get rotasNavegarTelaTitulo => 'Navegación';
+
+  @override
+  String get rotasNavegarAguardandoGps => 'Esperando señal de GPS...';
+
+  @override
+  String get rotasNavegarConcluido => 'Completado';
+
+  @override
+  String get rotasNavegarRestante => 'Restante';
+
+  @override
+  String get rotasNavegarDesvio => 'Desvío';
+
+  @override
+  String get rotasNavegarForaDaRota => 'Fuera de la ruta planeada';
+
+  @override
+  String get rotasCompartilharTooltip => 'Compartir ruta';
+
+  @override
+  String rotasCompartilharMensagem(String nome, String link) {
+    return 'Ruta \"$nome\": $link';
+  }
+
+  @override
+  String get rotasPontoCondicaoNormal => 'Condiciones normales';
+
+  @override
+  String get rotasNavegarSeguirTooltip => 'Seguir mi posición';
+
+  @override
+  String get configMapaOffline => 'Mapa Offline';
+
+  @override
+  String get configCacheCamadasOceanicas =>
+      'Guardar capas náuticas para uso sin conexión';
+
+  @override
+  String get configCacheCamadasOceanicasSubtitulo =>
+      'Profundidad, isóbatas y marcas náuticas de la Navegación de Ruta se guardan en el dispositivo a medida que visitas el área, disponibles después sin señal.';
+
+  @override
+  String rotasPontosDaRotaTitulo(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n puntos de la ruta',
+      one: '1 punto de la ruta',
+    );
+    return '$_temp0';
   }
 
   @override

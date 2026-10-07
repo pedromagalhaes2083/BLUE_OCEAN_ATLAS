@@ -21,7 +21,78 @@ class AppLocalizationsPt extends AppLocalizations {
   String get salvar => 'Salvar';
 
   @override
+  String get editar => 'Editar';
+
+  @override
   String get sincronizar => 'Sincronizar';
+
+  @override
+  String get drawerDiarioBordo => 'Diário de Bordo';
+
+  @override
+  String get diarioBordoTelaTitulo => 'Diário de Bordo';
+
+  @override
+  String get diarioBordoVazio =>
+      'Nenhuma anotação ainda. Escreva uma nota ou grave um áudio abaixo.';
+
+  @override
+  String get diarioBordoCampoDica => 'Escreva uma nota...';
+
+  @override
+  String get diarioBordoEditarNota => 'Editar nota';
+
+  @override
+  String get diarioBordoRemoverNotaTitulo => 'Remover nota?';
+
+  @override
+  String get diarioBordoRemoverNotaMensagem =>
+      'Essa nota (e o áudio, se houver) será apagada permanentemente.';
+
+  @override
+  String get diarioBordoSemPermissaoMicrofone =>
+      'Sem permissão de microfone — habilite nas configurações do aparelho pra gravar áudio.';
+
+  @override
+  String diarioBordoGravando(String duracao) {
+    return 'Gravando... $duracao';
+  }
+
+  @override
+  String get diarioBordoPararGravacao => 'Parar';
+
+  @override
+  String get dashboardMotivoDiarioBordo => 'abrir o diário de bordo';
+
+  @override
+  String get drawerProgressoViagem => 'Progresso da Viagem';
+
+  @override
+  String get progressoViagemTelaTitulo => 'Progresso da Viagem';
+
+  @override
+  String progressoViagemIniciadaEm(String data) {
+    return 'Iniciada em $data';
+  }
+
+  @override
+  String get progressoViagemDecorrido => 'Tempo decorrido';
+
+  @override
+  String get progressoViagemRestante => 'Tempo restante';
+
+  @override
+  String get progressoViagemPrevisaoPadraoAviso =>
+      'Sem data de término informada pela viagem — usando um período de referência de 30 dias a partir do início.';
+
+  @override
+  String get progressoViagemAtrasada => 'Atrasada';
+
+  @override
+  String get progressoViagemPrevisaoTermino => 'Previsão de término';
+
+  @override
+  String get dashboardMotivoProgressoViagem => 'ver o progresso da viagem';
 
   @override
   String get idiomaSistema => 'Idioma do sistema';
@@ -1340,6 +1411,70 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String rotasTrechoDesdePonto(String trecho, int indice) {
     return '+$trecho mn desde o ponto $indice';
+  }
+
+  @override
+  String get rotasSeguirTooltip => 'Seguir esta rota';
+
+  @override
+  String get rotasSeguirSemViagemAtiva =>
+      'É preciso ter uma viagem em andamento para seguir uma rota.';
+
+  @override
+  String get rotasEmUso => 'Em uso';
+
+  @override
+  String get rotasNavegarTelaTitulo => 'Navegação';
+
+  @override
+  String get rotasNavegarAguardandoGps => 'Aguardando sinal de GPS...';
+
+  @override
+  String get rotasNavegarConcluido => 'Concluído';
+
+  @override
+  String get rotasNavegarRestante => 'Restante';
+
+  @override
+  String get rotasNavegarDesvio => 'Desvio';
+
+  @override
+  String get rotasNavegarForaDaRota => 'Fora da rota planejada';
+
+  @override
+  String get rotasCompartilharTooltip => 'Compartilhar rota';
+
+  @override
+  String rotasCompartilharMensagem(String nome, String link) {
+    return 'Rota \"$nome\": $link';
+  }
+
+  @override
+  String get rotasPontoCondicaoNormal => 'Condições normais';
+
+  @override
+  String get rotasNavegarSeguirTooltip => 'Seguir minha posição';
+
+  @override
+  String get configMapaOffline => 'Mapa Offline';
+
+  @override
+  String get configCacheCamadasOceanicas =>
+      'Salvar camadas náuticas pra uso offline';
+
+  @override
+  String get configCacheCamadasOceanicasSubtitulo =>
+      'Profundidade, isóbatas e marcas náuticas da Navegação de Rota ficam salvas no aparelho conforme você visita a área, disponíveis depois sem sinal.';
+
+  @override
+  String rotasPontosDaRotaTitulo(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n pontos da rota',
+      one: '1 ponto da rota',
+    );
+    return '$_temp0';
   }
 
   @override

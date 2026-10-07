@@ -21,7 +21,79 @@ class AppLocalizationsIt extends AppLocalizations {
   String get salvar => 'Salva';
 
   @override
+  String get editar => 'Modifica';
+
+  @override
   String get sincronizar => 'Sincronizza';
+
+  @override
+  String get drawerDiarioBordo => 'Diario di Bordo';
+
+  @override
+  String get diarioBordoTelaTitulo => 'Diario di Bordo';
+
+  @override
+  String get diarioBordoVazio =>
+      'Nessuna annotazione ancora. Scrivi una nota o registra un audio qui sotto.';
+
+  @override
+  String get diarioBordoCampoDica => 'Scrivi una nota...';
+
+  @override
+  String get diarioBordoEditarNota => 'Modifica nota';
+
+  @override
+  String get diarioBordoRemoverNotaTitulo => 'Rimuovere la nota?';
+
+  @override
+  String get diarioBordoRemoverNotaMensagem =>
+      'Questa nota (e l\'audio, se presente) sarà eliminata definitivamente.';
+
+  @override
+  String get diarioBordoSemPermissaoMicrofone =>
+      'Nessun permesso per il microfono — abilitalo nelle impostazioni del dispositivo per registrare audio.';
+
+  @override
+  String diarioBordoGravando(String duracao) {
+    return 'Registrazione... $duracao';
+  }
+
+  @override
+  String get diarioBordoPararGravacao => 'Ferma';
+
+  @override
+  String get dashboardMotivoDiarioBordo => 'aprire il diario di bordo';
+
+  @override
+  String get drawerProgressoViagem => 'Avanzamento Viaggio';
+
+  @override
+  String get progressoViagemTelaTitulo => 'Avanzamento Viaggio';
+
+  @override
+  String progressoViagemIniciadaEm(String data) {
+    return 'Iniziato il $data';
+  }
+
+  @override
+  String get progressoViagemDecorrido => 'Tempo trascorso';
+
+  @override
+  String get progressoViagemRestante => 'Tempo rimanente';
+
+  @override
+  String get progressoViagemPrevisaoPadraoAviso =>
+      'Nessuna data di fine indicata per questo viaggio — in uso un periodo di riferimento di 30 giorni dall\'inizio.';
+
+  @override
+  String get progressoViagemAtrasada => 'In ritardo';
+
+  @override
+  String get progressoViagemPrevisaoTermino => 'Fine prevista';
+
+  @override
+  String get dashboardMotivoProgressoViagem =>
+      'vedere l\'avanzamento del viaggio';
 
   @override
   String get idiomaSistema => 'Lingua di sistema';
@@ -1347,6 +1419,70 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String rotasTrechoDesdePonto(String trecho, int indice) {
     return '+$trecho mn dal punto $indice';
+  }
+
+  @override
+  String get rotasSeguirTooltip => 'Seguire questa rotta';
+
+  @override
+  String get rotasSeguirSemViagemAtiva =>
+      'È necessario un viaggio in corso per seguire una rotta.';
+
+  @override
+  String get rotasEmUso => 'In uso';
+
+  @override
+  String get rotasNavegarTelaTitulo => 'Navigazione';
+
+  @override
+  String get rotasNavegarAguardandoGps => 'In attesa del segnale GPS...';
+
+  @override
+  String get rotasNavegarConcluido => 'Completato';
+
+  @override
+  String get rotasNavegarRestante => 'Rimanente';
+
+  @override
+  String get rotasNavegarDesvio => 'Deviazione';
+
+  @override
+  String get rotasNavegarForaDaRota => 'Fuori dalla rotta prevista';
+
+  @override
+  String get rotasCompartilharTooltip => 'Condividi rotta';
+
+  @override
+  String rotasCompartilharMensagem(String nome, String link) {
+    return 'Rotta \"$nome\": $link';
+  }
+
+  @override
+  String get rotasPontoCondicaoNormal => 'Condizioni normali';
+
+  @override
+  String get rotasNavegarSeguirTooltip => 'Segui la mia posizione';
+
+  @override
+  String get configMapaOffline => 'Mappa Offline';
+
+  @override
+  String get configCacheCamadasOceanicas =>
+      'Salva livelli nautici per uso offline';
+
+  @override
+  String get configCacheCamadasOceanicasSubtitulo =>
+      'Profondità, isobate e segnali nautici della Navigazione di Rotta vengono salvati sul dispositivo man mano che visiti l\'area, disponibili dopo senza segnale.';
+
+  @override
+  String rotasPontosDaRotaTitulo(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n punti della rotta',
+      one: '1 punto della rotta',
+    );
+    return '$_temp0';
   }
 
   @override
