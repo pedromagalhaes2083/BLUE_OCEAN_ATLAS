@@ -178,10 +178,10 @@ class _BarcoNavegacao3dState extends State<BarcoNavegacao3d>
     if (_erro) {
       // Fallback estático — nunca deixa o ícone genérico de pacote do
       // Android (WebView quebrado/ainda atualizando) visível pro usuário.
-      return Icon(
-        Icons.directions_boat_filled,
-        size: widget.tamanho * 0.6,
-        color: Colors.white,
+      return Image.asset(
+        'assets/icons/icons8-boat-64.png',
+        width: widget.tamanho * 0.6,
+        height: widget.tamanho * 0.6,
       );
     }
     return IgnorePointer(

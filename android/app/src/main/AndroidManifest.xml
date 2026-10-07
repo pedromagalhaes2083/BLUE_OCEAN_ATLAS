@@ -13,6 +13,8 @@
      uma recomendação nova chegada em segundo plano, e a notificação
      persistente do rastreamento em primeiro plano abaixo. -->
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<!-- Gravação de áudio no Diário de Bordo (ver DiarioBordoAudioService). -->
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
 <!-- Serviço em primeiro plano (ver LocationTrackingService/
      flutter_foreground_task) — sem isso o rastreamento de posição era só
      uma tarefa periódica do WorkManager (best-effort, sujeita a atraso e

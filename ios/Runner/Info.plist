@@ -10,6 +10,9 @@
 		     precisa refletir o mesmo uso em segundo plano descrito acima. -->
 		<key>NSLocationAlwaysUsageDescription</key>
 		<string>Durante uma viagem, o Atlas envia periodicamente a posição da embarcação — inclusive com o app fechado — para o rastreamento de segurança e as condições marítimas no local.</string>
+		<!-- Gravação de áudio no Diário de Bordo (ver DiarioBordoAudioService). -->
+		<key>NSMicrophoneUsageDescription</key>
+		<string>O Atlas precisa do microfone para gravar notas de áudio no Diário de Bordo.</string>
 		<!-- Habilita atualizações de localização em segundo plano (ver
 		     LocationTrackingService) — sem isso, o iOS suspende o app e o
 		     rastreamento para assim que ele sai do primeiro plano, mesmo com

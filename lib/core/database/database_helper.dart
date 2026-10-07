@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 17,
+      version: 19,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -125,6 +125,7 @@ class DatabaseHelper {
     await _criarTabelaSolicitacaoCarta(db);
     await _criarTabelasRotaPlanejada(db);
     await _criarTabelaPortoMare(db);
+    await _criarTabelaDiarioBordo(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -257,6 +258,25 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE producao_registro ADD COLUMN especie_id TEXT');
       }
     }
+    if (oldVersion < 18) {
+      await _criarTabelaDiarioBordo(db);
+    }
+    // `oldVersion >= 18` de propósito, não só `< 19`: quem veio de uma
+    // versão anterior a 18 ganhou `diario_bordo` agora mesmo, no passo
+    // acima, já com a coluna `amplitudes` (ver `_criarTabelaDiarioBordo`)
+    // — rodar o ALTER TABLE de novo pra essas instalações quebraria com
+    // "duplicate column name". Só quem já tinha `diario_bordo` de uma
+    // instalação v18 de verdade (sem a coluna) precisa do ALTER.
+    if (oldVersion >= 18 && oldVersion < 19) {
+      // Amostras de amplitude capturadas durante a gravação (ver
+      // `DiarioBordoScreen._iniciarGravacao`), pra desenhar a forma de
+      // onda real do áudio na lista — string de doubles 0.0-1.0 separados
+      // por vírgula, já reamostrada pro número fixo de barras do desenho
+      // antes de salvar (ver `DiarioBordoEntrada`). Nula em notas de áudio
+      // gravadas antes desta versão — a UI cai num desenho genérico pra
+      // essas (nunca inventa uma forma de onda que não foi medida).
+      await db.execute('ALTER TABLE diario_bordo ADD COLUMN amplitudes TEXT');
+    }
   }
 
   /// Índice único parcial: no máximo uma linha com `status = 'em_andamento'`
@@ -321,6 +341,26 @@ class DatabaseHelper {
         data_criacao TEXT NOT NULL,
         constantes_json TEXT,
         sincronizado_em TEXT
+      )
+    ''');
+  }
+
+  Future<void> _criarTabelaDiarioBordo(Database db) async {
+    // Diário de bordo — notas de texto e de áudio atreladas a uma viagem
+    // (ver `DiarioBordoEntrada`/`DiarioBordoScreen`). `caminho_audio` só é
+    // preenchido quando `tipo = 'audio'` (arquivo .m4a gravado localmente,
+    // ver `DiarioBordoAudioService`); nunca sincronizado com o backend —
+    // fica só no aparelho, como as fotos de embarcação.
+    await db.execute('''
+      CREATE TABLE diario_bordo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        viagem_id INTEGER NOT NULL,
+        tipo TEXT NOT NULL,
+        conteudo TEXT,
+        caminho_audio TEXT,
+        duracao_audio_s INTEGER,
+        criado_em TEXT NOT NULL,
+        amplitudes TEXT
       )
     ''');
   }

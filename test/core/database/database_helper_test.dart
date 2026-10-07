@@ -68,6 +68,7 @@ void main() {
         'solicitacao_carta',
         'rota_planejada',
         'rota_planejada_ponto',
+        'diario_bordo',
       ]) {
         expect(await _tabelaExiste(db, tabela), isTrue,
             reason: 'tabela "$tabela" deveria existir');
@@ -103,6 +104,24 @@ void main() {
       final colunas = await _colunas(db, 'ponto_marcado');
 
       expect(colunas, contains('nome'));
+    });
+
+    test('diario_bordo tem as colunas de nota de texto/áudio (v18/v19)', () async {
+      final db = await DatabaseHelper.instance.database;
+      final colunas = await _colunas(db, 'diario_bordo');
+
+      expect(
+        colunas,
+        containsAll([
+          'viagem_id',
+          'tipo',
+          'conteudo',
+          'caminho_audio',
+          'duracao_audio_s',
+          'criado_em',
+          'amplitudes',
+        ]),
+      );
     });
   });
 
@@ -345,6 +364,76 @@ void main() {
         }),
         throwsA(anything),
       );
+    });
+  });
+
+  group('diario_bordo — upgrade de instalação antiga (v18)', () {
+    test('upgrade de uma instalação v17 (sem diario_bordo) cria a tabela',
+        () async {
+      final caminho = await DatabaseHelper.instance.caminhoArquivo();
+      final dbAntigo = await databaseFactory.openDatabase(
+        caminho,
+        options: OpenDatabaseOptions(
+          version: 17,
+          onCreate: (db, version) async {
+            await db.execute('''
+              CREATE TABLE viagem (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT,
+                data_inicio TEXT NOT NULL,
+                data_termino TEXT,
+                embarcacao_id TEXT,
+                status TEXT NOT NULL,
+                remoto_id TEXT
+              )
+            ''');
+          },
+        ),
+      );
+      await dbAntigo.close();
+
+      // Reabre pelo DatabaseHelper de verdade — dispara onUpgrade 17 → 18.
+      final db = await DatabaseHelper.instance.database;
+
+      expect(await _tabelaExiste(db, 'diario_bordo'), isTrue);
+      final colunas = await _colunas(db, 'diario_bordo');
+      expect(
+        colunas,
+        containsAll(['viagem_id', 'tipo', 'conteudo', 'caminho_audio',
+            'duracao_audio_s', 'criado_em', 'amplitudes']),
+      );
+    });
+
+    test(
+        'upgrade de uma instalação v18 (diario_bordo sem amplitudes) '
+        'acrescenta a coluna', () async {
+      final caminho = await DatabaseHelper.instance.caminhoArquivo();
+      final dbAntigo = await databaseFactory.openDatabase(
+        caminho,
+        options: OpenDatabaseOptions(
+          version: 18,
+          onCreate: (db, version) async {
+            await db.execute('''
+              CREATE TABLE diario_bordo (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                viagem_id INTEGER NOT NULL,
+                tipo TEXT NOT NULL,
+                conteudo TEXT,
+                caminho_audio TEXT,
+                duracao_audio_s INTEGER,
+                criado_em TEXT NOT NULL
+              )
+            ''');
+          },
+        ),
+      );
+      await dbAntigo.close();
+
+      // Reabre pelo DatabaseHelper de verdade — dispara onUpgrade 18 → 19.
+      final db = await DatabaseHelper.instance.database;
+
+      final colunas = await _colunas(db, 'diario_bordo');
+      expect(colunas, contains('amplitudes'));
     });
   });
 }

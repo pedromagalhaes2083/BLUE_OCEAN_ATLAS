@@ -51,6 +51,10 @@ dependencies:
   flutter_3d_controller: ^2.3.0
   sensors_plus: ^7.1.0
 
+  # Diário de bordo (notas de áudio)
+  record: ^6.2.1
+  audioplayers: ^6.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
