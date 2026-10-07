@@ -28,29 +28,52 @@ class CancelToken {
   void cancelar() => cancelado = true;
 }
 
-/// Cache de tiles do mapa de ruas em disco — implementação própria (HTTP +
-/// arquivo), sem depender de bibliotecas de terceiros para isso: a opção
-/// mais usada do mercado (flutter_map_tile_caching) é licenciada em GPLv3,
-/// incompatível com um app proprietário sem comprar licença comercial do
-/// autor.
+/// Cache de tiles em disco — implementação própria (HTTP + arquivo), sem
+/// depender de bibliotecas de terceiros para isso: a opção mais usada do
+/// mercado (flutter_map_tile_caching) é licenciada em GPLv3, incompatível
+/// com um app proprietário sem comprar licença comercial do autor.
 ///
-/// Cada tile vira um PNG em `<documentos>/street_cache/{z}/{x}/{y}.png`.
-/// Ao pedir um tile: serve do disco se já existir; senão busca da rede e
-/// grava, ficando disponível offline da próxima vez. [baixarRegiao] só
-/// adianta esse processo pra uma área inteira de uma vez, antes de sair
-/// do sinal.
+/// Cada tile vira um PNG em `<documentos>/<subDir>/{z}/{x}/{y}.png`. Ao
+/// pedir um tile: serve do disco se já existir; senão busca da rede (via
+/// [urlBuilder]) e grava, ficando disponível offline da próxima vez.
+/// [baixarRegiao] só adianta esse processo pra uma área inteira de uma vez,
+/// antes de sair do sinal.
+///
+/// O construtor padrão é o cache do mapa de ruas (singleton, como sempre
+/// foi — `StreetMapCacheService()` em qualquer lugar do app continua
+/// devolvendo a mesma instância). [StreetMapCacheService.camada] cria uma
+/// instância separada pra outra fonte de tile (profundidade, isóbatas,
+/// marcas náuticas — ver `NavegacaoRotaScreen`), com seu próprio
+/// subdiretório e forma de montar a URL, sem misturar cache de camadas
+/// diferentes na mesma pasta.
 class StreetMapCacheService {
   static final StreetMapCacheService _instance =
       StreetMapCacheService._internal();
   factory StreetMapCacheService() => _instance;
-  StreetMapCacheService._internal();
+  StreetMapCacheService._internal()
+      : _subDir = 'street_cache',
+        _urlBuilder = _urlOsmPadrao;
+
+  StreetMapCacheService.camada({
+    required String subDir,
+    required String Function(int z, int x, int y) urlBuilder,
+  })  : _subDir = subDir,
+        _urlBuilder = urlBuilder;
+
+  static String _urlOsmPadrao(int z, int x, int y) => _tileUrlTemplate
+      .replaceAll('{z}', '$z')
+      .replaceAll('{x}', '$x')
+      .replaceAll('{y}', '$y');
+
+  final String _subDir;
+  final String Function(int z, int x, int y) _urlBuilder;
 
   Directory? _cacheDir;
 
   Future<Directory> _diretorioCache() async {
     if (_cacheDir != null) return _cacheDir!;
     final docs = await getApplicationDocumentsDirectory();
-    final dir = Directory('${docs.path}/street_cache');
+    final dir = Directory('${docs.path}/$_subDir');
     if (!await dir.exists()) await dir.create(recursive: true);
     _cacheDir = dir;
     return dir;
@@ -59,10 +82,7 @@ class StreetMapCacheService {
   File _arquivoTile(Directory dir, int z, int x, int y) =>
       File('${dir.path}/$z/$x/$y.png');
 
-  String _url(int z, int x, int y) => _tileUrlTemplate
-      .replaceAll('{z}', '$z')
-      .replaceAll('{x}', '$x')
-      .replaceAll('{y}', '$y');
+  String _url(int z, int x, int y) => _urlBuilder(z, x, y);
 
   /// Bytes do tile — do cache em disco se existir, senão baixa e grava.
   /// Retorna null se não estiver em cache e não houver como buscar (ex:

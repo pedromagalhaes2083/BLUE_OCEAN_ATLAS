@@ -89,4 +89,11 @@ class Constantes {
   /// `core/planos/`). Seletor de troca fica em Configurações, só em modo
   /// debug (ver `docs/ANALISE_ADERENCIA_PLANO_COMERCIAL.md` §2.2).
   static const String planoAtual = 'plano_atual';
+
+  /// Se as camadas do OpenSeaMap (profundidade, isóbatas, marcas náuticas)
+  /// na tela de Navegação de Rota ficam salvas em disco conforme visitadas
+  /// — "true" por padrão (ver `ConfiguracoesScreen`/`NavegacaoRotaScreen`).
+  /// Desligado, a tela volta a buscar da rede toda vez, sem gravar nada
+  /// localmente (pra quem prefere não gastar armazenamento com isso).
+  static const String cacheCamadasOceanicas = 'cache_camadas_oceanicas';
 }

@@ -40,6 +40,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
 
   bool _fazendoBackup = false;
   bool _ocultarRecomendacoesExpiradas = false;
+  bool _cacheCamadasOceanicas = true;
 
   /// `null` enquanto ainda não checou — `true`/`false` depois. Só é
   /// preocupante quando `false`: o Android pode matar o rastreamento em
@@ -74,6 +75,10 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       Constantes.ocultarRecomendacoesExpiradas,
       'false',
     );
+    final cacheCamadasOceanicas = await Config.obtem(
+      Constantes.cacheCamadasOceanicas,
+      'true',
+    );
     if (!mounted) return;
     setState(() {
       _deviceId = id;
@@ -82,6 +87,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
           _opcoesIntervalo.contains(intervalo) ? intervalo : intervaloMinimoMinutos;
       _contatoEmergenciaController.text = contatoEmergencia;
       _ocultarRecomendacoesExpiradas = ocultarExpiradas == 'true';
+      _cacheCamadasOceanicas = cacheCamadasOceanicas == 'true';
     });
   }
 
@@ -106,6 +112,14 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
     setState(() => _ocultarRecomendacoesExpiradas = valor);
     await Config.grava(
       Constantes.ocultarRecomendacoesExpiradas,
+      valor ? 'true' : 'false',
+    );
+  }
+
+  Future<void> _alternarCacheCamadasOceanicas(bool valor) async {
+    setState(() => _cacheCamadasOceanicas = valor);
+    await Config.grava(
+      Constantes.cacheCamadasOceanicas,
       valor ? 'true' : 'false',
     );
   }
@@ -543,6 +557,31 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       ),
                       value: _ocultarRecomendacoesExpiradas,
                       onChanged: _alternarOcultarRecomendacoesExpiradas,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    l10n.configMapaOffline,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      secondary: const Icon(Icons.layers_outlined, color: Colors.blue),
+                      title: Text(
+                        l10n.configCacheCamadasOceanicas,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        l10n.configCacheCamadasOceanicasSubtitulo,
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      value: _cacheCamadasOceanicas,
+                      onChanged: _alternarCacheCamadasOceanicas,
                     ),
                   ),
                   const SizedBox(height: 24),

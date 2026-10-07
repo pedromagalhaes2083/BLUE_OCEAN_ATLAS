@@ -7,6 +7,7 @@ import '../../../l10n/gen/app_localizations.dart';
 import '../../mapa/presentation/mapa_screen.dart';
 import '../domain/models/rota_planejada.dart';
 import 'analise_rota_screen.dart';
+import 'navegacao_rota_screen.dart';
 
 /// Lista as rotas planejadas manualmente pelo mestre (sequência de pontos
 /// marcados no mapa antes de sair) — diferente do histórico de GPS, que é
@@ -19,6 +20,8 @@ class MinhasRotasScreen extends StatefulWidget {
   @override
   State<MinhasRotasScreen> createState() => _MinhasRotasScreenState();
 }
+
+enum _AcaoRota { analisar, editar, apagar }
 
 class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
   List<RotaPlanejada> _rotas = [];
@@ -52,7 +55,15 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
               .toList(),
         ));
       }
-      rotas.sort((a, b) => b.dataCriacao.compareTo(a.dataCriacao));
+      // Mais recente primeiro, mas a rota em uso na viagem atual (ver
+      // `_seguirRota`) sempre vai pro topo — é a que o mestre quer achar
+      // de cara, não importa há quanto tempo foi criada.
+      rotas.sort((a, b) {
+        final ativaA = a.viagemId != null;
+        final ativaB = b.viagemId != null;
+        if (ativaA != ativaB) return ativaA ? -1 : 1;
+        return b.dataCriacao.compareTo(a.dataCriacao);
+      });
       if (!mounted) return;
       setState(() => _rotas = rotas);
     } catch (e) {
@@ -104,6 +115,63 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
       ),
     );
     if (salvou == true) _carregar();
+  }
+
+  /// Vincula [rota] à viagem em andamento (`rota_planejada.viagem_id`,
+  /// campo que existia no esquema mas nunca era preenchido) e abre a
+  /// navegação ao vivo sobre ela — só uma rota ativa por viagem, então
+  /// desvincula qualquer outra marcada pra essa mesma viagem antes.
+  Future<void> _seguirRota(RotaPlanejada rota) async {
+    final l10n = AppLocalizations.of(context);
+    final ativas = await widget.dbHelper.queryWhere(
+      'viagem',
+      where: 'status = ?',
+      whereArgs: ['em_andamento'],
+    );
+    if (ativas.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.rotasSeguirSemViagemAtiva)),
+      );
+      return;
+    }
+    final viagemId = ativas.first['id'] as int;
+
+    final outrasVinculadas = await widget.dbHelper.queryWhere(
+      'rota_planejada',
+      where: 'viagem_id = ?',
+      whereArgs: [viagemId],
+    );
+    for (final outra in outrasVinculadas) {
+      await widget.dbHelper.update(
+        'rota_planejada',
+        {'viagem_id': null},
+        id: outra['id'] as int,
+      );
+    }
+    await widget.dbHelper.update(
+      'rota_planejada',
+      {'viagem_id': viagemId},
+      id: rota.id!,
+    );
+    if (!mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NavegacaoRotaScreen(
+          rota: RotaPlanejada(
+            id: rota.id,
+            nome: rota.nome,
+            dataCriacao: rota.dataCriacao,
+            pontos: rota.pontos,
+            embarcacaoId: rota.embarcacaoId,
+            viagemId: viagemId,
+          ),
+        ),
+      ),
+    );
+    if (mounted) _carregar();
   }
 
   Future<void> _apagarRota(RotaPlanejada rota) async {
@@ -180,40 +248,115 @@ class _MinhasRotasScreenState extends State<MinhasRotasScreen> {
                     itemBuilder: (context, index) {
                       final rota = _rotas[index];
                       final deProducao = rota.embarcacaoId != null;
+                      final ativa = rota.viagemId != null;
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
+                        // Fundo azulado na rota em uso — junto com o círculo
+                        // do ícone (abaixo) e o badge "Em uso" já existente,
+                        // dá pra bater o olho na lista e achar qual rota tá
+                        // ativa sem precisar ler o texto de cada card.
+                        color: ativa
+                            ? Colors.blue.withValues(alpha: 0.12)
+                            : null,
+                        shape: ativa
+                            ? RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(
+                                    color: Colors.blue, width: 1.2),
+                              )
+                            : null,
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor:
-                                deProducao ? Colors.deepOrange : Colors.purple,
+                            backgroundColor: ativa
+                                ? Colors.blue
+                                : (deProducao ? Colors.deepOrange : Colors.purple),
                             child: Icon(
-                              deProducao ? Icons.set_meal : Icons.route,
+                              ativa
+                                  ? Icons.navigation
+                                  : (deProducao ? Icons.set_meal : Icons.route),
                               color: Colors.white,
                             ),
                           ),
                           title: Text(rota.nome),
-                          subtitle: Text(
-                            l10n.rotasPontosEData(rota.pontos.length,
-                                DateFormat('dd/MM/yyyy HH:mm').format(rota.dataCriacao)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                l10n.rotasPontosEData(rota.pontos.length,
+                                    DateFormat('dd/MM/yyyy HH:mm').format(rota.dataCriacao)),
+                              ),
+                              if (rota.viagemId != null) ...[
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    l10n.rotasEmUso,
+                                    style: const TextStyle(
+                                        fontSize: 11, color: Colors.blue),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           onTap: () => _abrirRota(rota),
+                          // Só "Seguir rota" fica visível (ação principal) —
+                          // com os 4 ícones de antes lado a lado, o nome da
+                          // rota ficava espremido a ponto de quebrar letra
+                          // por letra e estourar a largura do card num
+                          // aparelho comum (visto no teste em dispositivo).
+                          // Analisar/editar/apagar viram menu, não somem.
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(
-                                icon: const Icon(Icons.health_and_safety_outlined),
-                                tooltip: l10n.rotasAnalisarTooltip,
-                                onPressed: () => _analisarRota(rota),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.edit_outlined),
-                                tooltip: l10n.rotasEditarTooltip,
-                                onPressed: () => _editarRota(rota),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                tooltip: l10n.rotasApagarTooltip,
-                                onPressed: () => _apagarRota(rota),
+                              if (rota.pontos.length > 1)
+                                IconButton(
+                                  icon: const Icon(Icons.navigation_outlined),
+                                  tooltip: l10n.rotasSeguirTooltip,
+                                  onPressed: () => _seguirRota(rota),
+                                ),
+                              PopupMenuButton<_AcaoRota>(
+                                onSelected: (acao) {
+                                  switch (acao) {
+                                    case _AcaoRota.analisar:
+                                      _analisarRota(rota);
+                                    case _AcaoRota.editar:
+                                      _editarRota(rota);
+                                    case _AcaoRota.apagar:
+                                      _apagarRota(rota);
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: _AcaoRota.analisar,
+                                    child: ListTile(
+                                      leading: const Icon(
+                                          Icons.health_and_safety_outlined),
+                                      title: Text(l10n.rotasAnalisarTooltip),
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: _AcaoRota.editar,
+                                    child: ListTile(
+                                      leading: const Icon(Icons.edit_outlined),
+                                      title: Text(l10n.rotasEditarTooltip),
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: _AcaoRota.apagar,
+                                    child: ListTile(
+                                      leading: const Icon(Icons.delete_outline,
+                                          color: Colors.red),
+                                      title: Text(l10n.rotasApagarTooltip,
+                                          style: const TextStyle(color: Colors.red)),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
