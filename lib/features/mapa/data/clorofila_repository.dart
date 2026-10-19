@@ -82,6 +82,56 @@ class ClorofilaRepository {
     return parseRespostaCsvGrade(response.body);
   }
 
+  /// Mesmo que [buscarPonto], mas quando o pixel exato vier sem dado
+  /// (nuvem, turbidez perto da costa — ver doc de [LeituraClorofilaPonto])
+  /// busca numa grade pequena ao redor ([raioAproximacaoNm], padrão 10 mn)
+  /// e usa o pixel válido mais próximo como aproximação — ainda é dado real
+  /// de satélite, só de um ponto vizinho em vez do exato, nunca um valor
+  /// inventado (ver `_cardParcial`/doc da classe sobre não fabricar dado).
+  /// [LeituraClorofilaPonto.latitude]/[longitude] do retorno já são as do
+  /// pixel usado de verdade (não as pedidas), e [LeituraClorofilaPonto.aproximado]
+  /// fica `true` nesse caso — a UI decide como avisar disso.
+  ///
+  /// Se a grade também falhar (sem sinal, nenhum pixel com dado na área)
+  /// devolve o resultado original sem dado, em vez de fingir que achou
+  /// algo.
+  Future<LeituraClorofilaPonto> buscarPontoOuAproximado({
+    required double latitude,
+    required double longitude,
+    double raioAproximacaoNm = 10,
+  }) async {
+    final exato = await buscarPonto(latitude: latitude, longitude: longitude);
+    if (exato.valorMgM3 != null) return exato;
+
+    List<LeituraClorofilaPonto> grade;
+    try {
+      grade = await buscarGrade(
+        latitude: latitude,
+        longitude: longitude,
+        raioNm: raioAproximacaoNm,
+      );
+    } catch (_) {
+      return exato;
+    }
+
+    final candidatos = grade.where((p) => p.valorMgM3 != null).toList();
+    if (candidatos.isEmpty) return exato;
+
+    candidatos.sort((a, b) => calcularDistanciaNauticas(
+            latitude, longitude, a.latitude, a.longitude)
+        .compareTo(calcularDistanciaNauticas(
+            latitude, longitude, b.latitude, b.longitude)));
+    final maisProximo = candidatos.first;
+
+    return LeituraClorofilaPonto(
+      latitude: maisProximo.latitude,
+      longitude: maisProximo.longitude,
+      valorMgM3: maisProximo.valorMgM3,
+      data: maisProximo.data,
+      aproximado: true,
+    );
+  }
+
   /// Parsing separado do fetch só pra dar pra testar sem rede — resposta
   /// CSV do ERDDAP: linha 0 = nomes das colunas, linha 1 = unidades, linha
   /// 2 = dado. Colunas: time, altitude, latitude, longitude, chlor_a.

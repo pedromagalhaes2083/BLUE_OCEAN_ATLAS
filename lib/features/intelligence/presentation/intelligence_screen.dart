@@ -75,6 +75,18 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
           await _repository.avaliarPonto(latitude: _lat!, longitude: _lon!);
       if (!mounted) return;
       setState(() => _resultado = resultado);
+      // Clorofila é a fonte que mais falha por cobertura (nuvem, pixel
+      // perto da costa — ver `ClorofilaRepository`/`IntelligenceRepository`
+      // doc) — avisa pontualmente quando é exatamente ela que faltou nessa
+      // consulta, em vez de só o aviso genérico de "dados parciais"
+      // (`_cardParcial`) sem dizer qual fonte foi.
+      if (resultado.conditions.clorofilaMgM3 == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text(AppLocalizations.of(context).intelligenceClorofilaIndisponivelAviso)),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _erro = mensagemErroAmigavel(e,

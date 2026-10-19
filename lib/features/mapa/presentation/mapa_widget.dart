@@ -27,6 +27,7 @@ import '../../termoclina/presentation/termoclina_screen.dart';
 import '../../../core/services/pontos_service.dart';
 import '../../../core/services/street_map_cache_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
+import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
 import '../widgets/legenda_grade_temperatura.dart' show corGradeTemperatura;
@@ -161,8 +162,9 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
 
   /// Alterna entre a carta náutica carregada (MBTiles/GeoTIFF) e o mapa de
   /// ruas (OpenStreetMap, com cache próprio pra uso offline depois de
-  /// baixado — ver [StreetMapCacheService]).
-  bool _camadaRuas = false;
+  /// baixado — ver [StreetMapCacheService]). Começa ligado (Open Sea) —
+  /// pré-selecionado por padrão, ver [_seletorTipoMapa].
+  bool _camadaRuas = true;
 
   GeotiffResult? _geotiff;
 
@@ -213,17 +215,20 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   // ── Informações náuticas (OpenSeaMap) ────────────────────────────────────
   // Tiles públicos de marcas náuticas/boias/faróis/portos (transparentes,
   // sobrepostos ao mapa de ruas) — só faz sentido junto do OpenStreetMap
-  // (_camadaRuas), nunca sobre a carta MBTiles/GeoTIFF carregada.
-  bool _mostrarInfoNautica = false;
+  // (_camadaRuas), nunca sobre a carta MBTiles/GeoTIFF carregada. Ligado
+  // por padrão junto com _camadaRuas — selecionar "Open Sea" liga as três
+  // camadas de uma vez (ver [_seletorTipoMapa]), então o estado inicial
+  // acompanha isso em vez de abrir desligado e exigir um toque extra.
+  bool _mostrarInfoNautica = true;
 
   // ── Profundidade / Curvas de profundidade (OpenSeaMap depth project) ────
   // WMS de verdade do próprio projeto de profundidade do OpenSeaMap — dado
   // batimétrico real (GEBCO), não inventado. Achados direto no código-fonte
   // público do `online_chart` do OpenSeaMap em 2026-09 (ver comentário na
-  // camada, mais abaixo, com a fonte). Comunitário/baixa capacidade — por
-  // isso desligado por padrão, igual as outras camadas.
-  bool _mostrarProfundidade = false;
-  bool _mostrarCurvasProfundidade = false;
+  // camada, mais abaixo, com a fonte). Ligado por padrão — ver nota de
+  // [_mostrarInfoNautica] acima.
+  bool _mostrarProfundidade = true;
+  bool _mostrarCurvasProfundidade = true;
 
   // ── Clorofila-a (NOAA CoastWatch, ERDDAP) ────────────────────────────────
   // Indicador de produtividade biológica/oceanográfica — nunca tratado como
@@ -1583,6 +1588,32 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
             Text(l10n.mapaClorofilaData(DateFormat('dd/MM/yyyy').format(ponto.data))),
             const SizedBox(height: 4),
             Text(l10n.mapaClorofilaFonte(ponto.source)),
+            const SizedBox(height: 4),
+            // Coordenada de onde o dado foi medido de verdade — sempre
+            // mostrada, não só quando aproximado: o pixel do satélite tem
+            // ~2km de resolução, então nunca é exatamente o ponto tocado
+            // no mapa mesmo num resultado "exato".
+            Text(
+              l10n.mapaClorofilaCoordenadaDado(
+                  formatarCoordenadasDMSCompacta(ponto.latitude, ponto.longitude)),
+              style: TextStyle(fontSize: 12, color: corRotulo(context)),
+            ),
+            if (ponto.aproximado) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline, size: 16, color: Colors.amber),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      l10n.mapaClorofilaAproximadoAviso,
+                      style: const TextStyle(fontSize: 12, color: Colors.amber),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             Text(
               l10n.mapaClorofilaDisclaimer,
@@ -2021,7 +2052,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
           ),
         );
       } else if (tipo == _TipoConsultaPonto.clorofila) {
-        final resultado = await ClorofilaRepository().buscarPonto(
+        final resultado = await ClorofilaRepository().buscarPontoOuAproximado(
           latitude: ponto.latitude,
           longitude: ponto.longitude,
         );
@@ -2046,7 +2077,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
 
         await Future.wait([
           ClorofilaRepository()
-              .buscarPonto(
+              .buscarPontoOuAproximado(
                   latitude: ponto.latitude, longitude: ponto.longitude)
               .then((r) {
             clorofilaValor = r.valorMgM3;
@@ -2164,6 +2195,95 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     );
   }
 
+  /// Seletor visual do tipo de mapa base — duas opções mutuamente
+  /// exclusivas (nunca as duas ligadas, por isso cards de escolha em vez
+  /// de dois switches separados que dariam pra ligar junto por engano):
+  /// a carta náutica carregada (MBTiles/GeoTIFF, ver `_mode`) ou o Mapa de
+  /// Ruas com as camadas do OpenSeaMap por cima (ver `_camadaRuas`).
+  /// Substitui o switch único de antes por algo mais parecido com o
+  /// seletor de tipo de mapa do Google Maps — dois cartões lado a lado,
+  /// ícone + rótulo, o escolhido com borda destacada.
+  Widget _seletorTipoMapa(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: _cartaoTipoMapa(
+              selecionado: !_camadaRuas,
+              icone: Icons.map_outlined,
+              cor: Colors.brown,
+              titulo: l10n.mapaCartaNauticaCarregadaTitulo,
+              onTap: () => setState(() => _camadaRuas = false),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _cartaoTipoMapa(
+              selecionado: _camadaRuas,
+              icone: Icons.public,
+              cor: Colors.blue,
+              titulo: l10n.mapaCamadaRuasTitulo,
+              // Escolher "Open Sea" já liga as três camadas dele de uma
+              // vez (informações náuticas, profundidade, isóbatas) — antes
+              // precisava ligar o Mapa de Ruas e depois cada uma à mão;
+              // agora selecionar o cartão já é "quero ver tudo do Open
+              // Sea". Continuam desligáveis individualmente depois, pra
+              // quem quiser só uma camada específica.
+              onTap: () => setState(() {
+                _camadaRuas = true;
+                _mostrarInfoNautica = true;
+                _mostrarProfundidade = true;
+                _mostrarCurvasProfundidade = true;
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cartaoTipoMapa({
+    required bool selecionado,
+    required IconData icone,
+    required Color cor,
+    required String titulo,
+    required VoidCallback onTap,
+  }) {
+    final corPrimaria = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Column(
+        children: [
+          Container(
+            height: 64,
+            decoration: BoxDecoration(
+              color: cor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: selecionado ? corPrimaria : Colors.transparent,
+                width: 2.5,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icone, size: 30, color: cor),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            titulo,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
+              color: selecionado ? corPrimaria : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _mostrarCardUpgrade(RecursoAtlas recurso) {
     showModalBottomSheet(
       context: context,
@@ -2246,13 +2366,8 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                     child: Text(l10n.mapaCamadasTitulo,
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
-                  _itemMenuToggle(
-                    icone: _camadaRuas ? Icons.map : Icons.explore,
-                    titulo: l10n.mapaCamadaRuasTitulo,
-                    subtitulo: _camadaRuas ? null : l10n.mapaCamadaRuasSubtitulo,
-                    ativo: _camadaRuas,
-                    onTap: () => setState(() => _camadaRuas = !_camadaRuas),
-                  ),
+                  _seletorTipoMapa(l10n),
+                  const SizedBox(height: 8),
                   _itemMenuToggle(
                     icone: Icons.anchor,
                     titulo: l10n.mapaCamadaNauticaTitulo,

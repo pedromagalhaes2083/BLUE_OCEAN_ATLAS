@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../core/config/calibracao_intelligence.dart';
 import '../../metereologia/data/previsao_tempo_repository.dart';
 import '../../metereologia/data/profundidade_repository.dart';
@@ -61,7 +63,7 @@ class IntelligenceRepository {
         latitude: latitude, longitude: longitude));
     final profundidadeFuture = _tentar(() => _profundidadeRepository
         .buscarPonto(latitude: latitude, longitude: longitude));
-    final clorofilaFuture = _tentar(() => _clorofilaRepository.buscarPonto(
+    final clorofilaFuture = _tentar(() => _clorofilaRepository.buscarPontoOuAproximado(
         latitude: latitude, longitude: longitude));
     final termoclinaFuture = _tentar(() => _termoclinaRepository.buscar(
         latitude: latitude, longitude: longitude));
@@ -122,7 +124,13 @@ class IntelligenceRepository {
   Future<T?> _tentar<T>(Future<T> Function() buscar) async {
     try {
       return await buscar();
-    } catch (_) {
+    } catch (e, st) {
+      // Antes só devolvia null sem registrar nada — diagnosticar "uma
+      // fonte não trouxe dado" (ex: relato de clorofila "não retorna
+      // nada") exigia instrumentar isso manualmente toda vez. Loga o erro
+      // de verdade, mas segue devolvendo null — o comportamento de
+      // "fonte indisponível não derruba as outras" continua o mesmo.
+      debugPrint('IntelligenceRepository: fonte falhou ($e)\n$st');
       return null;
     }
   }

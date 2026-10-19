@@ -29,11 +29,21 @@ class LeituraClorofilaPonto {
 
   final String source;
 
+  /// `true` quando [valorMgM3] veio do pixel mais próximo com dado válido
+  /// dentro de uma pequena grade ao redor do ponto pedido (ver
+  /// [ClorofilaRepository.buscarPontoOuAproximado]), não do pixel exato —
+  /// [latitude]/[longitude] já refletem onde esse dado de verdade foi
+  /// medido (nunca o ponto pedido), então a UI sempre pode mostrar "dado
+  /// de X, Y" sem distinguir os dois casos — só precisa do aviso extra
+  /// quando [aproximado] é `true`.
+  final bool aproximado;
+
   const LeituraClorofilaPonto({
     required this.latitude,
     required this.longitude,
     this.valorMgM3,
     required this.data,
     this.source = 'NOAA CoastWatch (ERDDAP)',
+    this.aproximado = false,
   });
 }
