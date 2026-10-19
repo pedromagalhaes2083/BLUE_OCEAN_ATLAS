@@ -13,7 +13,7 @@ import '../../../core/config/constantes.dart';
 import '../../../core/config/limiares_alerta.dart';
 import '../../../core/planos/plano_service.dart';
 import '../../../core/planos/recurso_atlas.dart';
-import '../../../core/services/street_map_cache_service.dart';
+import '../../../core/services/camadas_oceanicas_cache.dart';
 import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/proximidade.dart';
@@ -28,47 +28,6 @@ import '../domain/models/rota_planejada.dart';
 /// náutica de referência, não vem de nenhuma norma náutica específica, só
 /// o suficiente pra distinguir ruído de GPS de um desvio de curso real.
 const _desvioAvisoNauticas = 0.5;
-
-/// Monta a URL WMS de um tile z/x/y usando a mesma matemática de bbox que
-/// o `flutter_map` já usa internamente (`WMSTileLayerOptions.getUrl`) —
-/// reaproveitada aqui só pra ter uma URL fechada que o cache em disco
-/// (`StreetMapCacheService.camada`) possa buscar/gravar, já que
-/// `TileLayer(wmsOptions:)` não expõe um `TileProvider` próprio pra
-/// interceptar o fetch como o mapa de ruas já faz.
-String _urlWms(WMSTileLayerOptions opcoes, int z, int x, int y) =>
-    opcoes.getUrl(TileCoordinates(x, y, z), 256, false);
-
-final _wmsProfundidade = WMSTileLayerOptions(
-  baseUrl: 'https://geoserver.openseamap.org/geoserver/gwc/service/wms?',
-  layers: const ['gebco2021:gebco_2021'],
-  format: 'image/png',
-  version: '1.1.1',
-);
-final _wmsContornos = WMSTileLayerOptions(
-  baseUrl: 'https://depth.openseamap.org/geoserver/openseamap/wms?',
-  layers: const ['openseamap:contour', 'openseamap:contour2'],
-  format: 'image/png',
-  version: '1.1.0',
-);
-
-/// Caches em disco das camadas do OpenSeaMap usadas aqui — instâncias
-/// próprias (não a mesma do mapa de ruas), uma pasta por camada, pra não
-/// misturar tile de fontes diferentes no mesmo cache (ver
-/// `StreetMapCacheService.camada`). Guardadas no nível do arquivo (não por
-/// tela) pra persistir entre navegações sem recriar a cada abertura.
-final _cacheProfundidade = StreetMapCacheService.camada(
-  subDir: 'profundidade_cache',
-  urlBuilder: (z, x, y) => _urlWms(_wmsProfundidade, z, x, y),
-);
-final _cacheContornos = StreetMapCacheService.camada(
-  subDir: 'contornos_cache',
-  urlBuilder: (z, x, y) => _urlWms(_wmsContornos, z, x, y),
-);
-final _cacheSeamark = StreetMapCacheService.camada(
-  subDir: 'seamark_cache',
-  urlBuilder: (z, x, y) =>
-      'https://tiles.openseamap.org/seamark/$z/$x/$y.png',
-);
 
 /// Condição do mar/tempo num ponto da rota — usado tanto pelo marcador
 /// redondo estilo Waze no mapa (só os severos, ver [severo]) quanto pela
@@ -352,16 +311,21 @@ class _NavegacaoRotaScreenState extends State<NavegacaoRotaScreen> {
                 // de disco-primeiro-rede-depois do mapa de ruas — ficam
                 // disponíveis offline pra qualquer área já visitada.
                 if (_cacheCamadasOceanicas) ...[
-                  TileLayer(tileProvider: StreetMapTileProvider(_cacheProfundidade)),
-                  TileLayer(tileProvider: StreetMapTileProvider(_cacheContornos)),
-                  TileLayer(tileProvider: StreetMapTileProvider(_cacheSeamark)),
+                  TileLayer(
+                      tileProvider:
+                          StreetMapTileProvider(cacheProfundidadeOceanica)),
+                  TileLayer(
+                      tileProvider:
+                          StreetMapTileProvider(cacheContornosOceanicos)),
+                  TileLayer(
+                      tileProvider: StreetMapTileProvider(cacheSeamarkOceanico)),
                 ] else ...[
                   TileLayer(
-                    wmsOptions: _wmsProfundidade,
+                    wmsOptions: wmsProfundidadeOceanica,
                     userAgentPackageName: 'com.blueocean.atlas',
                   ),
                   TileLayer(
-                    wmsOptions: _wmsContornos,
+                    wmsOptions: wmsContornosOceanicos,
                     userAgentPackageName: 'com.blueocean.atlas',
                   ),
                   TileLayer(

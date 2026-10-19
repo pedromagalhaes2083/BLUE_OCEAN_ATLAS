@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 
+import '../../../core/services/camadas_oceanicas_cache.dart';
 import '../../../core/services/street_map_cache_service.dart';
 
 /// Máximo de tiles permitido por download — acima disso pedimos pra dar
@@ -10,7 +11,12 @@ const _maxTilesPorDownload = 3000;
 
 /// Diálogo de "baixar região para uso offline": mostra quantos tiles a área
 /// visível do mapa vai precisar (do zoom atual até 3 níveis a mais) e baixa
-/// com barra de progresso, salvando no [StreetMapCacheService].
+/// com barra de progresso. Sempre baixa o mapa de ruas
+/// ([StreetMapCacheService]); opcionalmente (checkbox, ligado por padrão)
+/// baixa junto as camadas do OpenSeaMap — profundidade (GEBCO), isóbatas e
+/// marcas náuticas (ver `camadas_oceanicas_cache.dart`) — mesmo cache em
+/// disco que a tela de Navegação de Rota já usa, então o que for baixado
+/// aqui já serve lá offline, e vice-versa.
 class DownloadRegiaoDialog extends StatefulWidget {
   final LatLngBounds bounds;
   final int zoomAtual;
@@ -33,10 +39,19 @@ class _DownloadRegiaoDialogState extends State<DownloadRegiaoDialog> {
   late final int _zoomMax;
   late final List<(int, int, int)> _tiles;
 
-  ProgressoDownload? _progresso;
+  bool _incluirCamadasOceanicas = true;
+
+  int _feitos = 0;
   bool _baixando = false;
   bool _concluido = false;
   String? _erro;
+
+  /// Quantas vezes a lista de tiles é baixada nessa região: 1 (ruas) + 3
+  /// (profundidade/isóbatas/marcas) quando a opção está marcada — todas
+  /// usam o mesmo bbox/zoom, então o mesmo [_tiles] vale pras quatro,
+  /// só muda o cache/URL de destino.
+  int get _camadas => 1 + (_incluirCamadasOceanicas ? 3 : 0);
+  int get _totalTiles => _tiles.length * _camadas;
 
   @override
   void initState() {
@@ -63,24 +78,48 @@ class _DownloadRegiaoDialogState extends State<DownloadRegiaoDialog> {
     setState(() {
       _baixando = true;
       _erro = null;
+      _feitos = 0;
     });
     try {
-      await for (final progresso in _service.baixarRegiao(
-        swLat: widget.bounds.south,
-        swLon: widget.bounds.west,
-        neLat: widget.bounds.north,
-        neLon: widget.bounds.east,
-        zoomMin: _zoomMin,
-        zoomMax: _zoomMax,
-        cancelToken: _cancelToken,
-      )) {
-        if (!mounted) return;
-        setState(() => _progresso = progresso);
+      final caches = [
+        _service,
+        if (_incluirCamadasOceanicas) ...[
+          cacheProfundidadeOceanica,
+          cacheContornosOceanicos,
+          cacheSeamarkOceanico,
+        ],
+      ];
+
+      for (final cache in caches) {
+        await for (final progresso in cache.baixarRegiao(
+          swLat: widget.bounds.south,
+          swLon: widget.bounds.west,
+          neLat: widget.bounds.north,
+          neLon: widget.bounds.east,
+          zoomMin: _zoomMin,
+          zoomMax: _zoomMax,
+          cancelToken: _cancelToken,
+        )) {
+          if (!mounted) return;
+          if (_cancelToken.cancelado) return;
+          setState(() {
+            // `feitos` de cada camada é relativo a ela mesma (0.._tiles.length)
+            // — soma ao que as camadas anteriores já completaram pra dar um
+            // progresso combinado contínuo em vez de reiniciar a cada camada.
+            _feitos = (caches.indexOf(cache) * _tiles.length) + progresso.feitos;
+          });
+        }
+        if (_cancelToken.cancelado) {
+          if (!mounted) return;
+          setState(() => _baixando = false);
+          return;
+        }
       }
+
       if (!mounted) return;
       setState(() {
         _baixando = false;
-        _concluido = !_cancelToken.cancelado;
+        _concluido = true;
       });
     } catch (e) {
       if (!mounted) return;
@@ -94,11 +133,11 @@ class _DownloadRegiaoDialogState extends State<DownloadRegiaoDialog> {
   @override
   Widget build(BuildContext context) {
     final excedeLimite = _tiles.length > _maxTilesPorDownload;
-    final tamanhoEstimadoMb = (_tiles.length * 20) / 1024;
+    final tamanhoEstimadoMb = (_totalTiles * 20) / 1024;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Baixar mapa de ruas'),
+      title: const Text('Baixar mapa para uso offline'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,19 +152,36 @@ class _DownloadRegiaoDialogState extends State<DownloadRegiaoDialog> {
               'Dê mais zoom no mapa e tente novamente.',
             ),
           ] else if (_baixando) ...[
-            Text(
-              'Baixando ${_progresso?.feitos ?? 0} de ${_tiles.length} tiles...',
-            ),
+            Text('Baixando $_feitos de $_totalTiles tiles...'),
             const SizedBox(height: 12),
-            LinearProgressIndicator(value: _progresso?.fracao ?? 0),
+            LinearProgressIndicator(
+                value: _totalTiles == 0 ? 0 : _feitos / _totalTiles),
           ] else ...[
             Text(
               'Baixa a área visível do mapa (zoom $_zoomMin a $_zoomMax) '
               'para poder navegar sem internet depois.',
             ),
             const SizedBox(height: 12),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              dense: true,
+              value: _incluirCamadasOceanicas,
+              onChanged: (v) =>
+                  setState(() => _incluirCamadasOceanicas = v ?? true),
+              title: const Text(
+                'Incluir camadas do OpenSeaMap',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              subtitle: const Text(
+                'Profundidade, isóbatas e marcas náuticas — mesmas usadas na '
+                'Navegação de Rota.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 4),
             Text(
-              '${_tiles.length} tiles · ~${tamanhoEstimadoMb.toStringAsFixed(1)} MB',
+              '$_totalTiles tiles · ~${tamanhoEstimadoMb.toStringAsFixed(1)} MB',
               style: TextStyle(color: Colors.grey[600], fontSize: 13),
             ),
             if (_erro != null) ...[
