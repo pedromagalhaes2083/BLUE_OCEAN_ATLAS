@@ -694,6 +694,15 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String mapaClorofilaCoordenadaDado(String coordenada) {
+    return 'Dato medido en: $coordenada';
+  }
+
+  @override
+  String get mapaClorofilaAproximadoAviso =>
+      'Sin dato exactamente en el punto pedido (nube) — este es el píxel válido más cercano, usado como aproximación.';
+
+  @override
   String get mapaClorofilaDisclaimer =>
       'Indicador de productividad biológica/oceanográfica — no representa directamente la cantidad de peces.';
 
@@ -927,11 +936,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mapaCamadasTitulo => 'CAPAS';
 
   @override
-  String get mapaCamadaRuasTitulo => 'Mapa de Calles (OpenStreetMap)';
+  String get mapaCamadaRuasTitulo => 'Open Sea';
 
   @override
   String get mapaCamadaRuasSubtitulo =>
       'Apagado: muestra la carta náutica cargada';
+
+  @override
+  String get mapaCartaNauticaCarregadaTitulo => 'Carta Náutica';
 
   @override
   String get mapaCamadaNauticaTitulo => 'Información náutica (OpenSeaMap)';
@@ -2187,6 +2199,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get intelligenceCondClorofila => 'Clorofila';
+
+  @override
+  String get intelligenceClorofilaIndisponivelAviso =>
+      'Clorofila-a no disponible para este punto ahora (nube o cobertura del satélite) — los demás datos siguen normales.';
 
   @override
   String get intelligenceEstruturaTermicaTitulo => 'Estructura Térmica';

@@ -1245,6 +1245,18 @@ abstract class AppLocalizations {
   /// **'Fonte: {fonte}'**
   String mapaClorofilaFonte(String fonte);
 
+  /// No description provided for @mapaClorofilaCoordenadaDado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dado medido em: {coordenada}'**
+  String mapaClorofilaCoordenadaDado(String coordenada);
+
+  /// No description provided for @mapaClorofilaAproximadoAviso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem dado exatamente no ponto pedido (nuvem) — este é o pixel válido mais próximo, usado como aproximação.'**
+  String get mapaClorofilaAproximadoAviso;
+
   /// No description provided for @mapaClorofilaDisclaimer.
   ///
   /// In pt, this message translates to:
@@ -1656,7 +1668,7 @@ abstract class AppLocalizations {
   /// No description provided for @mapaCamadaRuasTitulo.
   ///
   /// In pt, this message translates to:
-  /// **'Mapa de Ruas (OpenStreetMap)'**
+  /// **'Open Sea'**
   String get mapaCamadaRuasTitulo;
 
   /// No description provided for @mapaCamadaRuasSubtitulo.
@@ -1664,6 +1676,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Desligado: mostra a carta náutica carregada'**
   String get mapaCamadaRuasSubtitulo;
+
+  /// No description provided for @mapaCartaNauticaCarregadaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carta Náutica'**
+  String get mapaCartaNauticaCarregadaTitulo;
 
   /// No description provided for @mapaCamadaNauticaTitulo.
   ///
@@ -3812,6 +3830,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Clorofila'**
   String get intelligenceCondClorofila;
+
+  /// No description provided for @intelligenceClorofilaIndisponivelAviso.
+  ///
+  /// In pt, this message translates to:
+  /// **'Clorofila-a indisponível para este ponto agora (nuvem ou cobertura do satélite) — os outros dados seguem normais.'**
+  String get intelligenceClorofilaIndisponivelAviso;
 
   /// No description provided for @intelligenceEstruturaTermicaTitulo.
   ///
