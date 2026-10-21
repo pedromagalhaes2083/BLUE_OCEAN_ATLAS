@@ -15,6 +15,13 @@ class MbtilesService {
   String? get filePath => _filePath;
   String? get name => _name;
 
+  /// Cópias de asset em andamento, por caminho de destino — mais de um
+  /// MapaWidget (ex.: prévia do Dashboard + tela do Mapa) pode abrir a
+  /// carta embutida ao mesmo tempo na primeira execução, e cada um tem seu
+  /// próprio [MbtilesService]; sem isso, os dois gravariam no mesmo arquivo
+  /// juntos.
+  static final Map<String, Future<void>> _copiasEmAndamento = {};
+
   // Copia o asset para o armazenamento interno (apenas na primeira vez)
   // e abre o arquivo resultante.
   Future<void> openFromAsset(String assetPath) async {
@@ -22,15 +29,43 @@ class MbtilesService {
     final dir = await getApplicationDocumentsDirectory();
     final localFile = File('${dir.path}/$fileName');
 
-    if (!await localFile.exists()) {
-      final data = await rootBundle.load(assetPath);
-      await localFile.writeAsBytes(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-        flush: true,
-      );
+    // O marcador só existe depois que a cópia terminou inteira. Antes era
+    // checado só `localFile.exists()` — se o app fosse fechado no meio da
+    // cópia (a carta tem centenas de MB), o arquivo pela metade ficava lá
+    // e era aberto, corrompido, em toda execução seguinte.
+    final marcador = File('${localFile.path}.ok');
+    if (!await marcador.exists()) {
+      // Corpo em bloco de propósito: `() => remove(...)` devolveria a
+      // própria Future removida, e o whenComplete ficaria esperando ela —
+      // ou seja, esperando a si mesmo pra sempre.
+      await (_copiasEmAndamento[localFile.path] ??=
+          _copiarAsset(assetPath, localFile, marcador).whenComplete(() {
+        _copiasEmAndamento.remove(localFile.path);
+      }));
     }
 
     await open(localFile.path);
+  }
+
+  /// Grava num arquivo temporário e só renomeia pro nome final no fim: o
+  /// nome final nunca aponta pra uma cópia incompleta.
+  static Future<void> _copiarAsset(
+      String assetPath, File destino, File marcador) async {
+    final data = await rootBundle.load(assetPath);
+    final bytes =
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+
+    // Instalação de uma versão anterior (sem marcador) que já tinha
+    // terminado a cópia: mesmo tamanho do asset, só marca — sem regravar.
+    final jaCompleto =
+        await destino.exists() && await destino.length() == bytes.length;
+    if (!jaCompleto) {
+      final temporario = File('${destino.path}.tmp');
+      await temporario.writeAsBytes(bytes, flush: true);
+      if (await destino.exists()) await destino.delete();
+      await temporario.rename(destino.path);
+    }
+    await marcador.writeAsString('${bytes.length}', flush: true);
   }
 
   Future<void> open(String filePath) async {
