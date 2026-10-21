@@ -31,37 +31,61 @@ class ProfundidadeRepository {
     });
 
     try {
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 15));
-      if (response.statusCode != 200) {
-        throw Exception('Erro ao buscar profundidade: ${response.statusCode}');
-      }
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      if (json['status'] != 'OK') {
-        throw Exception('Erro ao buscar profundidade: ${json['status']}');
-      }
-      await DadosPontoCacheService.salvar(
+      // Cache primeiro, sem validade: batimetria (GEBCO 2020) é um dado
+      // fixo, o fundo do mar não muda entre uma consulta e outra. Por isso
+      // a chave é o ponto com 4 casas (~11 m), não a padrão de 2 (~1,1 km):
+      // um valor que nunca vence não pode ser servido pra outro ponto a até
+      // 1 km — perto da quebra da plataforma, a profundidade muda centenas
+      // de metros nessa distância.
+      final resultado = await DadosPontoCacheService.buscarComCache(
         tipo: _tipoCache,
         latitude: latitude,
         longitude: longitude,
-        corpo: response.body,
+        chave: '${_tipoCache}_exata:'
+            '${latitude.toStringAsFixed(4)}:${longitude.toStringAsFixed(4)}',
+        aindaValido: (_) => true,
+        daRede: (timeout) async {
+          final response = await http.get(uri).timeout(timeout);
+          if (response.statusCode != 200) {
+            throw Exception(
+                'Erro ao buscar profundidade: ${response.statusCode}');
+          }
+          final json = jsonDecode(response.body) as Map<String, dynamic>;
+          if (json['status'] != 'OK') {
+            throw Exception('Erro ao buscar profundidade: ${json['status']}');
+          }
+          // Também na chave aproximada de sempre — é a reserva offline pra
+          // pontos vizinhos que nunca foram consultados (ver o catch).
+          await DadosPontoCacheService.salvar(
+            tipo: _tipoCache,
+            latitude: latitude,
+            longitude: longitude,
+            corpo: response.body,
+          );
+          return response.body;
+        },
       );
       ultimoResultadoOffline = false;
-      return LeituraProfundidade.fromJson(
-          (json['results'] as List).first as Map<String, dynamic>);
+      return _primeiraLeitura(resultado.corpo);
     } catch (e) {
-      final cache = await DadosPontoCacheService.ler(
+      // Ponto nunca consultado e sem rede: usa o de um ponto vizinho (até
+      // ~1 km), como já era antes — marcado offline pra tela avisar.
+      final aproximado = await DadosPontoCacheService.ler(
         tipo: _tipoCache,
         latitude: latitude,
         longitude: longitude,
       );
-      if (cache == null) rethrow;
-      final json = jsonDecode(cache.corpo) as Map<String, dynamic>;
+      if (aproximado == null) rethrow;
       ultimoResultadoOffline = true;
-      ultimaAtualizacaoCache = cache.em;
-      return LeituraProfundidade.fromJson(
-          (json['results'] as List).first as Map<String, dynamic>);
+      ultimaAtualizacaoCache = aproximado.em;
+      return _primeiraLeitura(aproximado.corpo);
     }
+  }
+
+  LeituraProfundidade _primeiraLeitura(String corpo) {
+    final json = jsonDecode(corpo) as Map<String, dynamic>;
+    return LeituraProfundidade.fromJson(
+        (json['results'] as List).first as Map<String, dynamic>);
   }
 
   /// Busca profundidade/elevação em vários pontos numa única chamada

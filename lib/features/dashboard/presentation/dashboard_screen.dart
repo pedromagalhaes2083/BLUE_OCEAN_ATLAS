@@ -32,6 +32,7 @@ import 'package:atlas/core/auth/auth_service.dart';
 import '../../auth/presentation/login_screen.dart';
 import '../../../core/services/location_tracking_service.dart'; // ← Adicionado
 import '../../../core/services/localizacao_reporter_service.dart';
+import '../../../core/services/atualizacao_previsoes_service.dart';
 import '../../../core/services/night_mode_service.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
@@ -110,6 +111,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _carregarDados();
     _carregarBatimetriaESst();
+    // Na abertura do app também — fora de uma viagem não há serviço de
+    // rastreamento rodando a atualização em segundo plano. Respeita o
+    // intervalo configurado e não segura a tela (sem await).
+    AtualizacaoPrevisoesService.atualizarSeNecessario();
   }
 
   // ==================== BATIMETRIA / SST ====================
@@ -194,16 +199,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         embarcacao = Embarcacao.fromMap(registroEmbarcacao);
       }
 
+      // Só as válidas: as suspeitas ficam guardadas pra auditoria e nunca
+      // são enviadas — contá-las deixaria "pendentes" que nunca zeram.
       final pendentes = await widget.dbHelper.queryWhere(
         'localizacao_historico',
-        where: 'sincronizado = ?',
-        whereArgs: [0],
+        where: 'sincronizado = ? AND validacao = ?',
+        whereArgs: [0, 'valida'],
       );
 
       final db = await widget.dbHelper.database;
+      // Última posição *válida*, pelo instante do GPS — uma suspeita (salto,
+      // imprecisa) não pode aparecer como a posição atual da embarcação.
       final ultimaPosicao = await db.query(
         'localizacao_historico',
-        orderBy: 'id DESC',
+        where: 'validacao = ?',
+        whereArgs: ['valida'],
+        orderBy: 'data_hora DESC',
         limit: 1,
       );
 
@@ -250,8 +261,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await LocalizacaoReporterService.sincronizarPendentes();
       final pendentes = await widget.dbHelper.queryWhere(
         'localizacao_historico',
-        where: 'sincronizado = ?',
-        whereArgs: [0],
+        where: 'sincronizado = ? AND validacao = ?',
+        whereArgs: [0, 'valida'],
       );
       if (!mounted) return;
       final enviadas = _posicoesPendentes - pendentes.length;
@@ -946,17 +957,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// retaguarda. Dá feedback por SnackBar e recarrega o dashboard.
   Future<void> _sincronizarContextoViagem() async {
     final encontrou = await ContextoViagemService.sincronizar(widget.dbHelper);
+    // Viagem ativa recém-sincronizada → liga o rastreamento já, em vez de
+    // só na próxima abertura do app. O mestre acabou de tocar no botão,
+    // então pode ver o pedido de permissão de localização.
+    ResultadoInicioRastreamento? rastreamento;
+    if (encontrou) {
+      try {
+        rastreamento = await _trackingService
+            .garantirRastreamentoSeViagemAtiva(solicitarPermissao: true);
+      } catch (e) {
+        debugPrint('Erro ao iniciar rastreamento da viagem sincronizada: $e');
+      }
+    }
     if (!mounted) return;
     _carregarDados();
+    await _atualizarStatusRastreamento();
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
+
+    String mensagem = encontrou
+        ? l10n.dashboardViagemSincronizada
+        : l10n.dashboardNenhumaViagemEncontrada;
+    SnackBarAction? acao;
+    switch (rastreamento?.status) {
+      case StatusInicioRastreamento.semPermissao:
+        mensagem = l10n.gpsRastreamentoSemPermissao;
+      case StatusInicioRastreamento.permissaoNegadaPermanentemente:
+        mensagem = l10n.gpsRastreamentoPermissaoBloqueada;
+        acao = SnackBarAction(
+          label: l10n.gpsAbrirConfiguracoes,
+          onPressed: Geolocator.openAppSettings,
+        );
+      case StatusInicioRastreamento.iniciado
+          when rastreamento?.diagnostico?.servicoHabilitado == false:
+        mensagem = l10n.gpsServicoDesligado;
+        acao = SnackBarAction(
+          label: l10n.gpsAbrirConfiguracoes,
+          onPressed: Geolocator.openLocationSettings,
+        );
+      default:
+        break;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          encontrou
-              ? l10n.dashboardViagemSincronizada
-              : l10n.dashboardNenhumaViagemEncontrada,
-        ),
-        duration: const Duration(seconds: 4),
+        content: Text(mensagem),
+        action: acao,
+        duration: Duration(seconds: acao == null ? 4 : 8),
       ),
     );
   }

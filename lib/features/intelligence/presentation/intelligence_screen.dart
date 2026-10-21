@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/planos/plano_service.dart';
 import '../../../core/planos/recurso_atlas.dart';
@@ -420,9 +421,21 @@ class _CondicoesAtuais extends StatelessWidget {
       if (c.profundidadeM != null)
         _cardCondicao(context, Icons.terrain, l10n.intelligenceCondProfundidade,
             '${c.profundidadeM!.toStringAsFixed(0)} m'),
+      // Produto de satélite diário, com dias de atraso — a data da
+      // observação sempre aparece, e o aviso quando veio do cache sem
+      // confirmar que é o produto mais recente (ver ClorofilaRepository).
       if (c.clorofilaMgM3 != null)
-        _cardCondicao(context, Icons.eco, l10n.intelligenceCondClorofila,
-            '${c.clorofilaMgM3!.toStringAsFixed(2)} mg/m³'),
+        _cardCondicao(
+          context,
+          Icons.eco,
+          l10n.intelligenceCondClorofila,
+          [
+            '${c.clorofilaMgM3!.toStringAsFixed(2)} mg/m³',
+            if (c.clorofilaData != null)
+              DateFormat('dd/MM').format(c.clorofilaData!.toLocal()),
+            if (c.clorofilaDesatualizada) l10n.intelligenceClorofilaDesatualizada,
+          ].join(' · '),
+        ),
     ];
 
     if (cards.isEmpty) return const SizedBox.shrink();

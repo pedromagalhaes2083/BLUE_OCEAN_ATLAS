@@ -16,6 +16,14 @@ class OceanConditions {
   final double? profundidadeM;
   final double? clorofilaMgM3;
 
+  /// Data da observação de satélite da clorofila (produto diário, costuma
+  /// ter alguns dias de atraso) — mostrada junto do valor.
+  final DateTime? clorofilaData;
+
+  /// A clorofila veio do cache sem confirmar que é o produto mais recente
+  /// (sem rede) — ver `LeituraClorofilaPonto.desatualizada`.
+  final bool clorofilaDesatualizada;
+
   /// Salinidade de superfície (PSU) — bóias Argo (mapa global RFROM v2.3
   /// da NOAA/PMEL, ver `RfromOceanRepository`), mesma fonte/limitação de
   /// cobertura da salinidade mostrada em `CondicoesMarScreen`: comum vir
@@ -34,6 +42,8 @@ class OceanConditions {
     this.mareAlturaM,
     this.profundidadeM,
     this.clorofilaMgM3,
+    this.clorofilaData,
+    this.clorofilaDesatualizada = false,
     this.salinidadeUps,
   });
 }

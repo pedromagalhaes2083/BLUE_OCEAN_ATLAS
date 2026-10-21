@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 19,
+      version: 21,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -79,7 +79,10 @@ class DatabaseHelper {
       direcao INTEGER,
       bateria_nivel INTEGER,
       viagem_id INTEGER,
-      sincronizado INTEGER NOT NULL DEFAULT 0
+      sincronizado INTEGER NOT NULL DEFAULT 0,
+      validacao TEXT NOT NULL DEFAULT 'valida',
+      motivos_validacao TEXT,
+      sync_reservado_em TEXT
     )
   ''');
 
@@ -126,6 +129,25 @@ class DatabaseHelper {
     await _criarTabelasRotaPlanejada(db);
     await _criarTabelaPortoMare(db);
     await _criarTabelaDiarioBordo(db);
+    await _criarTabelaCacheDados(db);
+  }
+
+  /// Cache das respostas de APIs externas por ponto (ver
+  /// `DadosPontoCacheService`). Antes ficava no Hive, que não funciona
+  /// entre isolates: o serviço de rastreamento (isolate próprio) atualizava
+  /// o cache em segundo plano e o app aberto não enxergava, além do risco
+  /// de os dois gravarem no mesmo arquivo. O SQLite resolve isso com
+  /// travas de arquivo, como já acontece com o histórico de posições.
+  Future<void> _criarTabelaCacheDados(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS cache_dados (
+        chave TEXT PRIMARY KEY,
+        corpo TEXT NOT NULL,
+        em TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_cache_dados_em ON cache_dados(em)');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -276,6 +298,38 @@ class DatabaseHelper {
       // gravadas antes desta versão — a UI cai num desenho genérico pra
       // essas (nunca inventa uma forma de onda que não foi medida).
       await db.execute('ALTER TABLE diario_bordo ADD COLUMN amplitudes TEXT');
+    }
+    if (oldVersion < 20) {
+      // Triagem de GPS (ver `ValidadorPosicao`): `validacao` é 'valida' ou
+      // 'suspeita' e `motivos_validacao` os `MotivoValidacaoGps.name`
+      // separados por vírgula. Posições já gravadas ficam 'valida' — era
+      // assim que já eram tratadas (exibidas e enviadas), então nada muda
+      // pra elas. `sync_reservado_em` marca o registro enquanto um envio
+      // está em andamento (ver `LocalizacaoReporterService`), pra o app e o
+      // serviço de rastreamento (isolates diferentes) não enviarem o mesmo
+      // registro duas vezes.
+      //
+      // Checa se a tabela existe — mesmo motivo das checagens acima (testes
+      // que reabrem um banco "antigo" simulado só com algumas tabelas).
+      final tabelas = await db.query(
+        'sqlite_master',
+        where: 'type = ? AND name = ?',
+        whereArgs: ['table', 'localizacao_historico'],
+      );
+      if (tabelas.isNotEmpty) {
+        await db.execute("ALTER TABLE localizacao_historico "
+            "ADD COLUMN validacao TEXT NOT NULL DEFAULT 'valida'");
+        await db.execute(
+            'ALTER TABLE localizacao_historico ADD COLUMN motivos_validacao TEXT');
+        await db.execute(
+            'ALTER TABLE localizacao_historico ADD COLUMN sync_reservado_em TEXT');
+      }
+    }
+    if (oldVersion < 21) {
+      // Cache de APIs externas sai do Hive pro SQLite (ver
+      // _criarTabelaCacheDados). O conteúdo antigo do Hive não é migrado:
+      // é só cache, reconstruído na próxima consulta de cada ponto.
+      await _criarTabelaCacheDados(db);
     }
   }
 

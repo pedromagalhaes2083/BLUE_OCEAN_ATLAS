@@ -38,6 +38,12 @@ class LeituraClorofilaPonto {
   /// quando [aproximado] é `true`.
   final bool aproximado;
 
+  /// `true` quando veio do cache local sem confirmar que é o produto
+  /// diário mais recente (sem rede, ERDDAP fora do ar) — ou sabendo que já
+  /// existe um mais novo que não deu pra baixar. [data] continua sendo a
+  /// da observação original; a UI deve deixar claro que não é o dado atual.
+  final bool desatualizada;
+
   const LeituraClorofilaPonto({
     required this.latitude,
     required this.longitude,
@@ -45,5 +51,18 @@ class LeituraClorofilaPonto {
     required this.data,
     this.source = 'NOAA CoastWatch (ERDDAP)',
     this.aproximado = false,
+    this.desatualizada = false,
   });
+
+  /// Cópia marcando como [desatualizada] — o resto (valor, data original
+  /// da observação, pixel) fica exatamente como foi medido.
+  LeituraClorofilaPonto comoDesatualizada() => LeituraClorofilaPonto(
+        latitude: latitude,
+        longitude: longitude,
+        valorMgM3: valorMgM3,
+        data: data,
+        source: source,
+        aproximado: aproximado,
+        desatualizada: true,
+      );
 }

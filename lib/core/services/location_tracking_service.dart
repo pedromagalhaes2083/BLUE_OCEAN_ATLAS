@@ -3,7 +3,41 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:atlas/core/background/location_foreground_task_handler.dart';
+import 'package:atlas/core/config/config.dart';
+import 'package:atlas/core/config/constantes.dart';
 import 'package:atlas/core/database/database_helper.dart';
+import 'package:atlas/core/gps/fonte_gps.dart';
+import 'package:atlas/core/gps/gps_log.dart';
+import 'package:atlas/core/gps/permissao_gps.dart';
+
+/// Resultado de [LocationTrackingService.iniciarRastreamento].
+enum StatusInicioRastreamento {
+  iniciado,
+
+  /// Sem permissão de localização — não inicia: o serviço rodaria sem
+  /// conseguir capturar nada (e no Android 14+ o sistema nem deixa iniciar
+  /// um serviço de localização sem ela).
+  semPermissao,
+
+  /// Negada de vez — só o usuário, nas configurações do app, pode liberar.
+  permissaoNegadaPermanentemente,
+
+  /// O sistema recusou iniciar o serviço (ver log `[GPS]`).
+  falhou,
+}
+
+class ResultadoInicioRastreamento {
+  final StatusInicioRastreamento status;
+
+  /// Permissão e serviço de localização no momento da tentativa — ex.: pra
+  /// avisar que o GPS do aparelho está desligado mesmo com o rastreamento
+  /// iniciado.
+  final DiagnosticoGps? diagnostico;
+
+  const ResultadoInicioRastreamento(this.status, [this.diagnostico]);
+
+  bool get iniciado => status == StatusInicioRastreamento.iniciado;
+}
 
 /// Intervalo padrão/mínimo sugerido pra UI (ver telas de Configurações,
 /// Dashboard e Splash) — não é mais um piso técnico do WorkManager (esse
@@ -39,7 +73,10 @@ class LocationTrackingService {
   /// idempotente, chamado de novo a cada [iniciarRastreamento] pra
   /// atualizar o intervalo caso o mestre tenha mudado nas Configurações
   /// desde a última vez.
-  Future<void> _configurar({required int intervaloMinutos}) async {
+  Future<void> _configurar({
+    required int intervaloMinutos,
+    required bool retomarAoReiniciarAparelho,
+  }) async {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
         // "_v2": o canal antigo ("atlas_rastreamento") foi criado com
@@ -76,7 +113,13 @@ class LocationTrackingService {
       foregroundTaskOptions: ForegroundTaskOptions(
         eventAction:
             ForegroundTaskEventAction.repeat(intervaloMinutos * 60 * 1000),
-        autoRunOnBoot: true,
+        // Retomar depois de reiniciar o aparelho inicia o serviço sem o app
+        // estar em primeiro plano — a partir do Android 14, isso só é
+        // permitido pra um serviço de localização com a permissão "Permitir
+        // o tempo todo"; sem ela, o sistema recusaria (SecurityException)
+        // logo no boot. Sem essa permissão, o rastreamento volta quando o
+        // mestre abrir o app (ver SplashScreen).
+        autoRunOnBoot: retomarAoReiniciarAparelho,
         autoRunOnMyPackageReplaced: true,
         allowWakeLock: true,
         allowWifiLock: true,
@@ -114,10 +157,79 @@ class LocationTrackingService {
   /// sincroniza com a API os registros pendentes — no intervalo
   /// configurado pelo usuário. Roda do início da viagem até finalizá-la,
   /// mesmo com o app fechado (ver documentação da classe).
-  Future<void> iniciarRastreamento({required int intervaloMinutos}) async {
+  ///
+  /// Não inicia sem permissão de localização. [solicitarPermissao] só deve
+  /// ser true quando há uma tela em primeiro plano pra mostrar o pedido
+  /// (ex.: o mestre acabou de sincronizar a viagem) — na retomada
+  /// automática (splash) fica false, pra não perguntar a cada abertura.
+  ///
+  /// Chamadas simultâneas (splash + dashboard, toque duplo) compartilham o
+  /// mesmo início — nunca dois serviços nem um "parar" no meio de um
+  /// "iniciar".
+  Future<ResultadoInicioRastreamento> iniciarRastreamento({
+    required int intervaloMinutos,
+    bool solicitarPermissao = false,
+    @visibleForTesting FonteGps fonte = const FonteGpsGeolocator(),
+  }) {
+    return _inicioEmAndamento ??= _iniciar(
+      intervaloMinutos: intervaloMinutos,
+      solicitarPermissao: solicitarPermissao,
+      fonte: fonte,
+    ).whenComplete(() {
+      _inicioEmAndamento = null;
+    });
+  }
+
+  static Future<ResultadoInicioRastreamento>? _inicioEmAndamento;
+
+  Future<ResultadoInicioRastreamento> _iniciar({
+    required int intervaloMinutos,
+    required bool solicitarPermissao,
+    required FonteGps fonte,
+  }) async {
     final intervalo = intervaloMinutos < 1 ? intervaloMinimoMinutos : intervaloMinutos;
 
-    await _configurar(intervaloMinutos: intervalo);
+    final DiagnosticoGps diagnostico;
+    try {
+      diagnostico = await PermissaoGps.diagnosticar(
+          fonte: fonte, solicitar: solicitarPermissao);
+    } catch (e) {
+      GpsLog.evento('rastreamento não iniciado: falha ao verificar permissão', '$e');
+      return const ResultadoInicioRastreamento(StatusInicioRastreamento.falhou);
+    }
+    if (diagnostico.permissao == EstadoPermissaoGps.negadaPermanentemente) {
+      GpsLog.evento('rastreamento não iniciado: permissão negada permanentemente');
+      return ResultadoInicioRastreamento(
+          StatusInicioRastreamento.permissaoNegadaPermanentemente, diagnostico);
+    }
+    if (!diagnostico.permissao.permiteRastrear) {
+      GpsLog.evento('rastreamento não iniciado: sem permissão de localização');
+      return ResultadoInicioRastreamento(
+          StatusInicioRastreamento.semPermissao, diagnostico);
+    }
+    if (!diagnostico.servicoHabilitado) {
+      // Inicia mesmo assim: o serviço passa a capturar assim que o GPS for
+      // ligado. Quem chamou recebe o diagnóstico pra avisar o mestre.
+      GpsLog.evento('serviço de localização desligado — rastreamento inicia, '
+          'mas só captura quando o GPS for ligado');
+    }
+
+    try {
+      return await _iniciarServico(intervalo, diagnostico);
+    } catch (e) {
+      GpsLog.evento('rastreamento não iniciado: erro ao iniciar o serviço', '$e');
+      return ResultadoInicioRastreamento(
+          StatusInicioRastreamento.falhou, diagnostico);
+    }
+  }
+
+  Future<ResultadoInicioRastreamento> _iniciarServico(
+      int intervalo, DiagnosticoGps diagnostico) async {
+    await _configurar(
+      intervaloMinutos: intervalo,
+      retomarAoReiniciarAparelho:
+          diagnostico.permissao == EstadoPermissaoGps.concedidaSempre,
+    );
     await _pedirPermissoesNecessarias();
 
     if (await FlutterForegroundTask.isRunningService) {
@@ -132,19 +244,55 @@ class LocationTrackingService {
       // notificação atual sempre reflete a config atual.
       await FlutterForegroundTask.stopService();
     }
-    await FlutterForegroundTask.startService(
+    final resultado = await FlutterForegroundTask.startService(
       serviceId: 257,
+      serviceTypes: [ForegroundServiceTypes.location],
       notificationTitle: 'Atlas Blue Ocean — Rastreamento ativo',
       notificationText: 'Iniciando envio de posição...',
       callback: iniciarLocationForegroundTaskHandler,
     );
+    if (resultado is ServiceRequestFailure) {
+      GpsLog.evento('rastreamento não iniciado: o sistema recusou o serviço',
+          '${resultado.error}');
+      return ResultadoInicioRastreamento(
+          StatusInicioRastreamento.falhou, diagnostico);
+    }
 
-    debugPrint('🚀 Rastreamento de localização iniciado (a cada $intervalo min)');
+    GpsLog.evento('rastreamento iniciado',
+        'a cada $intervalo min, permissão: ${diagnostico.permissao.name}');
+    return ResultadoInicioRastreamento(
+        StatusInicioRastreamento.iniciado, diagnostico);
+  }
+
+  /// Inicia o rastreamento se houver uma viagem em andamento no banco local
+  /// — o mesmo critério da splash, do login e de quando a viagem ativa é
+  /// sincronizada do backend (antes, nesse último caso, o rastreamento só
+  /// começava depois de fechar e abrir o app). Devolve null se não há
+  /// viagem ativa.
+  Future<ResultadoInicioRastreamento?> garantirRastreamentoSeViagemAtiva({
+    bool solicitarPermissao = false,
+  }) async {
+    final viagensAtivas = await _dbHelper.queryWhere(
+      'viagem',
+      where: 'status = ?',
+      whereArgs: ['em_andamento'],
+    );
+    if (viagensAtivas.isEmpty) return null;
+
+    final intervalo = int.tryParse(await Config.obtem(
+          Constantes.intervaloRastreamentoMinutos,
+          '$intervaloMinimoMinutos',
+        )) ??
+        intervaloMinimoMinutos;
+    return iniciarRastreamento(
+      intervaloMinutos: intervalo,
+      solicitarPermissao: solicitarPermissao,
+    );
   }
 
   Future<void> pararRastreamento() async {
     await FlutterForegroundTask.stopService();
-    debugPrint('⏹️ Rastreamento de localização parado');
+    GpsLog.evento('rastreamento encerrado');
   }
 
   // ====================== HISTÓRICO ======================

@@ -11,6 +11,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/config/limiares_alerta.dart';
+import '../../../core/gps/amostra_gps.dart';
+import '../../../core/gps/filtro_posicao_exibicao.dart';
 import '../../../core/planos/plano_service.dart';
 import '../../../core/planos/recurso_atlas.dart';
 import '../../../core/services/camadas_oceanicas_cache.dart';
@@ -62,6 +64,11 @@ class NavegacaoRotaScreen extends StatefulWidget {
 class _NavegacaoRotaScreenState extends State<NavegacaoRotaScreen> {
   final _mapController = MapController();
   StreamSubscription<Position>? _posicaoSub;
+
+  /// Mesma triagem do mapa principal: leitura suspeita ou inválida não
+  /// move o barco nem recalcula o desvio da rota (um salto de GPS daria um
+  /// falso "fora da rota").
+  final _filtroGps = FiltroPosicaoExibicao();
   LatLng? _posicaoAtual;
   double _rumo = 0;
   ProjecaoNaRota? _projecao;
@@ -211,6 +218,7 @@ class _NavegacaoRotaScreenState extends State<NavegacaoRotaScreen> {
 
   void _aoReceberPosicao(Position posicao) {
     if (!mounted) return;
+    if (!_filtroGps.aceitar(AmostraGps.dePosition(posicao))) return;
     final pos = LatLng(posicao.latitude, posicao.longitude);
     setState(() {
       _posicaoAtual = pos;

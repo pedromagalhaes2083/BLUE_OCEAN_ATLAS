@@ -96,4 +96,10 @@ class Constantes {
   /// Desligado, a tela volta a buscar da rede toda vez, sem gravar nada
   /// localmente (pra quem prefere não gastar armazenamento com isso).
   static const String cacheCamadasOceanicas = 'cache_camadas_oceanicas';
+
+  /// Velocidade máxima plausível da embarcação, em nós (texto numérico) —
+  /// acima disso, um deslocamento entre duas posições é tratado como salto
+  /// de GPS (ver `ValidadorPosicao`). Sem valor salvo, vale o padrão de
+  /// `ConfigValidacaoGps`.
+  static const String gpsVelocidadeMaximaNos = 'gps_velocidade_maxima_nos';
 }

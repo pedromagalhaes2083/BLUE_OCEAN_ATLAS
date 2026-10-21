@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/config/config.dart';
 import '../../../core/config/constantes.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/services/atualizacao_previsoes_service.dart';
 import '../../../core/services/battery_optimization_service.dart';
 import '../../../core/services/device_id_service.dart';
 import '../../../core/services/locale_service.dart';
@@ -36,7 +37,16 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   final TextEditingController _contatoEmergenciaController =
       TextEditingController();
 
-  static const _opcoesIntervalo = [15, 30, 60, 120];
+  // 1 e 5 min: rastreamento mais fino (ex.: navegação perto de costa,
+  // testes em campo) — gasta mais bateria e dados, por isso o padrão
+  // continua sendo 15 (intervaloMinimoMinutos). O serviço em primeiro plano
+  // não tem piso técnico de intervalo (ver LocationTrackingService).
+  static const _opcoesIntervalo = [1, 5, 15, 30, 60, 120];
+
+  /// Atualização automática do cache das previsões (ver
+  /// AtualizacaoPrevisoesService).
+  int _intervaloPrevisoesMin = AtualizacaoPrevisoesService.intervaloPadraoMinutos;
+  DateTime? _ultimaAtualizacaoPrevisoes;
 
   bool _fazendoBackup = false;
   bool _ocultarRecomendacoesExpiradas = false;
@@ -79,8 +89,12 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       Constantes.cacheCamadasOceanicas,
       'true',
     );
+    final intervaloPrevisoes = await AtualizacaoPrevisoesService.intervaloMinutos();
+    final ultimaPrevisoes = await AtualizacaoPrevisoesService.ultimaAtualizacao();
     if (!mounted) return;
     setState(() {
+      _intervaloPrevisoesMin = intervaloPrevisoes;
+      _ultimaAtualizacaoPrevisoes = ultimaPrevisoes;
       _deviceId = id;
       _deviceInfo = info;
       _intervaloMinutos =
@@ -176,6 +190,22 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
         builder: (_) => EmbarcacaoConfiguracaoScreen(dbHelper: widget.dbHelper),
       ),
     );
+  }
+
+  /// "30 minutos", "1 hora", "2 horas"...
+  String _rotuloIntervaloPrevisoes(AppLocalizations l10n, int minutos) =>
+      minutos < 60 ? l10n.configMinutos(minutos) : l10n.configHoras(minutos ~/ 60);
+
+  Future<void> _alterarIntervaloPrevisoes(int? minutos) async {
+    if (minutos == null) return;
+    setState(() => _intervaloPrevisoesMin = minutos);
+    await AtualizacaoPrevisoesService.definirIntervaloMinutos(minutos);
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(l10n.configPrevisoesIntervaloSalvo(
+          _rotuloIntervaloPrevisoes(l10n, minutos))),
+    ));
   }
 
   Future<void> _alterarIntervalo(int? novoValor) async {
@@ -330,6 +360,59 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                                     ))
                                 .toList(),
                             onChanged: _alterarIntervalo,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.cloud_sync, color: Colors.blue),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  l10n.configPrevisoesTitulo,
+                                  style: const TextStyle(
+                                      fontSize: 16, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            l10n.configPrevisoesExplicacao,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<int>(
+                            initialValue: _intervaloPrevisoesMin,
+                            items: AtualizacaoPrevisoesService.opcoesMinutos
+                                .map((min) => DropdownMenuItem(
+                                      value: min,
+                                      child: Text(
+                                          _rotuloIntervaloPrevisoes(l10n, min)),
+                                    ))
+                                .toList(),
+                            onChanged: _alterarIntervaloPrevisoes,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _ultimaAtualizacaoPrevisoes == null
+                                ? l10n.configPrevisoesNunca
+                                : l10n.configPrevisoesUltima(
+                                    DateFormat('dd/MM HH:mm').format(
+                                        _ultimaAtualizacaoPrevisoes!.toLocal())),
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),

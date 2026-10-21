@@ -184,7 +184,45 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String configMinutos(int min) {
-    return '$min minuti';
+    String _temp0 = intl.Intl.pluralLogic(
+      min,
+      locale: localeName,
+      other: '$min minuti',
+      one: '1 minuto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String configHoras(int h) {
+    String _temp0 = intl.Intl.pluralLogic(
+      h,
+      locale: localeName,
+      other: '$h ore',
+      one: '1 ora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get configPrevisoesTitulo =>
+      'Aggiornamento automatico delle previsioni';
+
+  @override
+  String get configPrevisoesExplicacao =>
+      'A questo intervallo, Atlas recupera onde, meteo, luna e sole, temperatura e salinità del mare e clorofilla nella posizione dell\'imbarcazione — durante il viaggio, anche con l\'app chiusa, e all\'apertura dell\'app. Così i dati sono già salvati per quando non c\'è segnale.';
+
+  @override
+  String configPrevisoesUltima(String quando) {
+    return 'Ultimo aggiornamento: $quando';
+  }
+
+  @override
+  String get configPrevisoesNunca => 'Non ancora aggiornato';
+
+  @override
+  String configPrevisoesIntervaloSalvo(String intervalo) {
+    return 'Le previsioni verranno aggiornate ogni $intervalo';
   }
 
   @override
@@ -324,7 +362,13 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String dashboardRastreamentoSubtitulo(int min) {
-    return 'Registrazione posizione ogni $min minuti';
+    String _temp0 = intl.Intl.pluralLogic(
+      min,
+      locale: localeName,
+      other: 'ogni $min minuti',
+      one: 'ogni minuto',
+    );
+    return 'Registrazione posizione $_temp0';
   }
 
   @override
@@ -543,6 +587,21 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get dashboardNenhumaViagemEncontrada =>
       'Nessun viaggio attivo trovato sulla piattaforma al momento.';
+
+  @override
+  String get gpsRastreamentoSemPermissao =>
+      'Viaggio sincronizzato, ma il tracciamento non è partito: Atlas ha bisogno del permesso di localizzazione.';
+
+  @override
+  String get gpsRastreamentoPermissaoBloqueada =>
+      'Viaggio sincronizzato, ma la posizione è bloccata per Atlas. Consenti l\'accesso alla posizione nelle impostazioni dell\'app.';
+
+  @override
+  String get gpsServicoDesligado =>
+      'Tracciamento avviato, ma il GPS del dispositivo è spento. Attiva la localizzazione per registrare la posizione.';
+
+  @override
+  String get gpsAbrirConfiguracoes => 'Apri impostazioni';
 
   @override
   String get dashboardSairTitulo => 'Esci dal Sistema';
@@ -2202,6 +2261,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get intelligenceCondClorofila => 'Clorofilla';
+
+  @override
+  String get intelligenceClorofilaDesatualizada => 'non aggiornata (offline)';
 
   @override
   String get intelligenceClorofilaIndisponivelAviso =>

@@ -15,6 +15,7 @@ class _WaveForecastRepositoryFalso extends WaveForecastRepository {
   Future<WaveForecast> buscar({
     required double latitude,
     required double longitude,
+    bool forcarAtualizacao = false,
   }) async {
     return WaveForecast(
       latitude: latitude,
@@ -68,6 +69,7 @@ class _RfromOceanRepositoryVazio extends RfromOceanRepository {
   Future<PerfilOceanicoRfrom> buscarPerfil({
     required double latitude,
     required double longitude,
+    bool forcarAtualizacao = false,
   }) async =>
       const PerfilOceanicoRfrom(temperatura: []);
 }
@@ -84,6 +86,7 @@ class _RfromOceanRepositoryFalso extends RfromOceanRepository {
   Future<PerfilOceanicoRfrom> buscarPerfil({
     required double latitude,
     required double longitude,
+    bool forcarAtualizacao = false,
   }) async =>
       PerfilOceanicoRfrom(
         temperatura: temperatura,
@@ -96,6 +99,7 @@ class _RfromOceanRepositoryComFalha extends RfromOceanRepository {
   Future<PerfilOceanicoRfrom> buscarPerfil({
     required double latitude,
     required double longitude,
+    bool forcarAtualizacao = false,
   }) async =>
       throw Exception('sem rede');
 }

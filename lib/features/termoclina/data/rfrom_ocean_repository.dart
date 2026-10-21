@@ -64,6 +64,7 @@ class RfromOceanRepository {
   Future<PerfilOceanicoRfrom> buscarPerfil({
     required double latitude,
     required double longitude,
+    bool forcarAtualizacao = false,
   }) async {
     ultimoResultadoOffline = false;
     ultimaAtualizacaoCache = null;
@@ -75,6 +76,7 @@ class RfromOceanRepository {
         tipoCache: _tipoCacheTemperatura,
         latitude: latitude,
         longitude: longitude,
+        forcarAtualizacao: forcarAtualizacao,
       ),
       _buscarVariavel(
         baseUrl: _baseSalinidade,
@@ -82,6 +84,7 @@ class RfromOceanRepository {
         tipoCache: _tipoCacheSalinidade,
         latitude: latitude,
         longitude: longitude,
+        forcarAtualizacao: forcarAtualizacao,
       ),
     ]);
 
@@ -114,6 +117,7 @@ class RfromOceanRepository {
     required String tipoCache,
     required double latitude,
     required double longitude,
+    required bool forcarAtualizacao,
   }) async {
     final longitudeErddap = longitude < 0 ? longitude + 360 : longitude;
     final uri = Uri.parse(
@@ -122,33 +126,41 @@ class RfromOceanRepository {
     );
 
     try {
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 20));
-      if (response.statusCode != 200) {
-        throw Exception('Erro ao buscar $variavel: ${response.statusCode}');
+      // Cache primeiro: o mapa é semanal, então uma resposta de até 12 h
+      // vale tanto quanto uma nova (antes ia sempre à rede, com até 20 s de
+      // timeout antes de usar o salvo). A grade é de 0,25°, bem mais grossa
+      // que a chave do cache (~1,1 km) — pontos que compartilham a entrada
+      // caem na mesma célula do mapa.
+      final resultado = await DadosPontoCacheService.buscarComCache(
+        tipo: tipoCache,
+        latitude: latitude,
+        longitude: longitude,
+        aindaValido: DadosPontoCacheService.maisRecenteQue(validadeCache),
+        timeoutSemCache: const Duration(seconds: 20),
+        forcarAtualizacao: forcarAtualizacao,
+        daRede: (timeout) async {
+          final response = await http.get(uri).timeout(timeout);
+          if (response.statusCode != 200) {
+            throw Exception('Erro ao buscar $variavel: ${response.statusCode}');
+          }
+          return response.body;
+        },
+      );
+      if (resultado.offlineDesde != null) {
+        ultimoResultadoOffline = true;
+        ultimaAtualizacaoCache = resultado.offlineDesde;
       }
-      await DadosPontoCacheService.salvar(
-        tipo: tipoCache,
-        latitude: latitude,
-        longitude: longitude,
-        corpo: response.body,
-      );
-      return _parsear(response.body);
+      return _parsear(resultado.corpo);
     } catch (_) {
-      final cache = await DadosPontoCacheService.ler(
-        tipo: tipoCache,
-        latitude: latitude,
-        longitude: longitude,
-      );
       // Sem cache nem rede: devolve vazio (best-effort) em vez de lançar —
       // quem chama trata como "sem cobertura", igual a uma resposta cheia
       // de nulos da API.
-      if (cache == null) return [];
-      ultimoResultadoOffline = true;
-      ultimaAtualizacaoCache = cache.em;
-      return _parsear(cache.corpo);
+      return [];
     }
   }
+
+  /// Mapa RFROM atualizado semanalmente.
+  static const validadeCache = Duration(hours: 12);
 
   List<({double pressao, double valor})> _parsear(String corpo) {
     final json = jsonDecode(corpo) as Map<String, dynamic>;

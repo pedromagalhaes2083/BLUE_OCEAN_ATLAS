@@ -431,8 +431,44 @@ abstract class AppLocalizations {
   /// No description provided for @configMinutos.
   ///
   /// In pt, this message translates to:
-  /// **'{min} minutos'**
+  /// **'{min, plural, =1{1 minuto} other{{min} minutos}}'**
   String configMinutos(int min);
+
+  /// No description provided for @configHoras.
+  ///
+  /// In pt, this message translates to:
+  /// **'{h, plural, =1{1 hora} other{{h} horas}}'**
+  String configHoras(int h);
+
+  /// No description provided for @configPrevisoesTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualização automática das previsões'**
+  String get configPrevisoesTitulo;
+
+  /// No description provided for @configPrevisoesExplicacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nesse intervalo, o Atlas busca ondas, tempo, lua e sol, temperatura e salinidade do mar e clorofila na posição da embarcação — durante a viagem, mesmo com o app fechado, e ao abrir o app. Assim os dados já ficam salvos para quando não houver sinal.'**
+  String get configPrevisoesExplicacao;
+
+  /// No description provided for @configPrevisoesUltima.
+  ///
+  /// In pt, this message translates to:
+  /// **'Última atualização: {quando}'**
+  String configPrevisoesUltima(String quando);
+
+  /// No description provided for @configPrevisoesNunca.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda não atualizado'**
+  String get configPrevisoesNunca;
+
+  /// No description provided for @configPrevisoesIntervaloSalvo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Previsões serão atualizadas a cada {intervalo}'**
+  String configPrevisoesIntervaloSalvo(String intervalo);
 
   /// No description provided for @configIntervaloSalvo.
   ///
@@ -677,7 +713,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardRastreamentoSubtitulo.
   ///
   /// In pt, this message translates to:
-  /// **'Registrando posição a cada {min} minutos'**
+  /// **'Registrando posição {min, plural, =1{a cada minuto} other{a cada {min} minutos}}'**
   String dashboardRastreamentoSubtitulo(int min);
 
   /// No description provided for @dashboardPosicoesPendentes.
@@ -992,6 +1028,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nenhuma viagem ativa encontrada na plataforma agora.'**
   String get dashboardNenhumaViagemEncontrada;
+
+  /// No description provided for @gpsRastreamentoSemPermissao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Viagem sincronizada, mas o rastreamento não foi iniciado: o Atlas precisa da permissão de localização.'**
+  String get gpsRastreamentoSemPermissao;
+
+  /// No description provided for @gpsRastreamentoPermissaoBloqueada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Viagem sincronizada, mas a localização está bloqueada para o Atlas. Libere a permissão de localização nas configurações do app.'**
+  String get gpsRastreamentoPermissaoBloqueada;
+
+  /// No description provided for @gpsServicoDesligado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rastreamento iniciado, mas o GPS do aparelho está desligado. Ligue a localização para registrar a posição.'**
+  String get gpsServicoDesligado;
+
+  /// No description provided for @gpsAbrirConfiguracoes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir configurações'**
+  String get gpsAbrirConfiguracoes;
 
   /// No description provided for @dashboardSairTitulo.
   ///
@@ -3830,6 +3890,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Clorofila'**
   String get intelligenceCondClorofila;
+
+  /// No description provided for @intelligenceClorofilaDesatualizada.
+  ///
+  /// In pt, this message translates to:
+  /// **'desatualizada (sem rede)'**
+  String get intelligenceClorofilaDesatualizada;
 
   /// No description provided for @intelligenceClorofilaIndisponivelAviso.
   ///

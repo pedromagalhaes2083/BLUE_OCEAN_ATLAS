@@ -14,6 +14,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../../../core/database/database_helper.dart';
+import '../../../core/gps/amostra_gps.dart';
+import '../../../core/gps/filtro_posicao_exibicao.dart';
 import '../../../core/models/sst_ponto.dart';
 import '../../../core/planos/plano_service.dart';
 import '../../../core/planos/recurso_atlas.dart';
@@ -179,6 +181,10 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   double _zoom = 4;
 
   LatLng? _gpsPosition;
+
+  /// Triagem das posições que movem o marcador da embarcação (ver
+  /// [_aplicarPosicaoGps]).
+  final FiltroPosicaoExibicao _filtroGps = FiltroPosicaoExibicao();
 
   // ── Menu lateral (todas as funções antes espalhadas na barra de topo) ────
   bool _menuLateralAberto = false;
@@ -808,13 +814,11 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
         return;
       }
 
-      // Mostra a última posição conhecida imediatamente (cache do sistema)
+      // Mostra a última posição conhecida imediatamente (cache do sistema) —
+      // só se ainda for recente e confiável (ver _filtroGps): uma posição
+      // de horas atrás não pode aparecer como a embarcação "agora".
       final last = await Geolocator.getLastKnownPosition();
-      if (last != null && mounted) {
-        final pos = LatLng(last.latitude, last.longitude);
-        setState(() => _gpsPosition = pos);
-        _recentralizarNoGps(pos);
-      }
+      if (last != null && mounted) _aplicarPosicaoGps(last, recentralizar: true);
 
       // Atualiza com fix fresco em segundo plano
       final fresh = await Geolocator.getCurrentPosition(
@@ -822,12 +826,20 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
           accuracy: LocationAccuracy.high,
         ),
       ).timeout(const Duration(seconds: 30));
-      if (mounted) {
-        final pos = LatLng(fresh.latitude, fresh.longitude);
-        setState(() => _gpsPosition = pos);
-        _recentralizarNoGps(pos);
-      }
+      if (mounted) _aplicarPosicaoGps(fresh, recentralizar: true);
     } catch (_) {}
+  }
+
+  /// Move o marcador da embarcação só pra posições aprovadas pelo
+  /// [_filtroGps] (inválidas, imprecisas, antigas ou saltos implausíveis
+  /// ficam de fora — o marcador fica na última posição confiável). Devolve
+  /// a posição aplicada, ou null se foi descartada.
+  LatLng? _aplicarPosicaoGps(Position posicao, {bool recentralizar = false}) {
+    if (!_filtroGps.aceitar(AmostraGps.dePosition(posicao))) return null;
+    final pos = LatLng(posicao.latitude, posicao.longitude);
+    setState(() => _gpsPosition = pos);
+    if (recentralizar) _recentralizarNoGps(pos);
+    return pos;
   }
 
   void _centerOnGps() {
@@ -1290,10 +1302,12 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
       }
 
       final viagemId = viagens.first['id'] as int;
+      // Só posições válidas: uma suspeita (salto de GPS) desenharia um
+      // "espinho" na trilha até um ponto onde a embarcação nunca esteve.
       final historico = await DatabaseHelper.instance.queryWhere(
         'localizacao_historico',
-        where: 'viagem_id = ?',
-        whereArgs: [viagemId],
+        where: 'viagem_id = ? AND validacao = ?',
+        whereArgs: [viagemId, 'valida'],
         orderBy: 'data_hora ASC',
       );
       if (!mounted) return;
@@ -1419,9 +1433,8 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
       ),
     ).listen((posicao) {
       if (!mounted) return;
-      final pos = LatLng(posicao.latitude, posicao.longitude);
-      setState(() => _gpsPosition = pos);
-      if (_modoNavegacao) {
+      final pos = _aplicarPosicaoGps(posicao);
+      if (pos != null && _modoNavegacao) {
         _mapController.moveAndRotate(pos, _zoomModoNavegacao, -_navegacaoRumo);
       }
     }, onError: (e) {
@@ -1440,6 +1453,9 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     _navegacaoPosicaoSub = null;
     _navegacaoBussolaSub = null;
     _pararGiroscopio();
+    // Na volta (app reaberto), a embarcação pode ter andado bastante —
+    // comparar com a posição de antes da pausa marcaria a nova como salto.
+    _filtroGps.reiniciar();
   }
 
   /// Liga/desliga só o comportamento de "seguir": recentralizar/girar o
@@ -1586,6 +1602,13 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
               ),
             const SizedBox(height: 8),
             Text(l10n.mapaClorofilaData(DateFormat('dd/MM/yyyy').format(ponto.data))),
+            // Veio do cache sem confirmar que é o produto mais recente (sem
+            // rede) — ver ClorofilaRepository.buscarPontoOuAproximado.
+            if (ponto.desatualizada)
+              Text(
+                l10n.intelligenceClorofilaDesatualizada,
+                style: const TextStyle(color: Colors.orange),
+              ),
             const SizedBox(height: 4),
             Text(l10n.mapaClorofilaFonte(ponto.source)),
             const SizedBox(height: 4),

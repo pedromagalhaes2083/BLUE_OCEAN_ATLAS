@@ -436,4 +436,135 @@ void main() {
       expect(colunas, contains('amplitudes'));
     });
   });
+
+  group('localizacao_historico — triagem de GPS (v20)', () {
+    test('instalação nova já tem as colunas de validação e reserva de envio',
+        () async {
+      final db = await DatabaseHelper.instance.database;
+      final colunas = await _colunas(db, 'localizacao_historico');
+      expect(colunas,
+          containsAll(['validacao', 'motivos_validacao', 'sync_reservado_em']));
+
+      // Sem informar validacao, o padrão é 'valida' (mesmo tratamento das
+      // posições gravadas antes da triagem existir).
+      final id = await DatabaseHelper.instance.insert('localizacao_historico', {
+        'data_hora': '2026-10-20T12:00:00.000Z',
+        'latitude': -10.0,
+        'longitude': -30.0,
+      });
+      final linha = (await db.query('localizacao_historico',
+              where: 'id = ?', whereArgs: [id]))
+          .single;
+      expect(linha['validacao'], 'valida');
+      expect(linha['sincronizado'], 0);
+    });
+
+    test(
+        'upgrade de uma instalação v19 preserva as posições já gravadas '
+        'e as marca como válidas', () async {
+      final caminho = await DatabaseHelper.instance.caminhoArquivo();
+      final dbAntigo = await databaseFactory.openDatabase(
+        caminho,
+        options: OpenDatabaseOptions(
+          version: 19,
+          onCreate: (db, version) async {
+            await db.execute('''
+              CREATE TABLE localizacao_historico (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                data_hora TEXT NOT NULL,
+                latitude REAL NOT NULL,
+                longitude REAL NOT NULL,
+                velocidade REAL,
+                precisao REAL,
+                altitude REAL,
+                direcao INTEGER,
+                bateria_nivel INTEGER,
+                viagem_id INTEGER,
+                sincronizado INTEGER NOT NULL DEFAULT 0
+              )
+            ''');
+            await db.insert('localizacao_historico', {
+              'data_hora': '2026-10-19T08:00:00.000Z',
+              'latitude': -3.7,
+              'longitude': -38.5,
+              'precisao': 12.0,
+              'viagem_id': 7,
+              'sincronizado': 1,
+            });
+            await db.insert('localizacao_historico', {
+              'data_hora': '2026-10-19T08:15:00.000Z',
+              'latitude': -3.8,
+              'longitude': -38.6,
+              'viagem_id': 7,
+              'sincronizado': 0,
+            });
+          },
+        ),
+      );
+      await dbAntigo.close();
+
+      // Reabre pelo DatabaseHelper de verdade — dispara onUpgrade 19 → 20.
+      final db = await DatabaseHelper.instance.database;
+
+      final linhas =
+          await db.query('localizacao_historico', orderBy: 'id ASC');
+      expect(linhas, hasLength(2));
+      expect(linhas[0]['latitude'], -3.7);
+      expect(linhas[0]['precisao'], 12.0);
+      expect(linhas[0]['viagem_id'], 7);
+      expect(linhas[0]['sincronizado'], 1);
+      expect(linhas[1]['sincronizado'], 0);
+      for (final linha in linhas) {
+        expect(linha['validacao'], 'valida');
+        expect(linha['motivos_validacao'], isNull);
+        expect(linha['sync_reservado_em'], isNull);
+      }
+    });
+  });
+
+  group('cache_dados — cache de APIs no SQLite (v21)', () {
+    test('instalação nova já tem a tabela de cache', () async {
+      final db = await DatabaseHelper.instance.database;
+      expect(await _tabelaExiste(db, 'cache_dados'), isTrue);
+      expect(await _colunas(db, 'cache_dados'),
+          containsAll(['chave', 'corpo', 'em']));
+    });
+
+    test('upgrade de uma instalação v20 cria a tabela sem tocar no resto',
+        () async {
+      final caminho = await DatabaseHelper.instance.caminhoArquivo();
+      final dbAntigo = await databaseFactory.openDatabase(
+        caminho,
+        options: OpenDatabaseOptions(
+          version: 20,
+          onCreate: (db, version) async {
+            await db.execute('''
+              CREATE TABLE viagem (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT,
+                data_inicio TEXT NOT NULL,
+                data_termino TEXT,
+                embarcacao_id TEXT,
+                status TEXT NOT NULL,
+                remoto_id TEXT
+              )
+            ''');
+            await db.insert('viagem', {
+              'nome': 'Viagem antiga',
+              'data_inicio': '2026-10-01T00:00:00.000',
+              'status': 'em_andamento',
+            });
+          },
+        ),
+      );
+      await dbAntigo.close();
+
+      // Reabre pelo DatabaseHelper de verdade — dispara onUpgrade 20 → 21.
+      final db = await DatabaseHelper.instance.database;
+
+      expect(await _tabelaExiste(db, 'cache_dados'), isTrue);
+      final viagens = await db.query('viagem');
+      expect(viagens.single['nome'], 'Viagem antiga');
+    });
+  });
 }

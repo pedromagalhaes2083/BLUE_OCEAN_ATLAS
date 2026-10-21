@@ -29,9 +29,13 @@ class WaveForecastRepository {
   /// [DadosPontoCacheService]), cai pro cache em vez de propagar o erro —
   /// só lança se nem a rede nem o cache tiverem nada (1ª consulta desse
   /// ponto sem nunca ter tido conexão).
+  ///
+  /// [forcarAtualizacao]: ignora o cache válido e vai à rede (atualização
+  /// em segundo plano, ver `AtualizacaoPrevisoesService`).
   Future<WaveForecast> buscar({
     required double latitude,
     required double longitude,
+    bool forcarAtualizacao = false,
   }) async {
     final uri = Uri.parse(_baseUrl).replace(queryParameters: {
       'latitude': latitude.toString(),
@@ -44,35 +48,34 @@ class WaveForecastRepository {
       'timezone': 'auto',
     });
 
-    try {
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 15));
-      if (response.statusCode != 200) {
-        throw Exception(
-            'Erro ao buscar previsão de ondas: ${response.statusCode}');
-      }
-      await DadosPontoCacheService.salvar(
-        tipo: _tipoCache,
-        latitude: latitude,
-        longitude: longitude,
-        corpo: response.body,
-      );
-      ultimoResultadoOffline = false;
-      return WaveForecast.fromJson(
-          jsonDecode(response.body) as Map<String, dynamic>);
-    } catch (e) {
-      final cache = await DadosPontoCacheService.ler(
-        tipo: _tipoCache,
-        latitude: latitude,
-        longitude: longitude,
-      );
-      if (cache == null) rethrow;
-      ultimoResultadoOffline = true;
-      ultimaAtualizacaoCache = cache.em;
-      return WaveForecast.fromJson(
-          jsonDecode(cache.corpo) as Map<String, dynamic>);
-    }
+    // Cache primeiro (ver DadosPontoCacheService.buscarComCache): antes ia
+    // sempre à rede e só usava o salvo depois de 15 s de timeout — a
+    // experiência normal em alto-mar.
+    final resultado = await DadosPontoCacheService.buscarComCache(
+      tipo: _tipoCache,
+      latitude: latitude,
+      longitude: longitude,
+      aindaValido: DadosPontoCacheService.maisRecenteQue(validadeCache),
+      forcarAtualizacao: forcarAtualizacao,
+      daRede: (timeout) async {
+        final response = await http.get(uri).timeout(timeout);
+        if (response.statusCode != 200) {
+          throw Exception(
+              'Erro ao buscar previsão de ondas: ${response.statusCode}');
+        }
+        return response.body;
+      },
+    );
+    ultimoResultadoOffline = resultado.offlineDesde != null;
+    if (ultimoResultadoOffline) ultimaAtualizacaoCache = resultado.offlineDesde;
+    return WaveForecast.fromJson(
+        jsonDecode(resultado.corpo) as Map<String, dynamic>);
   }
+
+  /// Previsão horária da Open-Meteo (o modelo atualiza poucas vezes por
+  /// dia) — nesse intervalo a resposta salva vale tanto quanto uma nova, e
+  /// várias telas consultam o mesmo ponto em sequência.
+  static const validadeCache = Duration(minutes: 30);
 
   /// Busca a temperatura da superfície do mar (SST) atual em vários pontos
   /// de uma vez — usado pela grade de temperatura sobreposta ao mapa (ver

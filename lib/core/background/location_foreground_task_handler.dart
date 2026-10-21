@@ -1,8 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../gps/gps_log.dart';
 import '../services/alerta_condicao_notification_service.dart';
+import '../services/atualizacao_previsoes_service.dart';
 import '../services/localizacao_reporter_service.dart';
 import '../services/recomendacao_notification_service.dart';
 
@@ -36,11 +37,19 @@ void iniciarLocationForegroundTaskHandler() {
 class LocationForegroundTaskHandler extends TaskHandler {
   var _execucoes = 0;
 
+  /// O disparo periódico não espera a rodada anterior terminar — sem isso,
+  /// um envio lento (backlog grande de horas sem internet, rede fraca)
+  /// sobrepunha a rodada seguinte.
+  var _executando = false;
+
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     // Hive (usado por Config, pra ler token/embarcacaoId) precisa ser
     // inicializado aqui também — essa isolate não passa por main().
     await Hive.initFlutter();
+    // starter: developer (iniciado pelo app) ou system (boot/atualização do
+    // app) — ajuda a saber se o serviço voltou sozinho depois de morrer.
+    GpsLog.evento('serviço de rastreamento ativo', 'início: ${starter.name}');
     await _executar();
   }
 
@@ -50,13 +59,24 @@ class LocationForegroundTaskHandler extends TaskHandler {
   }
 
   Future<void> _executar() async {
+    if (_executando) {
+      GpsLog.evento('rodada pulada: a anterior ainda está em andamento');
+      return;
+    }
+    _executando = true;
     _execucoes++;
     try {
       await LocalizacaoReporterService.registrarESincronizar();
+      // Depois da posição (usa a mais recente) e antes dos alertas (que
+      // leem as mesmas previsões do cache). Só busca quando passou o
+      // intervalo configurado; nunca lança.
+      await AtualizacaoPrevisoesService.atualizarSeNecessario();
       await RecomendacaoNotificationService.verificarNovas();
       await AlertaCondicaoNotificationService.verificarCondicoesAFrente();
     } catch (e) {
-      debugPrint('❌ Erro no rastreamento de localização: $e');
+      GpsLog.evento('erro na rodada de rastreamento', '$e');
+    } finally {
+      _executando = false;
     }
 
     // Notificação atualizada a cada execução — mostra que o serviço ainda
@@ -79,8 +99,8 @@ class LocationForegroundTaskHandler extends TaskHandler {
 
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
-    debugPrint(
-        '⏹️ Serviço de rastreamento encerrado (timeout: $isTimeout, execuções: $_execucoes)');
+    GpsLog.evento('serviço de rastreamento encerrado',
+        'timeout: $isTimeout, rodadas: $_execucoes');
   }
 
   // Sem uso hoje (nenhum botão/dado enviado à notificação) — só

@@ -1,8 +1,34 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../core/services/dados_ponto_cache_service.dart';
 import '../../../core/utils/proximidade.dart';
 import '../domain/models/leitura_clorofila.dart';
+
+/// Onde o cache de clorofila é guardado — atrás de uma interface pros
+/// testes simularem falha de leitura/gravação. A implementação real usa o
+/// mesmo armazenamento persistente (SQLite) do resto dos dados por ponto
+/// ([DadosPontoCacheService]), sem um segundo sistema de cache.
+abstract class ArmazenamentoCacheClorofila {
+  Future<String?> ler(String chave);
+  Future<void> salvar(String chave, String valor);
+}
+
+class ArmazenamentoCacheClorofilaPersistente
+    implements ArmazenamentoCacheClorofila {
+  const ArmazenamentoCacheClorofilaPersistente();
+
+  @override
+  Future<String?> ler(String chave) async =>
+      (await DadosPontoCacheService.lerPorChave(chave))?.corpo;
+
+  @override
+  Future<void> salvar(String chave, String valor) =>
+      DadosPontoCacheService.salvarPorChave(chave, valor);
+}
 
 /// Única classe que conhece a URL/parâmetros do NOAA CoastWatch ERDDAP pra
 /// clorofila-a — API pública, sem autenticação, não passa pelo backend
@@ -16,9 +42,72 @@ import '../domain/models/leitura_clorofila.dart';
 /// CoastWatch expõe o mesmo tipo de dado (cor do oceano/clorofila-a) como
 /// uma API REST pública de verdade — confirmado com curl real, inclusive
 /// no ponto de teste combinado (-2.10600, -38.89306), ver histórico.
+///
+/// **Cache diário** (ver [buscarPontoOuAproximado]): o produto é diário, e
+/// sem cache cada consulta custava até 45 s (ponto, 20 s + grade, 25 s) —
+/// e a Inteligência Oceânica espera a mais lenta das suas 6 fontes.
 class ClorofilaRepository {
+  static const dataset = 'noaacwNPPN20S3ASCIDINEOF2kmDaily';
   static const _baseUrl =
-      'https://coastwatch.noaa.gov/erddap/griddap/noaacwNPPN20S3ASCIDINEOF2kmDaily.csv';
+      'https://coastwatch.noaa.gov/erddap/griddap/$dataset.csv';
+
+  /// Resolução da grade do dataset: células de 1/48° (~2,3 km). Confirmado
+  /// pelas respostas reais do ERDDAP (ver testes): longitudes consecutivas
+  /// -39.51041, -39.489582, -39.46874 (passo 0,0208333…) e toda coordenada
+  /// devolvida num centro de célula (k + 0,5)/48 — ex.: -2.1145885 × 48 =
+  /// -101,5. Como o ERDDAP responde o centro mais próximo, o pixel usado pra
+  /// um ponto é sempre o da célula ⌊lat·48⌋, ⌊lon·48⌋.
+  static const celulasPorGrau = 48;
+
+  /// De quanto em quanto tempo perguntar ao ERDDAP qual é o produto diário
+  /// mais recente. Não é a validade do dado (essa é a data do produto): é
+  /// só o intervalo pra descobrir se saiu um produto novo.
+  static const intervaloVerificacaoProduto = Duration(hours: 6);
+
+  /// Depois de uma falha ao consultar o produto mais recente (sem rede,
+  /// ERDDAP fora do ar), não tenta de novo antes disso — sem isso, cada
+  /// consulta offline esperaria o timeout de novo.
+  static const esperaAposFalhaVerificacao = Duration(minutes: 2);
+
+  static const _timeoutPonto = Duration(seconds: 20);
+  static const _timeoutGrade = Duration(seconds: 25);
+  static const _timeoutDataProduto = Duration(seconds: 8);
+  static const _toleranciaRelogio = Duration(minutes: 5);
+
+  /// Muda quando o formato salvo ou a regra de busca mudar — entradas
+  /// antigas deixam de casar com a chave em vez de serem lidas errado.
+  static const versaoCache = 'v1';
+  static const _chaveProduto = 'clorofila:$versaoCache:$dataset:produto';
+
+  final http.Client? _client;
+  final ArmazenamentoCacheClorofila _cache;
+  final DateTime Function() _agora;
+
+  ClorofilaRepository({
+    http.Client? client,
+    ArmazenamentoCacheClorofila cache =
+        const ArmazenamentoCacheClorofilaPersistente(),
+    DateTime Function()? relogio,
+  })  : _client = client,
+        _cache = cache,
+        _agora = relogio ?? DateTime.now;
+
+  /// Consultas em andamento por chave de cache — estáticas porque cada tela
+  /// cria o seu próprio [ClorofilaRepository] (mapa, Inteligência...).
+  static final Map<String, Future<LeituraClorofilaPonto>> _consultasEmAndamento =
+      {};
+  static Future<String>? _verificacaoEmAndamento;
+  static DateTime? _ultimaFalhaVerificacao;
+
+  @visibleForTesting
+  static void resetEstadoParaTestes() {
+    _consultasEmAndamento.clear();
+    _verificacaoEmAndamento = null;
+    _ultimaFalhaVerificacao = null;
+  }
+
+  Future<http.Response> _get(Uri uri, Duration timeout) =>
+      (_client?.get(uri) ?? http.get(uri)).timeout(timeout);
 
   /// Busca a clorofila-a mais recente disponível num ponto específico —
   /// usa `(last)` no eixo de tempo em vez de uma data fixa, porque o
@@ -38,7 +127,7 @@ class ClorofilaRepository {
       '%5B($latitude):1:($latitude)%5D%5B($longitude):1:($longitude)%5D',
     );
 
-    final response = await http.get(uri).timeout(const Duration(seconds: 20));
+    final response = await _get(uri, _timeoutPonto);
     if (response.statusCode != 200) {
       throw Exception('Erro ao buscar clorofila-a: ${response.statusCode}');
     }
@@ -74,7 +163,7 @@ class ClorofilaRepository {
       '%5B(${oeste.longitude}):1:(${leste.longitude})%5D',
     );
 
-    final response = await http.get(uri).timeout(const Duration(seconds: 25));
+    final response = await _get(uri, _timeoutGrade);
     if (response.statusCode != 200) {
       throw Exception(
           'Erro ao buscar grade de clorofila-a: ${response.statusCode}');
@@ -95,11 +184,103 @@ class ClorofilaRepository {
   /// Se a grade também falhar (sem sinal, nenhum pixel com dado na área)
   /// devolve o resultado original sem dado, em vez de fingir que achou
   /// algo.
+  ///
+  /// **Cache diário por célula:** um resultado com dado fica salvo pela
+  /// célula da grade do satélite ([chaveCache]) junto da data do produto
+  /// diário de onde veio. Enquanto essa for a data do produto mais recente
+  /// do ERDDAP ([intervaloVerificacaoProduto]), devolve do cache na hora,
+  /// sem rede — inclusive depois de reiniciar o app. Saiu produto novo →
+  /// busca de novo. Sem conseguir buscar (offline, ERDDAP fora do ar), usa
+  /// o último resultado da célula marcado [LeituraClorofilaPonto.desatualizada],
+  /// sempre com a data original da observação. Consultas simultâneas da
+  /// mesma célula compartilham uma única busca.
   Future<LeituraClorofilaPonto> buscarPontoOuAproximado({
     required double latitude,
     required double longitude,
     double raioAproximacaoNm = 10,
-  }) async {
+  }) {
+    final chave = chaveCache(
+        latitude: latitude, longitude: longitude, raioNm: raioAproximacaoNm);
+    return _consultasEmAndamento[chave] ??=
+        _buscarComCache(chave, latitude, longitude, raioAproximacaoNm)
+            .whenComplete(() {
+      // Corpo em bloco de propósito: `() => remove(...)` devolveria a
+      // própria Future removida, e o whenComplete esperaria ela pra sempre.
+      _consultasEmAndamento.remove(chave);
+    });
+  }
+
+  /// Célula da grade do dataset (ver [celulasPorGrau]) + raio de
+  /// aproximação (muda o resultado quando o pixel exato não tem dado) +
+  /// dataset + versão do formato. A data do produto fica dentro da entrada,
+  /// não na chave: assim a célula sempre tem o seu último resultado à mão
+  /// pra servir offline, e um produto novo simplesmente o substitui.
+  static String chaveCache({
+    required double latitude,
+    required double longitude,
+    double raioNm = 10,
+  }) {
+    final celulaLat = (latitude * celulasPorGrau).floor();
+    final celulaLon = (longitude * celulasPorGrau).floor();
+    return 'clorofila:$versaoCache:$dataset:r${raioNm.toStringAsFixed(1)}:'
+        '$celulaLat:$celulaLon';
+  }
+
+  /// Data (UTC, `aaaa-mm-dd`) do produto diário de onde veio a leitura — a
+  /// identidade do produto. O ERDDAP marca cada dia às 12:00Z
+  /// (ex.: `2026-08-26T12:00:00Z`).
+  static String dataDoProduto(DateTime dataObservacao) =>
+      dataObservacao.toUtc().toIso8601String().substring(0, 10);
+
+  Future<LeituraClorofilaPonto> _buscarComCache(
+      String chave, double latitude, double longitude, double raioNm) async {
+    final emCache = await _lerEntrada(chave);
+    // Sem nada da célula no cache, a busca completa já traz a data do
+    // produto — perguntar antes seria uma ida à rede a mais.
+    final produtoAtual = emCache == null ? null : await _produtoMaisRecente();
+
+    if (emCache != null &&
+        produtoAtual != null &&
+        emCache.produto.compareTo(produtoAtual) >= 0) {
+      return emCache.leitura;
+    }
+
+    // Não deu pra saber qual é o produto mais recente (sem rede / ERDDAP
+    // fora do ar) e a célula já tem resultado: usa ele na hora, marcado
+    // como desatualizado — em vez de esperar mais um timeout de 20–45 s de
+    // uma busca que vai falhar pelo mesmo motivo.
+    if (emCache != null && produtoAtual == null) {
+      _log('sem confirmar o produto mais recente — usando o de '
+          '${emCache.produto} do cache, marcado como desatualizado');
+      return emCache.leitura.comoDesatualizada();
+    }
+
+    try {
+      final leitura = await _buscarDaRede(latitude, longitude, raioNm);
+      if (leitura.valorMgM3 != null) {
+        final produto = dataDoProduto(leitura.data);
+        await _salvarEntrada(chave, produto, leitura);
+        // A própria resposta diz qual é o produto mais recente — evita uma
+        // consulta extra só pra isso nas próximas horas.
+        await _registrarProduto(produto);
+      }
+      // Sem dado na célula (nem por aproximação) não é cacheado: não há
+      // garantia de que um produto diário não seja reprocessado, e guardar
+      // "sem dado" poderia esconder um valor que aparecer depois.
+      return leitura;
+    } catch (e) {
+      if (emCache != null) {
+        _log('falha ao buscar o produto $produtoAtual (${_resumo(e)}) — '
+            'usando o de ${emCache.produto} do cache, marcado como desatualizado');
+        return emCache.leitura.comoDesatualizada();
+      }
+      rethrow;
+    }
+  }
+
+  /// O fluxo original, sem cache: ponto exato; sem dado, a grade ao redor.
+  Future<LeituraClorofilaPonto> _buscarDaRede(
+      double latitude, double longitude, double raioAproximacaoNm) async {
     final exato = await buscarPonto(latitude: latitude, longitude: longitude);
     if (exato.valorMgM3 != null) return exato;
 
@@ -130,6 +311,148 @@ class ClorofilaRepository {
       data: maisProximo.data,
       aproximado: true,
     );
+  }
+
+  // ── Produto diário mais recente ─────────────────────────────────────────
+
+  /// Data do produto mais recente no ERDDAP — da memória persistida se foi
+  /// verificada há menos de [intervaloVerificacaoProduto]; senão, pergunta
+  /// ao ERDDAP só pelo eixo de tempo (resposta de poucos bytes). `null`
+  /// quando não deu pra saber agora.
+  Future<String?> _produtoMaisRecente() async {
+    final agora = _agora().toUtc();
+    final registro = await _lerProduto();
+    if (registro != null) {
+      final idade = agora.difference(registro.verificadoEm);
+      // Idade negativa além da tolerância = relógio do aparelho voltou no
+      // tempo; não dá pra confiar no registro, verifica de novo.
+      if (idade >= -_toleranciaRelogio && idade < intervaloVerificacaoProduto) {
+        return registro.data;
+      }
+    }
+
+    final falha = _ultimaFalhaVerificacao;
+    if (falha != null && agora.difference(falha).abs() < esperaAposFalhaVerificacao) {
+      return null;
+    }
+
+    try {
+      final data = await (_verificacaoEmAndamento ??=
+          _consultarDataProduto().whenComplete(() {
+        _verificacaoEmAndamento = null;
+      }));
+      await _registrarProduto(data);
+      return data;
+    } catch (e) {
+      _ultimaFalhaVerificacao = agora;
+      _log('não foi possível consultar o produto mais recente (${_resumo(e)})');
+      return null;
+    }
+  }
+
+  Future<String> _consultarDataProduto() async {
+    final response =
+        await _get(Uri.parse('$_baseUrl?time%5B(last)%5D'), _timeoutDataProduto);
+    if (response.statusCode != 200) {
+      throw Exception('ERDDAP respondeu ${response.statusCode}');
+    }
+    return dataDoProduto(parseRespostaDataProduto(response.body));
+  }
+
+  /// Resposta CSV do eixo de tempo: linha 0 = `time`, linha 1 = `UTC`,
+  /// linha 2 = o instante do produto mais recente.
+  static DateTime parseRespostaDataProduto(String corpo) {
+    final linhas = const LineSplitter().convert(corpo);
+    if (linhas.length < 3) {
+      throw FormatException('Resposta inesperada do ERDDAP (tempo): $corpo');
+    }
+    return DateTime.parse(linhas[2].trim());
+  }
+
+  Future<({String data, DateTime verificadoEm})?> _lerProduto() async {
+    try {
+      final bruto = await _cache.ler(_chaveProduto);
+      if (bruto == null) return null;
+      final json = jsonDecode(bruto) as Map<String, dynamic>;
+      return (
+        data: json['data'] as String,
+        verificadoEm: DateTime.parse(json['verificadoEm'] as String).toUtc(),
+      );
+    } catch (e) {
+      _log('registro do produto mais recente ilegível (${_resumo(e)})');
+      return null;
+    }
+  }
+
+  Future<void> _registrarProduto(String data) async {
+    try {
+      await _cache.salvar(
+        _chaveProduto,
+        jsonEncode({
+          'data': data,
+          'verificadoEm': _agora().toUtc().toIso8601String(),
+        }),
+      );
+    } catch (e) {
+      _log('falha ao salvar o produto mais recente (${_resumo(e)})');
+    }
+  }
+
+  // ── Entradas por célula ─────────────────────────────────────────────────
+
+  Future<({String produto, LeituraClorofilaPonto leitura})?> _lerEntrada(
+      String chave) async {
+    try {
+      final bruto = await _cache.ler(chave);
+      if (bruto == null) return null;
+      final json = jsonDecode(bruto) as Map<String, dynamic>;
+      return (
+        produto: json['produto'] as String,
+        leitura: LeituraClorofilaPonto(
+          latitude: (json['latitude'] as num).toDouble(),
+          longitude: (json['longitude'] as num).toDouble(),
+          valorMgM3: (json['valor'] as num?)?.toDouble(),
+          data: DateTime.parse(json['data'] as String).toUtc(),
+          source: json['source'] as String,
+          aproximado: json['aproximado'] as bool,
+        ),
+      );
+    } catch (e) {
+      // Entrada corrompida ou armazenamento indisponível: trata como se não
+      // houvesse cache (busca na rede), sem derrubar a tela.
+      _log('cache de clorofila ilegível para $chave (${_resumo(e)})');
+      return null;
+    }
+  }
+
+  Future<void> _salvarEntrada(
+      String chave, String produto, LeituraClorofilaPonto leitura) async {
+    try {
+      await _cache.salvar(
+        chave,
+        jsonEncode({
+          'produto': produto,
+          'latitude': leitura.latitude,
+          'longitude': leitura.longitude,
+          'valor': leitura.valorMgM3,
+          'data': leitura.data.toUtc().toIso8601String(),
+          'source': leitura.source,
+          'aproximado': leitura.aproximado,
+          'obtidoEm': _agora().toUtc().toIso8601String(),
+        }),
+      );
+    } catch (e) {
+      // Falha ao gravar não invalida o resultado já obtido — só não fica
+      // pra próxima vez.
+      _log('falha ao salvar clorofila no cache (${_resumo(e)})');
+    }
+  }
+
+  static void _log(String mensagem) => debugPrint('[Clorofila] $mensagem');
+
+  static String _resumo(Object e) {
+    final texto = '$e'.replaceAll('\n', ' ');
+    return texto.length > 160 ? '${texto.substring(0, 160)}…' : texto;
   }
 
   /// Parsing separado do fetch só pra dar pra testar sem rede — resposta

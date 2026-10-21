@@ -108,6 +108,8 @@ class IntelligenceRepository {
           ? profundidade.profundidadeMetros
           : null,
       clorofilaMgM3: clorofila?.valorMgM3,
+      clorofilaData: clorofila?.valorMgM3 == null ? null : clorofila?.data,
+      clorofilaDesatualizada: clorofila?.desatualizada ?? false,
       salinidadeUps: perfilRfrom?.salinidadeSuperficieUps,
     );
 

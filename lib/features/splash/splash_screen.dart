@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../app_shell.dart';
 import '../../core/auth/auth_service.dart';
-import '../../core/config/config.dart';
-import '../../core/config/constantes.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/services/location_tracking_service.dart';
 import '../../core/services/sincronizacao_service.dart';
@@ -63,30 +61,18 @@ class _SplashScreenState extends State<SplashScreen>
       }
     }
 
-    // O rastreamento em segundo plano só roda com uma viagem em andamento
-    // (ver NovaViagemScreen/HistoricoLocalizacoesScreen), não do login até o
-    // logout. O WorkManager sobrevive a reaberturas do app, mas o flag em
-    // memória de LocationTrackingService não — reseta a cada cold start.
-    // Sem isso, reabrir o app em meio a uma viagem ativa deixaria o
-    // indicador da Dashboard sempre "desligado", mesmo com a tarefa ainda
-    // rodando de verdade. `existingWorkPolicy: replace` faz disso uma
-    // chamada idempotente.
-    if (estaLogado) {
+    // O rastreamento só roda com uma viagem em andamento (ver
+    // NovaViagemScreen/HistoricoLocalizacoesScreen), não do login até o
+    // logout — reconfirma a cada abertura (o serviço pode ter sido morto
+    // pelo sistema). Também quando a sessão só venceu e o login automático
+    // falhou por falta de rede (credencial lembrada continua lá): offshore,
+    // isso é o normal, e as posições são gravadas localmente sem precisar
+    // de sessão. Depois de um logout explícito (que apaga a credencial
+    // lembrada), não retoma. Sem pedir permissão aqui — a splash roda a
+    // cada abertura e não pode perguntar toda vez.
+    if (estaLogado || await AuthService.lembrarCredenciaisAtivo()) {
       try {
-        final viagensAtivas = await widget.dbHelper.queryWhere(
-          'viagem',
-          where: 'status = ?',
-          whereArgs: ['em_andamento'],
-        );
-        if (viagensAtivas.isNotEmpty) {
-          final intervalo = int.tryParse(await Config.obtem(
-                Constantes.intervaloRastreamentoMinutos,
-                '$intervaloMinimoMinutos',
-              )) ??
-              intervaloMinimoMinutos;
-          await LocationTrackingService()
-              .iniciarRastreamento(intervaloMinutos: intervalo);
-        }
+        await LocationTrackingService().garantirRastreamentoSeViagemAtiva();
       } catch (e) {
         debugPrint('Erro ao reconfirmar rastreamento de localização: $e');
       }

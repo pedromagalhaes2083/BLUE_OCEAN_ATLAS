@@ -8,6 +8,7 @@ import '../config/constantes.dart';
 import '../database/database_helper.dart';
 import '../network/api_service.dart';
 import '../network/endpoints.dart';
+import '../network/excecoes.dart';
 import '../services/location_tracking_service.dart';
 import 'jwt_utils.dart';
 import 'models/organizacao.dart';
@@ -16,6 +17,9 @@ import 'models/usuario.dart';
 export '../network/excecoes.dart';
 export 'models/organizacao.dart';
 export 'models/usuario.dart';
+
+/// Resultado de [AuthService.renovarSessao].
+enum ResultadoRenovacaoSessao { ok, semCredencial, credencialRecusada, semConexao }
 
 class AuthService {
   static const _secureStorage = FlutterSecureStorage();
@@ -131,18 +135,32 @@ class AuthService {
   /// Tenta logar de novo com a credencial salva (quando "lembrar" estava
   /// marcado), sem exigir que o usuário digite usuário/senha de novo — usado
   /// no boot do app quando o token salvo já expirou. Retorna se conseguiu.
-  static Future<bool> tentarLoginAutomatico() async {
-    if (!await lembrarCredenciaisAtivo()) return false;
+  static Future<bool> tentarLoginAutomatico() async =>
+      await renovarSessao() == ResultadoRenovacaoSessao.ok;
+
+  /// Mesmo que [tentarLoginAutomatico], mas diz por que falhou — quem roda
+  /// sem tela (o rastreamento em segundo plano, ver
+  /// `LocalizacaoReporterService`) precisa tratar "sem internet agora" (só
+  /// adiar o envio) diferente de "credencial recusada" (o mestre precisa
+  /// entrar de novo).
+  static Future<ResultadoRenovacaoSessao> renovarSessao() async {
+    if (!await lembrarCredenciaisAtivo()) {
+      return ResultadoRenovacaoSessao.semCredencial;
+    }
 
     final usuario = await _secureStorage.read(key: _chaveUsuarioLembrado);
     final senha = await _secureStorage.read(key: _chaveSenhaLembrada);
-    if (usuario == null || senha == null) return false;
+    if (usuario == null || senha == null) {
+      return ResultadoRenovacaoSessao.semCredencial;
+    }
 
     try {
       await login(usuario, senha, lembrar: true);
-      return true;
+      return ResultadoRenovacaoSessao.ok;
+    } on UnauthorisedException {
+      return ResultadoRenovacaoSessao.credencialRecusada;
     } catch (_) {
-      return false;
+      return ResultadoRenovacaoSessao.semConexao;
     }
   }
 

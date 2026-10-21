@@ -1,8 +1,6 @@
 import 'package:atlas/core/database/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:atlas/core/auth/auth_service.dart';
-import 'package:atlas/core/config/config.dart';
-import 'package:atlas/core/config/constantes.dart';
 import 'package:atlas/core/services/contexto_viagem_service.dart';
 import 'package:atlas/core/services/location_tracking_service.dart';
 import 'package:atlas/core/services/sincronizacao_service.dart';
@@ -72,21 +70,11 @@ class _LoginScreenState extends State<LoginScreen> {
       // andamento (ver NovaViagemScreen/HistoricoLocalizacoesScreen) — aqui
       // só retoma se o usuário tinha saído (logout) no meio de uma viagem
       // ainda ativa (local ou, agora, recém-sincronizada do backend acima).
+      // Pode pedir a permissão de localização: o mestre acabou de entrar,
+      // a tela está em primeiro plano.
       try {
-        final viagensAtivas = await widget.dbHelper.queryWhere(
-          'viagem',
-          where: 'status = ?',
-          whereArgs: ['em_andamento'],
-        );
-        if (viagensAtivas.isNotEmpty) {
-          final intervalo = int.tryParse(await Config.obtem(
-                Constantes.intervaloRastreamentoMinutos,
-                '$intervaloMinimoMinutos',
-              )) ??
-              intervaloMinimoMinutos;
-          await LocationTrackingService()
-              .iniciarRastreamento(intervaloMinutos: intervalo);
-        }
+        await LocationTrackingService()
+            .garantirRastreamentoSeViagemAtiva(solicitarPermissao: true);
       } catch (e) {
         debugPrint('Erro ao retomar rastreamento de localização: $e');
       }

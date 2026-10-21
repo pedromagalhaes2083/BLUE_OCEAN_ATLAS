@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/services/dados_ponto_cache_service.dart';
 import '../domain/models/previsao_tempo.dart';
+import 'wave_forecast_repository.dart';
 
 /// Única classe que conhece a URL/parâmetros da API pública Open-Meteo
 /// (clima geral). Não passa pelo [ApiService] do backend Blue Ocean —
@@ -23,6 +24,7 @@ class PrevisaoTempoRepository {
   Future<PrevisaoTempo> buscar({
     required double latitude,
     required double longitude,
+    bool forcarAtualizacao = false,
   }) async {
     final uri = Uri.parse(_baseUrl).replace(queryParameters: {
       'latitude': latitude.toString(),
@@ -34,33 +36,27 @@ class PrevisaoTempoRepository {
       'forecast_days': '2',
     });
 
-    try {
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 15));
-      if (response.statusCode != 200) {
-        throw Exception(
-            'Erro ao buscar previsão do tempo: ${response.statusCode}');
-      }
-      await DadosPontoCacheService.salvar(
-        tipo: _tipoCache,
-        latitude: latitude,
-        longitude: longitude,
-        corpo: response.body,
-      );
-      ultimoResultadoOffline = false;
-      return PrevisaoTempo.fromJson(
-          jsonDecode(response.body) as Map<String, dynamic>);
-    } catch (e) {
-      final cache = await DadosPontoCacheService.ler(
-        tipo: _tipoCache,
-        latitude: latitude,
-        longitude: longitude,
-      );
-      if (cache == null) rethrow;
-      ultimoResultadoOffline = true;
-      ultimaAtualizacaoCache = cache.em;
-      return PrevisaoTempo.fromJson(
-          jsonDecode(cache.corpo) as Map<String, dynamic>);
-    }
+    // Cache primeiro — mesma validade da previsão de ondas (mesma origem,
+    // Open-Meteo, mesmo ritmo de atualização do modelo).
+    final resultado = await DadosPontoCacheService.buscarComCache(
+      tipo: _tipoCache,
+      latitude: latitude,
+      longitude: longitude,
+      aindaValido: DadosPontoCacheService.maisRecenteQue(
+          WaveForecastRepository.validadeCache),
+      forcarAtualizacao: forcarAtualizacao,
+      daRede: (timeout) async {
+        final response = await http.get(uri).timeout(timeout);
+        if (response.statusCode != 200) {
+          throw Exception(
+              'Erro ao buscar previsão do tempo: ${response.statusCode}');
+        }
+        return response.body;
+      },
+    );
+    ultimoResultadoOffline = resultado.offlineDesde != null;
+    if (ultimoResultadoOffline) ultimaAtualizacaoCache = resultado.offlineDesde;
+    return PrevisaoTempo.fromJson(
+        jsonDecode(resultado.corpo) as Map<String, dynamic>);
   }
 }
