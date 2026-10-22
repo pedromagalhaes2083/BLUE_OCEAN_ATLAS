@@ -32,6 +32,7 @@ import '../../../core/utils/coordenadas_format.dart';
 import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
+import '../../../core/utils/perf_log.dart';
 import '../widgets/legenda_grade_temperatura.dart' show corGradeTemperatura;
 import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../producao/domain/especies_comuns.dart';
@@ -180,7 +181,15 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   LatLng _center = const LatLng(-15.0, -50.0);
   double _zoom = 4;
 
-  LatLng? _gpsPosition;
+  // ValueNotifier pelo mesmo motivo de _navegacaoRumoNotifier: um
+  // setState() a cada leitura do GPS refazia o build() inteiro do mapa
+  // (26 camadas, painéis, menu lateral) só pra mover o barco. Só a camada
+  // do barco escuta a posição; setState() fica pra quando ela passa a
+  // existir (o botão de GPS depende disso). Getter/setter mantêm o resto do
+  // código lendo/escrevendo `_gpsPosition` como antes.
+  final ValueNotifier<LatLng?> _gpsPositionNotifier = ValueNotifier(null);
+  LatLng? get _gpsPosition => _gpsPositionNotifier.value;
+  set _gpsPosition(LatLng? valor) => _gpsPositionNotifier.value = valor;
 
   /// Triagem das posições que movem o marcador da embarcação (ver
   /// [_aplicarPosicaoGps]).
@@ -192,7 +201,14 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   // ── Marcar ponto manualmente ─────────────────────────────────────────────
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   bool _modoMarcarPonto = false;
-  LatLng _centroMira = const LatLng(-15.0, -50.0);
+  // Muda a cada quadro enquanto o usuário arrasta o mapa nos modos com
+  // retículo (marcar ponto, consultar temperatura/clorofila, planejar rota)
+  // — só o texto da coordenada escuta (ver _buildCoordenadaMira), em vez de
+  // um setState() por quadro reconstruindo o mapa inteiro durante o gesto.
+  final ValueNotifier<LatLng> _centroMiraNotifier =
+      ValueNotifier(const LatLng(-15.0, -50.0));
+  LatLng get _centroMira => _centroMiraNotifier.value;
+  set _centroMira(LatLng valor) => _centroMiraNotifier.value = valor;
   List<PontoMarcado> _pontosMarcados = [];
   final TextEditingController _nomePontoController = TextEditingController();
 
@@ -541,6 +557,8 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     _timerFimMovimentoMapa?.cancel();
     _pararBussolaEPosicaoContinuas();
     _navegacaoRumoNotifier.dispose();
+    _gpsPositionNotifier.dispose();
+    _centroMiraNotifier.dispose();
     _mbtiles.close();
     _nomePontoController.dispose();
     _nomeRotaController.dispose();
@@ -837,7 +855,11 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   LatLng? _aplicarPosicaoGps(Position posicao, {bool recentralizar = false}) {
     if (!_filtroGps.aceitar(AmostraGps.dePosition(posicao))) return null;
     final pos = LatLng(posicao.latitude, posicao.longitude);
-    setState(() => _gpsPosition = pos);
+    if (_gpsPosition == null) {
+      setState(() => _gpsPosition = pos); // primeira posição: mostra o botão
+    } else {
+      _gpsPosition = pos; // só a camada do barco reconstrói
+    }
     if (recentralizar) _recentralizarNoGps(pos);
     return pos;
   }
@@ -2003,13 +2025,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  formatarCoordenadasDMSCompacta(
-                      _centroMira.latitude, _centroMira.longitude),
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+                _buildCoordenadaMira(),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -2895,6 +2911,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    PerfLog.contar('mapa.build');
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Stack(
@@ -2974,6 +2991,18 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   /// resto do que já morou aqui (trocar carta, camadas etc.) mora só no
   /// menu lateral mesmo (ver _buildMenuLateral). Fica no canto oposto ao
   /// CompassoCircular, pra não competir com ele (ver build()).
+  /// Coordenada do retículo — a única parte dos painéis de "marcar ponto",
+  /// "consultar ponto" e "planejar rota" que muda durante o arrasto (ver
+  /// _centroMiraNotifier).
+  Widget _buildCoordenadaMira() => ValueListenableBuilder<LatLng>(
+        valueListenable: _centroMiraNotifier,
+        builder: (context, centro, _) => Text(
+          formatarCoordenadasDMSCompacta(centro.latitude, centro.longitude),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+      );
+
   Widget _buildTopBar() {
     final l10n = AppLocalizations.of(context);
     return Positioned(
@@ -3225,7 +3254,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
           if (_modoMarcarPonto ||
               _consultaPontoAtiva != null ||
               widget.modoPlanejarRota) {
-            setState(() => _centroMira = camera.center);
+            _centroMira = camera.center; // sem setState: ver _centroMiraNotifier
           }
           if (_mostrarGradeTemperatura) {
             final rotulosVisiveis = camera.zoom >= _zoomMinimoRotuloGrade;
@@ -3533,33 +3562,42 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
         // ícone em si (ver BarcoNavegacao3d). No preview compacto do
         // Dashboard (navegacaoTempoReal=false) usa só um ícone estático —
         // nada de WebView/3D ali (ver doc de MapaWidget.navegacaoTempoReal).
+        //
+        // Só esta camada escuta a posição (ver _gpsPositionNotifier). O
+        // barco vai como `child` do builder: mover o marcador não recria o
+        // WebView 3D.
         if (_gpsPosition != null)
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: _gpsPosition!,
-                width: 70,
-                height: 70,
-                // RepaintBoundary: isola os repaints da WebView 3D (que
-                // muda a cada frame da transição de orbita) do resto do
-                // canvas do mapa (tiles, outras camadas) — sem isso, cada
-                // atualização do barco força o Skia a considerar repintar
-                // a composição inteira junto.
-                child: widget.navegacaoTempoReal
-                    ? RepaintBoundary(
-                        child: ValueListenableBuilder<double>(
-                          valueListenable: _navegacaoRumoNotifier,
-                          builder: (context, rumo, _) => BarcoNavegacao3d(
-                            rumo: rumo,
-                            tamanho: 70,
-                            pausado: _usuarioMovendoMapa,
-                          ),
-                        ),
-                      )
-                    : const Icon(Icons.directions_boat_filled,
-                        color: Colors.blueAccent, size: 32),
-              ),
-            ],
+          ValueListenableBuilder<LatLng?>(
+            valueListenable: _gpsPositionNotifier,
+            builder: (context, posicao, barco) => posicao == null
+                ? const SizedBox.shrink()
+                : MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: posicao,
+                        width: 70,
+                        height: 70,
+                        child: barco!,
+                      ),
+                    ],
+                  ),
+            // RepaintBoundary: isola os repaints da WebView 3D (que muda a
+            // cada frame da transição de orbita) do resto do canvas do mapa
+            // (tiles, outras camadas) — sem isso, cada atualização do barco
+            // força o Skia a considerar repintar a composição inteira junto.
+            child: widget.navegacaoTempoReal
+                ? RepaintBoundary(
+                    child: ValueListenableBuilder<double>(
+                      valueListenable: _navegacaoRumoNotifier,
+                      builder: (context, rumo, _) => BarcoNavegacao3d(
+                        rumo: rumo,
+                        tamanho: 70,
+                        pausado: _usuarioMovendoMapa,
+                      ),
+                    ),
+                  )
+                : const Icon(Icons.directions_boat_filled,
+                    color: Colors.blueAccent, size: 32),
           ),
         if (_pontosRecomendacaoDetalhados.isNotEmpty)
           MarkerLayer(
@@ -3649,13 +3687,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  formatarCoordenadasDMSCompacta(
-                      _centroMira.latitude, _centroMira.longitude),
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+                _buildCoordenadaMira(),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _nomePontoController,
@@ -3735,13 +3767,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  formatarCoordenadasDMSCompacta(
-                      _centroMira.latitude, _centroMira.longitude),
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+                _buildCoordenadaMira(),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,

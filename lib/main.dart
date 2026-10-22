@@ -8,6 +8,7 @@ import 'core/services/locale_service.dart';
 import 'core/services/night_mode_service.dart';
 import 'core/services/recomendacao_notification_service.dart';
 import 'core/services/theme_mode_service.dart';
+import 'core/utils/perf_log.dart';
 import 'features/mapa/presentation/meus_pontos_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'l10n/gen/app_localizations.dart';
@@ -44,6 +45,9 @@ void main() async {
   );
 
   FlutterNativeSplash.remove();
+
+  // Só faz algo com --dart-define=PERF_LOG=true (ver PerfLog).
+  PerfLog.iniciar();
 
   runApp(AtlasBlueOceanApp(dbHelper: dbHelper));
 }
