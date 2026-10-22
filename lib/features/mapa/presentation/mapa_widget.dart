@@ -47,6 +47,7 @@ import '../widgets/compasso_circular.dart';
 import '../widgets/download_regiao_dialog.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
+import '../widgets/painel_reticulo.dart';
 import '../widgets/street_map_tile_provider.dart';
 import '../../../l10n/gen/app_localizations.dart';
 
@@ -182,7 +183,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   bool _modoMarcarPonto = false;
   // Muda a cada quadro enquanto o usuário arrasta o mapa nos modos com
   // retículo (marcar ponto, consultar temperatura/clorofila, planejar rota)
-  // — só o texto da coordenada escuta (ver _buildCoordenadaMira), em vez de
+  // — só o texto da coordenada escuta (ver PainelReticulo), em vez de
   // um setState() por quadro reconstruindo o mapa inteiro durante o gesto.
   final ValueNotifier<LatLng> _centroMiraNotifier =
       ValueNotifier(const LatLng(-15.0, -50.0));
@@ -1185,76 +1186,25 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   // posição selecionada buscar a informação seja como clorofila ou
   // temperatura".
 
-  List<Widget> _buildOverlayConsultaPonto() {
+  Widget _buildOverlayConsultaPonto() {
     final camada = _consultaPontoAtiva;
-    if (camada == null) return const [];
+    if (camada == null) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
-    final titulo = camada.titulo(l10n);
-
-    return [
-      const IgnorePointer(
-        child: Center(
-          child: Icon(
-            Icons.add,
-            size: 44,
-            color: Colors.red,
-            shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
-          ),
-        ),
+    return PainelReticulo(
+      centro: _centroMiraNotifier,
+      instrucao: l10n.mapaConsultarPontoInstrucao(camada.titulo(l10n)),
+      acaoSecundaria: OutlinedButton(
+        onPressed: _consultandoPonto
+            ? null
+            : () => setState(() => _consultaPontoAtiva = null),
+        child: Text(l10n.cancelar),
       ),
-      Positioned(
-        left: 12,
-        right: 12,
-        bottom: 12,
-        child: Card(
-          elevation: 6,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  l10n.mapaConsultarPontoInstrucao(titulo),
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                _buildCoordenadaMira(),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _consultandoPonto
-                            ? null
-                            : () => setState(() => _consultaPontoAtiva = null),
-                        child: Text(l10n.cancelar),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed:
-                            _consultandoPonto ? null : _confirmarConsultaPonto,
-                        icon: _consultandoPonto
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.check),
-                        label: Text(l10n.mapaConsultarBotao),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+      acaoPrincipal: botaoConfirmarReticulo(
+        rotulo: l10n.mapaConsultarBotao,
+        onPressed: _confirmarConsultaPonto,
+        ocupado: _consultandoPonto,
       ),
-    ];
+    );
   }
 
   /// Consulta a camada do retículo aberto no ponto mirado, acrescenta o
@@ -1893,9 +1843,9 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
           if (_mode != _MapMode.none) _buildTopBar(),
           if (_overlayAtiva && !_modoMarcarPonto && !widget.modoPlanejarRota)
             _buildOverlayOpacidadeControl(),
-          if (_modoMarcarPonto) ..._buildOverlayMarcarPonto(),
-          if (_consultaPontoAtiva != null) ..._buildOverlayConsultaPonto(),
-          if (widget.modoPlanejarRota) ..._buildOverlayPlanejarRota(),
+          if (_modoMarcarPonto) _buildOverlayMarcarPonto(),
+          if (_consultaPontoAtiva != null) _buildOverlayConsultaPonto(),
+          if (widget.modoPlanejarRota) _buildOverlayPlanejarRota(),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
               _mode != _MapMode.none)
@@ -1925,18 +1875,6 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   /// resto do que já morou aqui (trocar carta, camadas etc.) mora só no
   /// menu lateral mesmo (ver _buildMenuLateral). Fica no canto oposto ao
   /// CompassoCircular, pra não competir com ele (ver build()).
-  /// Coordenada do retículo — a única parte dos painéis de "marcar ponto",
-  /// "consultar ponto" e "planejar rota" que muda durante o arrasto (ver
-  /// _centroMiraNotifier).
-  Widget _buildCoordenadaMira() => ValueListenableBuilder<LatLng>(
-        valueListenable: _centroMiraNotifier,
-        builder: (context, centro, _) => Text(
-          formatarCoordenadasDMSCompacta(centro.latitude, centro.longitude),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-      );
-
   Widget _buildTopBar() {
     final l10n = AppLocalizations.of(context);
     return Positioned(
@@ -2577,174 +2515,80 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
 
   // ── Overlay do modo "marcar ponto" ───────────────────────────────────────
 
-  List<Widget> _buildOverlayMarcarPonto() {
+  Widget _buildOverlayMarcarPonto() {
     final l10n = AppLocalizations.of(context);
-    return [
-      // Retículo fixo no centro do mapa — não se move com o mapa.
-      const IgnorePointer(
-        child: Center(
-          child: Icon(
-            Icons.add,
-            size: 44,
-            color: Colors.red,
-            shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+    return PainelReticulo(
+      centro: _centroMiraNotifier,
+      instrucao: l10n.mapaApontarCentro,
+      campos: [
+        TextField(
+          controller: _nomePontoController,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            labelText: l10n.mapaNomeLocalLabel,
+            hintText: l10n.mapaNomeLocalHint,
+            isDense: true,
           ),
         ),
+      ],
+      acaoSecundaria: OutlinedButton(
+        onPressed: _alternarModoMarcarPonto,
+        child: Text(l10n.cancelar),
       ),
-      Positioned(
-        left: 12,
-        right: 12,
-        bottom: 12,
-        child: Card(
-          elevation: 6,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  l10n.mapaApontarCentro,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                _buildCoordenadaMira(),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _nomePontoController,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: l10n.mapaNomeLocalLabel,
-                    hintText: l10n.mapaNomeLocalHint,
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _alternarModoMarcarPonto,
-                        child: Text(l10n.cancelar),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _confirmarPontoMarcado,
-                        icon: const Icon(Icons.check),
-                        label: Text(l10n.mapaMarcarPontoBotao),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+      acaoPrincipal: botaoConfirmarReticulo(
+        rotulo: l10n.mapaMarcarPontoBotao,
+        onPressed: _confirmarPontoMarcado,
       ),
-    ];
+    );
   }
 
   // ── Overlay do modo "planejar rota" ──────────────────────────────────────
 
-  List<Widget> _buildOverlayPlanejarRota() {
+  /// Retículo roxo pra diferenciar de "Marcar um ponto"/consultas; "Adicionar
+  /// ponto" usa a posição real apontada, não onde o dedo tocou a tela.
+  Widget _buildOverlayPlanejarRota() {
     final l10n = AppLocalizations.of(context);
     final pontos = _pontosRotaPlanejada.length;
     final podeSalvar =
         pontos >= 2 && _nomeRotaController.text.trim().isNotEmpty;
-    return [
-      // Retículo fixo no centro do mapa — mesmo padrão de precisão de
-      // "Marcar um ponto"/consultas (ver _buildOverlayMarcarPonto):
-      // "Adicionar ponto" (abaixo) usa a posição real apontada aqui, não
-      // onde o dedo tocou a tela.
-      const IgnorePointer(
-        child: Center(
-          child: Icon(
-            Icons.add,
-            size: 44,
-            color: Colors.purple,
-            shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+    return PainelReticulo(
+      centro: _centroMiraNotifier,
+      corReticulo: Colors.purple,
+      alinhamento: CrossAxisAlignment.start,
+      instrucao: pontos == 0
+          ? l10n.mapaRotaTocarPrimeiroPonto
+          : l10n.mapaRotaPontosAdicionados(pontos),
+      campos: [
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _adicionarPontoRotaPlanejada,
+            icon: const Icon(Icons.add_location_alt),
+            label: Text(l10n.mapaRotaAdicionarPontoBotao),
           ),
         ),
-      ),
-      Positioned(
-        left: 12,
-        right: 12,
-        bottom: 12,
-        child: Card(
-          elevation: 6,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  pontos == 0
-                      ? l10n.mapaRotaTocarPrimeiroPonto
-                      : l10n.mapaRotaPontosAdicionados(pontos),
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                _buildCoordenadaMira(),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _adicionarPontoRotaPlanejada,
-                    icon: const Icon(Icons.add_location_alt),
-                    label: Text(l10n.mapaRotaAdicionarPontoBotao),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _nomeRotaController,
-                  textCapitalization: TextCapitalization.sentences,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    labelText: l10n.mapaNomeRotaLabel,
-                    hintText: l10n.mapaNomeRotaHint,
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed:
-                            pontos == 0 ? null : _desfazerUltimoPontoRota,
-                        child: Text(l10n.mapaDesfazerUltimo),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: (!podeSalvar || _salvandoRota)
-                            ? null
-                            : _salvarRotaPlanejada,
-                        icon: _salvandoRota
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.check),
-                        label: Text(widget.rotaParaEditar != null
-                            ? l10n.mapaSalvarAlteracoes
-                            : l10n.mapaSalvarRota),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        TextField(
+          controller: _nomeRotaController,
+          textCapitalization: TextCapitalization.sentences,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            labelText: l10n.mapaNomeRotaLabel,
+            hintText: l10n.mapaNomeRotaHint,
+            isDense: true,
           ),
         ),
+      ],
+      acaoSecundaria: OutlinedButton(
+        onPressed: pontos == 0 ? null : _desfazerUltimoPontoRota,
+        child: Text(l10n.mapaDesfazerUltimo),
       ),
-    ];
+      acaoPrincipal: botaoConfirmarReticulo(
+        rotulo: widget.rotaParaEditar != null
+            ? l10n.mapaSalvarAlteracoes
+            : l10n.mapaSalvarRota,
+        onPressed: podeSalvar ? _salvarRotaPlanejada : null,
+        ocupado: _salvandoRota,
+      ),
+    );
   }
 }
