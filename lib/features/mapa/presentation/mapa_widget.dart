@@ -33,6 +33,7 @@ import 'camadas/camada_consulta_ponto.dart';
 import 'camadas/camada_indice_produtividade.dart';
 import 'camadas/camada_intelligence.dart';
 import 'camadas/camada_temperatura.dart';
+import 'camadas/camadas_mapa.dart';
 import '../domain/models/ponto_marcado.dart';
 import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
@@ -47,7 +48,6 @@ import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/menu_lateral_mapa.dart';
 import '../widgets/meteorologia_sheet.dart';
 import '../widgets/painel_reticulo.dart';
-import '../widgets/street_map_tile_provider.dart';
 import '../../../l10n/gen/app_localizations.dart';
 
 const _bundledAsset = 'assets/cartas/OUTPUT_FILE.mbtiles';
@@ -842,32 +842,6 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
       _producaoClusters = grupos.values.toList();
       _carregandoProducao = false;
     });
-  }
-
-  List<Marker> _buildMarcadoresProducao() {
-    final maxKg = _producaoClusters
-        .map((c) => c.totalKg)
-        .reduce((a, b) => a > b ? a : b);
-    return _producaoClusters.map((c) {
-      final tamanho = maxKg <= 0
-          ? 24.0
-          : (24 + 36 * (c.totalKg / maxKg)).clamp(24.0, 60.0);
-      return Marker(
-        point: LatLng(c.lat, c.lon),
-        width: tamanho,
-        height: tamanho,
-        child: GestureDetector(
-          onTap: () => mostrarDetalheGrupoProducao(context, c),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.deepOrange.withValues(alpha: 0.55),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-          ),
-        ),
-      );
-    }).toList();
   }
 
   // ── Informações náuticas (OpenSeaMap) ────────────────────────────────────
@@ -1969,46 +1943,14 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
         },
       ),
       children: [
-        if (_camadaRuas) ...[
-          TileLayer(tileProvider: StreetMapTileProvider(_streetCache)),
-          // Sombreamento de profundidade (GEBCO, via GeoServer do próprio
-          // OpenSeaMap) — dado batimétrico real, achado no código-fonte
-          // público do site oficial (`OpenSeaMap/online_chart`), não
-          // inventado. Fica abaixo das marcas náuticas (símbolos precisam
-          // continuar visíveis por cima do sombreamento).
-          if (_mostrarProfundidade)
-            TileLayer(
-              wmsOptions: WMSTileLayerOptions(
-                baseUrl: 'https://geoserver.openseamap.org/geoserver/gwc/service/wms?',
-                layers: const ['gebco2021:gebco_2021'],
-                format: 'image/png',
-                version: '1.1.1',
-              ),
-              userAgentPackageName: 'com.blueocean.atlas',
-            ),
-          // Curvas de profundidade (isóbatas) — mesmo projeto de
-          // profundidade do OpenSeaMap, servidor GeoServer dedicado a ele.
-          if (_mostrarCurvasProfundidade)
-            TileLayer(
-              wmsOptions: WMSTileLayerOptions(
-                baseUrl: 'https://depth.openseamap.org/geoserver/openseamap/wms?',
-                layers: const ['openseamap:contour', 'openseamap:contour2'],
-                format: 'image/png',
-                version: '1.1.0',
-              ),
-              userAgentPackageName: 'com.blueocean.atlas',
-            ),
-          // Informações náuticas do OpenSeaMap (marcas, boias, faróis,
-          // portos) — tiles públicos, transparentes, só fazem sentido
-          // sobre o mapa de ruas (nunca sobre a carta MBTiles/GeoTIFF
-          // carregada, por isso dentro desse `if (_camadaRuas)`).
-          // Atribuição: © OpenSeaMap contributors (ver CamadasPainel).
-          if (_mostrarInfoNautica)
-            TileLayer(
-              urlTemplate: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.blueocean.atlas',
-            ),
-        ] else ...[
+        if (_camadaRuas)
+          ...camadasOpenSeaMap(
+            _streetCache,
+            profundidade: _mostrarProfundidade,
+            curvas: _mostrarCurvasProfundidade,
+            infoNautica: _mostrarInfoNautica,
+          )
+        else ...[
           if (_mode == _MapMode.mbtiles)
             TileLayer(
               tileProvider: MbtilesTileProvider(_mbtiles),
@@ -2053,181 +1995,30 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
               ),
             ],
           ),
-        // Calor de produção — círculos proporcionais ao total em kg
-        // registrado perto daquele ponto, em qualquer viagem.
         if (_mostrarProducao && _producaoClusters.isNotEmpty)
-          MarkerLayer(markers: _buildMarcadoresProducao()),
+          camadaCalorProducao(
+            _producaoClusters,
+            (c) => mostrarDetalheGrupoProducao(context, c),
+          ),
         // Camadas de consulta por ponto (temperatura, clorofila, índice,
         // Inteligência — ver camadas/), na ordem de _camadasConsulta.
         for (final camada in _camadasConsulta)
           if (camada.visivel && camada.temPontos)
             ...camada.camadas((item) => _mostrarDetalheCamada(camada, item)),
-        // Rota sendo planejada manualmente — cada toque no mapa adiciona um
-        // ponto numerado em sequência.
-        if (widget.modoPlanejarRota && _pontosRotaPlanejada.length > 1)
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: _pontosRotaPlanejada,
-                strokeWidth: 4,
-                color: Colors.purple,
-              ),
-            ],
-          ),
-        if (widget.modoPlanejarRota && _pontosRotaPlanejada.isNotEmpty)
-          MarkerLayer(
-            markers: _pontosRotaPlanejada.asMap().entries.map((entry) {
-              final indice = entry.key;
-              final ponto = entry.value;
-              return Marker(
-                point: ponto,
-                width: 28,
-                height: 28,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.purple,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${indice + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        // Trilha ao vivo da viagem em andamento — atualiza sozinha enquanto
-        // a camada estiver ligada (ver _alternarTrilhaViagem). Cor distinta
-        // (azul) da rota estática passada de fora (_rota, vermelha).
-        if (_mostrarTrilhaViagem && _pontosTrilhaViagem.length > 1)
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: _pontosTrilhaViagem,
-                strokeWidth: 4,
-                color: Colors.blue,
-              ),
-            ],
-          ),
-        if (_mostrarTrilhaViagem && _pontosTrilhaViagem.isNotEmpty)
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: _pontosTrilhaViagem.last,
-                width: 20,
-                height: 20,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        // Rota do histórico de GPS — linha ligando os pontos na ordem
-        // cronológica, ao estilo Waze/Google Maps, sobre a carta náutica.
-        if (_rota.length > 1)
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: _rota,
-                strokeWidth: 4,
-                color: Colors.redAccent,
-              ),
-            ],
-          ),
-        if (_rota.isNotEmpty)
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: _rota.first,
-                width: 22,
-                height: 22,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
-              ),
-              if (_rota.length > 1)
-                Marker(
-                  point: _rota.last,
-                  width: 34,
-                  height: 34,
-                  alignment: Alignment.topCenter,
-                  child: const Icon(Icons.flag, color: Colors.red, size: 28),
-                ),
-            ],
-          ),
-        // Rota entre registros de produção — mesmo estilo Waze/Google Maps
-        // da rota de histórico, mas ligando onde cada captura foi feita, na
-        // ordem cronológica recebida de ProducaoHistoricoScreen.
-        if (_rotaProducao.length > 1)
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: _rotaProducao,
-                strokeWidth: 4,
-                color: Colors.deepOrange,
-              ),
-            ],
-          ),
-        if (widget.producaoPontos != null && widget.producaoPontos!.isNotEmpty)
-          MarkerLayer(
-            markers: widget.producaoPontos!
-                .where((r) => r.latitude != null && r.longitude != null)
-                .map((registro) => Marker(
-                      point: LatLng(registro.latitude!, registro.longitude!),
-                      width: 32,
-                      height: 32,
-                      alignment: Alignment.topCenter,
-                      child: GestureDetector(
-                        onTap: () => mostrarDetalheRegistroProducao(context, registro),
-                        child: Image.asset(
-                          'assets/icons/icon_cardume_vermelho.png',
-                          width: 32,
-                          height: 32,
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-        // Pontos precisos: alfinete só — nome/detalhes só aparecem ao tocar
-        // (ver MeteorologiaSheet), pra não poluir o mapa com texto solto.
+        if (widget.modoPlanejarRota) ...camadasRotaPlanejada(_pontosRotaPlanejada),
+        // Atualiza sozinha enquanto a camada estiver ligada (ver
+        // _alternarTrilhaViagem).
+        if (_mostrarTrilhaViagem) ...camadasTrilhaViagem(_pontosTrilhaViagem),
+        ...camadasRotaHistorico(_rota),
+        // Ordem cronológica recebida de ProducaoHistoricoScreen.
+        ...camadasRotaProducao(
+          widget.producaoPontos ?? const [],
+          (registro) => mostrarDetalheRegistroProducao(context, registro),
+        ),
+        // Pontos precisos: detalhes no MeteorologiaSheet ao tocar.
         if (_pontos.isNotEmpty)
-          MarkerLayer(
-            markers: _pontos
-                .map((p) => Marker(
-                      point: LatLng(p.latitude, p.longitude),
-                      width: 28,
-                      height: 28,
-                      child: GestureDetector(
-                        onTap: () => MeteorologiaSheet.show(context, p),
-                        child: Center(
-                          child: Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: Colors.orange,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
+          camadaPontosPrecisos(
+              _pontos, (p) => MeteorologiaSheet.show(context, p)),
         // Barco 3D como marcador de posição — preso à coordenada real do
         // mundo (não fixo na tela) em qualquer modo, pra sempre refletir a
         // posição de verdade, mesmo se o usuário arrastar o mapa. No Modo
@@ -2278,54 +2069,21 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                     color: Colors.blueAccent, size: 32),
           ),
         if (_pontosRecomendacaoDetalhados.isNotEmpty)
-          MarkerLayer(
-            markers: _pontosRecomendacaoDetalhados
-                .map((p) => Marker(
-                      point: LatLng(p.latitude, p.longitude),
-                      width: 36,
-                      height: 36,
-                      alignment: Alignment.topCenter,
-                      child: GestureDetector(
-                        onTap: () => _mostrarInfoPontoRecomendacao(p),
-                        child: Image.asset(
-                          'assets/icons/icon_cardume.png',
-                          width: 32,
-                          height: 32,
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
+          camadaPontosRecomendacao(
+              _pontosRecomendacaoDetalhados, _mostrarInfoPontoRecomendacao),
         if (_pontosMarcados.isNotEmpty)
-          MarkerLayer(
-            markers: _pontosMarcados
-                .map((p) => Marker(
-                      point: LatLng(p.latitude, p.longitude),
-                      width: 36,
-                      height: 36,
-                      alignment: Alignment.topCenter,
-                      child: GestureDetector(
-                        // Planejando rota: toca um ponto marcado pra
-                        // adicionar ele (com a coordenada exata, sem
-                        // depender de acertar o toque no mapa) em vez de
-                        // abrir o diálogo de detalhe — que não faz sentido
-                        // nesse modo, já que o objetivo é montar a rota.
-                        onTap: widget.modoPlanejarRota
-                            ? () => setState(() => _pontosRotaPlanejada = [
-                                  ..._pontosRotaPlanejada,
-                                  LatLng(p.latitude, p.longitude),
-                                ])
-                            : () => _mostrarInfoPontoMarcado(p),
-                        child: Icon(
-                          Icons.push_pin,
-                          color: widget.modoPlanejarRota
-                              ? Colors.purple
-                              : Colors.green,
-                          size: 32,
-                        ),
-                      ),
-                    ))
-                .toList(),
+          camadaPontosMarcados(
+            _pontosMarcados,
+            cor: widget.modoPlanejarRota ? Colors.purple : Colors.green,
+            // Planejando rota: tocar um ponto marcado adiciona ele (com a
+            // coordenada exata, sem depender de acertar o toque no mapa) em
+            // vez de abrir o detalhe — que não faz sentido nesse modo.
+            aoTocar: widget.modoPlanejarRota
+                ? (p) => setState(() => _pontosRotaPlanejada = [
+                      ..._pontosRotaPlanejada,
+                      LatLng(p.latitude, p.longitude),
+                    ])
+                : _mostrarInfoPontoMarcado,
           ),
       ],
     );
