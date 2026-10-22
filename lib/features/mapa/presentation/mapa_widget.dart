@@ -9,14 +9,12 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../../../core/database/database_helper.dart';
 import '../../../core/gps/amostra_gps.dart';
 import '../../../core/gps/filtro_posicao_exibicao.dart';
-import '../../../core/models/sst_ponto.dart';
 import '../../../core/planos/plano_service.dart';
 import '../../../core/planos/recurso_atlas.dart';
 import '../../../core/services/geo_png_helper.dart';
@@ -29,23 +27,19 @@ import '../../termoclina/presentation/termoclina_screen.dart';
 import '../../../core/services/pontos_service.dart';
 import '../../../core/services/street_map_cache_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
-import '../../../core/utils/cor_tema.dart';
 import '../../../core/utils/erro_amigavel.dart';
 import '../../../core/utils/proximidade.dart';
 import '../../../core/utils/perf_log.dart';
-import '../widgets/legenda_grade_temperatura.dart' show corGradeTemperatura;
-import '../../metereologia/data/wave_forecast_repository.dart';
 import '../../producao/domain/especies_comuns.dart';
 import '../../producao/domain/models/producao_registro.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
 import '../../recomendacao/widgets/recomendacao_variavel_chip.dart';
-import '../data/clorofila_repository.dart';
-import '../domain/models/indice_produtividade_blue_ocean.dart';
-import '../domain/models/leitura_clorofila.dart';
+import 'camadas/camada_clorofila.dart';
+import 'camadas/camada_consulta_ponto.dart';
+import 'camadas/camada_indice_produtividade.dart';
+import 'camadas/camada_intelligence.dart';
+import 'camadas/camada_temperatura.dart';
 import '../domain/models/ponto_marcado.dart';
-import '../../intelligence/data/intelligence_repository.dart';
-import '../../intelligence/domain/models/intelligence_result.dart';
-import '../../intelligence/presentation/intelligence_screen.dart';
 import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
 import '../widgets/barco_navegacao_3d.dart';
@@ -53,7 +47,6 @@ import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/detalhe_ponto_marcado.dart';
 import '../widgets/compasso_circular.dart';
 import '../widgets/download_regiao_dialog.dart';
-import '../widgets/legenda_clorofila.dart';
 import '../widgets/mbtiles_tile_provider.dart';
 import '../widgets/meteorologia_sheet.dart';
 import '../widgets/street_map_tile_provider.dart';
@@ -61,13 +54,6 @@ import '../../../l10n/gen/app_localizations.dart';
 
 const _bundledAsset = 'assets/cartas/OUTPUT_FILE.mbtiles';
 const _pontosAsset = 'assets/json/posicoes/Routing3.json';
-
-/// Lado da célula desenhada pra temperatura consultada, em graus — só um
-/// tamanho visual (a consulta em si é sempre de um ponto único, ver
-/// `MapaWidgetState._confirmarConsultaPonto`), próximo da resolução de
-/// 0.25° dos modelos meteorológicos que o app já usa em outros lugares
-/// (ver vento.json).
-const _gradeTemperaturaEspacamento = 0.25;
 
 /// Sobreposição opcional: um PNG georreferenciado (retângulo alinhado aos
 /// eixos, sem rotação) exibido por cima da carta MBTiles/mapa de ruas —
@@ -81,11 +67,6 @@ const _overlaySudoesteFallback = LatLng(-3.0, -40.0);
 const _overlayNordesteFallback = LatLng(-2.8, -39.8);
 
 enum _MapMode { none, mbtiles, geotiff }
-
-/// Qual camada está usando o seletor de posição (mesmo reticulado de
-/// "Marcar um ponto") pra escolher onde consultar — ver
-/// `MapaWidgetState._consultaPontoAtiva`.
-enum _TipoConsultaPonto { temperatura, clorofila, indiceProdutividade, intelligence }
 
 /// Mapa interativo completo — carta offline (MBTiles/GeoTIFF), pontos,
 /// posição GPS e marcação manual de pontos.
@@ -212,11 +193,24 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   List<PontoMarcado> _pontosMarcados = [];
   final TextEditingController _nomePontoController = TextEditingController();
 
-  // ── Consultar temperatura/clorofila num ponto escolhido ──────────────────
-  // Mesmo reticulado de "Marcar um ponto" (usa o mesmo _centroMira) — ver
-  // spec: "exibir o seletor de posição exatamente igual ao de criar uma
-  // posição, e a partir da posição selecionada buscar a informação".
-  _TipoConsultaPonto? _consultaPontoAtiva;
+  // ── Camadas de consulta por ponto (ver camadas/) ─────────────────────────
+  // Cada uma no seu arquivo; consultadas com o mesmo retículo de "Marcar um
+  // ponto" (usa o mesmo _centroMira) — ver _alternarCamada.
+  final _camadaTemperatura = CamadaTemperatura();
+  final _camadaClorofila = CamadaClorofila();
+  final _camadaIndice = CamadaIndiceProdutividade();
+  final _camadaIntelligence = CamadaIntelligence();
+
+  /// Ordem de desenho no mapa e de empilhamento dos botões "+".
+  late final List<CamadaConsultaPonto> _camadasConsulta = [
+    _camadaTemperatura,
+    _camadaClorofila,
+    _camadaIndice,
+    _camadaIntelligence,
+  ];
+
+  /// Camada com o retículo aberto pra escolher onde consultar, ou null.
+  CamadaConsultaPonto? _consultaPontoAtiva;
   bool _consultandoPonto = false;
 
   // ── Planejar rota manualmente ────────────────────────────────────────────
@@ -228,11 +222,6 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   bool _mostrarProducao = false;
   bool _carregandoProducao = false;
   List<_ClusterProducao> _producaoClusters = [];
-
-  // ── Grade de temperatura da superfície do mar (SST) ──────────────────────
-  bool _mostrarGradeTemperatura = false;
-  List<SstPonto> _gradeTemperatura = [];
-  bool _gradeRotulosVisiveis = true;
 
   // ── Informações náuticas (OpenSeaMap) ────────────────────────────────────
   // Tiles públicos de marcas náuticas/boias/faróis/portos (transparentes,
@@ -252,32 +241,6 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   bool _mostrarProfundidade = true;
   bool _mostrarCurvasProfundidade = true;
 
-  // ── Clorofila-a (NOAA CoastWatch, ERDDAP) ────────────────────────────────
-  // Indicador de produtividade biológica/oceanográfica — nunca tratado como
-  // biomassa de peixe (ver doc de `LeituraClorofilaPonto`). Consulta é
-  // sempre num ponto escolhido pelo mestre (ver _consultaPontoAtiva), não
-  // uma grade automática — a UI trata "sem dado"/erro de rede sem nunca
-  // inventar valor. Mais de um ponto pode ficar marcado ao mesmo tempo (ver
-  // botão "+" em [_buildAdicionarPontoClorofilaButton]); cada um pode ser
-  // removido individualmente pelo próprio diálogo (ver [_mostrarInfoClorofila]).
-  bool _mostrarClorofila = false;
-  List<LeituraClorofilaPonto> _clorofilaPontos = [];
-
-  // ── Índice de Produtividade Blue Ocean (clorofila-a + temperatura) ───────
-  // Combina as duas leituras já buscadas separadamente (clorofila, SST) num
-  // único indicador (ver `IndiceProdutividadeBlueOcean.calcular`) — sempre
-  // uma estimativa heurística, nunca uma garantia de cardume. Mesmo padrão
-  // de vários pontos + remoção individual da clorofila.
-  bool _mostrarIndiceProdutividade = false;
-  List<IndiceProdutividadeBlueOcean> _indicePontos = [];
-
-  // ── Inteligência Oceânica (Blue Ocean Intelligence) ──────────────────────
-  // Mesmo padrão de vários pontos + remoção individual das camadas acima —
-  // cada ponto chama `IntelligenceRepository.avaliarPonto` (SST/corrente/
-  // clorofila/ondas/vento em paralelo, ver `IntelligenceEngine`), nunca
-  // recalculado aqui. Nunca é probabilidade de pesca.
-  bool _mostrarIntelligence = false;
-  List<IntelligenceResult> _intelligencePontos = [];
 
   // ── Trilha ao vivo da viagem em andamento ────────────────────────────────
   // Diferente de `widget.rota` (uma trilha estática passada de fora, ex: a
@@ -1076,190 +1039,6 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     );
   }
 
-  // ── Grade de temperatura (SST) ───────────────────────────────────────────
-
-  /// Liga/desliga a camada. Mesmo padrão de [_alternarClorofila]: primeira
-  /// vez abre o seletor de posição (mesmo reticulado de "Marcar um ponto"
-  /// — ver [_buildOverlayConsultaPonto]); a busca de verdade só acontece
-  /// ao confirmar (ver [_confirmarConsultaPonto]). Só entra direto no
-  /// seletor se ainda não há nenhum ponto marcado; se já houver, ligar só
-  /// reexibe os pontos já consultados (adicionar mais um é pelo botão "+",
-  /// ver [_buildAdicionarPontoTemperaturaButton]).
-  void _alternarGradeTemperatura() {
-    if (_consultaPontoAtiva == _TipoConsultaPonto.temperatura) {
-      setState(() => _consultaPontoAtiva = null);
-      return;
-    }
-    if (_mostrarGradeTemperatura) {
-      setState(() => _mostrarGradeTemperatura = false);
-      return;
-    }
-    if (_gradeTemperatura.isEmpty) {
-      _iniciarConsultaTemperatura();
-    } else {
-      setState(() => _mostrarGradeTemperatura = true);
-    }
-  }
-
-  /// Abre o seletor de posição pra adicionar mais um ponto de temperatura,
-  /// sem mexer nos que já estão marcados — chamado tanto pela primeira
-  /// consulta (via [_alternarGradeTemperatura]) quanto pelo botão "+"
-  /// flutuante (mesmo papel de [_iniciarConsultaClorofila]).
-  void _iniciarConsultaTemperatura() {
-    _fecharMenuLateral();
-    setState(() {
-      _consultaPontoAtiva = _TipoConsultaPonto.temperatura;
-      _centroMira = _mapController.camera.center;
-    });
-  }
-
-  /// Botão "+" flutuante pra marcar mais um ponto de temperatura, visível
-  /// só enquanto a camada está ligada — mesmo papel de
-  /// [_buildAdicionarPontoClorofilaButton]: permitir mais de um ponto
-  /// marcado ao mesmo tempo (antes, cada consulta substituía a anterior).
-  Widget _buildAdicionarPontoTemperaturaButton() {
-    // Empilha acima dos outros FABs de "+" que possam estar visíveis ao
-    // mesmo tempo (clorofila/índice), na mesma lógica de
-    // [_buildAdicionarPontoIndiceButton].
-    var bottom = 140.0;
-    if (_mostrarClorofila) bottom += 64;
-    if (_mostrarIndiceProdutividade) bottom += 64;
-    if (_mostrarIntelligence) bottom += 64;
-    return Positioned(
-      right: 12,
-      bottom: bottom,
-      child: FloatingActionButton(
-        heroTag: 'adicionarTemperaturaFab',
-        onPressed: _iniciarConsultaTemperatura,
-        tooltip: AppLocalizations.of(context).mapaAdicionarPontoTemperatura,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  /// Zoom mínimo pra desenhar o valor em cima de cada célula — abaixo disso
-  /// as células ficam pequenas demais na tela e os números se atropelam uns
-  /// nos outros; a cor de fundo continua aparecendo em qualquer zoom.
-  static const _zoomMinimoRotuloGrade = 8.0;
-
-  /// Menor e maior temperatura da grade carregada, ou nulo se não há
-  /// nenhuma leitura válida — usado tanto pra colorir as células quanto
-  /// pela legenda (ver [_buildLegendaGradeTemperatura]).
-  (double min, double max)? get _gradeTemperaturaMinMax {
-    final temperaturas =
-        _gradeTemperatura.map((p) => p.temperaturaC).whereType<double>();
-    if (temperaturas.isEmpty) return null;
-    return (
-      temperaturas.reduce((a, b) => a < b ? a : b),
-      temperaturas.reduce((a, b) => a > b ? a : b),
-    );
-  }
-
-  /// Um quadrado colorido por célula (`PolygonLayer`) com o valor em cima
-  /// (`MarkerLayer`, só a partir de um certo zoom) — os dois juntos formam
-  /// a grade estilo mapa de calor.
-  List<Widget> _buildCamadaGradeTemperatura() {
-    final comTemperatura =
-        _gradeTemperatura.where((p) => p.temperaturaC != null).toList();
-    final minMax = _gradeTemperaturaMinMax;
-    if (comTemperatura.isEmpty || minMax == null) return const [];
-    final (min, max) = minMax;
-    const meiaCelula = _gradeTemperaturaEspacamento / 2;
-    final mostrarRotulos = _gradeRotulosVisiveis;
-
-    return [
-      PolygonLayer(
-        polygons: comTemperatura.map((p) {
-          final cor = corGradeTemperatura(p.temperaturaC!, min, max);
-          return Polygon(
-            points: [
-              LatLng(p.latitude - meiaCelula, p.longitude - meiaCelula),
-              LatLng(p.latitude - meiaCelula, p.longitude + meiaCelula),
-              LatLng(p.latitude + meiaCelula, p.longitude + meiaCelula),
-              LatLng(p.latitude + meiaCelula, p.longitude - meiaCelula),
-            ],
-            color: cor.withValues(alpha: 0.55),
-            borderColor: Colors.white.withValues(alpha: 0.4),
-            borderStrokeWidth: 1,
-          );
-        }).toList(),
-      ),
-      // Alvo de toque por ponto — sempre presente (mesmo com o rótulo
-      // escondido em zoom baixo), pra ver o valor exato e remover
-      // individualmente (ver _mostrarInfoTemperaturaPonto), já que agora
-      // dá pra acumular vários pontos (botão "+").
-      MarkerLayer(
-        markers: comTemperatura
-            .map((p) => Marker(
-                  point: LatLng(p.latitude, p.longitude),
-                  width: 44,
-                  height: 32,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _mostrarInfoTemperaturaPonto(p),
-                    child: mostrarRotulos
-                        ? Center(
-                            child: Text(
-                              '${p.temperaturaC!.toStringAsFixed(0)}°',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          )
-                        : const SizedBox.expand(),
-                  ),
-                ))
-            .toList(),
-      ),
-    ];
-  }
-
-  void _mostrarInfoTemperaturaPonto(SstPonto ponto) {
-    final l10n = AppLocalizations.of(context);
-    final valor = ponto.temperaturaC;
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(l10n.mapaTemperaturaTitulo),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              valor != null
-                  ? l10n.mapaTemperaturaResultado(valor.toStringAsFixed(1))
-                  : l10n.mapaTemperaturaSemDado,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              formatarCoordenadasDMSCompacta(ponto.latitude, ponto.longitude),
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() => _gradeTemperatura =
-                  _gradeTemperatura.where((p) => p != ponto).toList());
-            },
-            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.fechar),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Informações náuticas (OpenSeaMap) ────────────────────────────────────
 
   void _alternarInfoNautica() {
@@ -1503,478 +1282,69 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     }
   }
 
-  // ── Clorofila-a (NOAA CoastWatch, ERDDAP) ────────────────────────────────
+  // ── Camadas de consulta por ponto ────────────────────────────────────────
+  // Temperatura, clorofila, índice de produtividade e Inteligência Oceânica
+  // funcionam igual (ver CamadaConsultaPonto, em camadas/): cada uma no seu
+  // arquivo diz o que busca e como desenha; aqui só a orquestração comum.
 
-  /// Liga/desliga a camada. Ligar abre o mesmo seletor de posição da
-  /// temperatura (ver [_buildOverlayConsultaPonto]) — a busca só acontece
-  /// ao confirmar (ver [_confirmarConsultaPonto]). Só entra direto no
-  /// seletor se ainda não há nenhum ponto marcado; se já houver, ligar só
-  /// reexibe os pontos já consultados (adicionar mais um é pelo botão "+",
-  /// ver [_buildAdicionarPontoClorofilaButton]).
-  void _alternarClorofila() {
-    if (_consultaPontoAtiva == _TipoConsultaPonto.clorofila) {
+  /// Liga/desliga a camada. Ligar abre o retículo (ver
+  /// [_buildOverlayConsultaPonto]) só se ainda não há ponto consultado — a
+  /// busca acontece ao confirmar ([_confirmarConsultaPonto]); com pontos,
+  /// ligar só os reexibe (mais um ponto é pelo botão "+").
+  void _alternarCamada(CamadaConsultaPonto camada) {
+    if (_consultaPontoAtiva == camada) {
       setState(() => _consultaPontoAtiva = null);
       return;
     }
-    if (_mostrarClorofila) {
-      setState(() => _mostrarClorofila = false);
+    if (camada.visivel) {
+      setState(() => camada.visivel = false);
       return;
     }
-    if (_clorofilaPontos.isEmpty) {
-      _iniciarConsultaClorofila();
+    if (camada.temPontos) {
+      setState(() => camada.visivel = true);
     } else {
-      setState(() => _mostrarClorofila = true);
+      _iniciarConsulta(camada);
     }
   }
 
-  /// Abre o seletor de posição pra adicionar mais um ponto de clorofila-a,
-  /// sem mexer nos que já estão marcados — chamado tanto pela primeira
-  /// consulta (via [_alternarClorofila]) quanto pelo botão "+" flutuante.
-  void _iniciarConsultaClorofila() {
+  /// Abre o retículo pra consultar mais um ponto da camada, sem mexer nos
+  /// que já estão marcados.
+  void _iniciarConsulta(CamadaConsultaPonto camada) {
     _fecharMenuLateral();
     setState(() {
-      _consultaPontoAtiva = _TipoConsultaPonto.clorofila;
+      _consultaPontoAtiva = camada;
       _centroMira = _mapController.camera.center;
     });
   }
 
-  /// Botão "+" flutuante pra marcar mais um ponto de clorofila-a, visível
-  /// só enquanto a camada está ligada — pedido explícito: permitir mais de
-  /// um ponto marcado ao mesmo tempo.
-  Widget _buildAdicionarPontoClorofilaButton() {
-    return Positioned(
-      right: 12,
-      bottom: 140,
-      child: FloatingActionButton(
-        heroTag: 'adicionarClorofilaFab',
-        onPressed: _iniciarConsultaClorofila,
-        tooltip: AppLocalizations.of(context).mapaAdicionarPontoClorofila,
-        child: const Icon(Icons.add),
-      ),
-    );
+  /// A [camada] está com uma consulta em andamento (spinner no menu).
+  bool _consultando(CamadaConsultaPonto camada) =>
+      _consultandoPonto && _consultaPontoAtiva == camada;
+
+  void _mostrarDetalheCamada(CamadaConsultaPonto camada, Object? item) {
+    camada.mostrarDetalhe(context, item,
+        aoRemover: () => setState(() => camada.remover(item)));
   }
 
-  /// Um marcador por ponto consultado, com a cor da faixa da escala
-  /// (Ruim/Bom/Ótimo/Excelente — ver [corNivelProdutividade]), a mesma cor que
-  /// aparece no diálogo do ponto. Cada um é tocável pra reabrir seu
-  /// valor/removê-lo individualmente.
-  List<Widget> _buildCamadaClorofila() {
-    if (_clorofilaPontos.isEmpty) return const [];
-    return [
-      MarkerLayer(
-        markers: _clorofilaPontos.map((ponto) {
-          final valor = ponto.valorMgM3;
-          return Marker(
-            point: LatLng(ponto.latitude, ponto.longitude),
-            width: 32,
-            height: 32,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _mostrarInfoClorofila(ponto),
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: valor != null
-                      ? corNivelProdutividade(nivelClorofila(valor))
-                      : Colors.grey.withValues(alpha: 0.7),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: const Icon(Icons.eco, color: Colors.white, size: 16),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    ];
-  }
-
-  void _mostrarInfoClorofila(LeituraClorofilaPonto ponto) {
+  /// Botões "+" das camadas visíveis, empilhados sem sobrepor um ao outro
+  /// (antes cada botão calculava a própria altura, e com Índice e
+  /// Inteligência ligados os dois ficavam no mesmo lugar).
+  List<Widget> _buildBotoesAdicionarPonto() {
     final l10n = AppLocalizations.of(context);
-    final valor = ponto.valorMgM3;
-    final nivel = valor != null ? nivelClorofila(valor) : null;
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(l10n.mapaClorofilaTitulo),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (nivel != null)
-              Row(
-                children: [
-                  Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: corNivelProdutividade(nivel),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(nivel.rotulo,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
-                ],
-              )
-            else
-              Text(
-                l10n.mapaClorofilaSemDado,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            const SizedBox(height: 8),
-            Text(l10n.mapaClorofilaData(DateFormat('dd/MM/yyyy').format(ponto.data))),
-            // Veio do cache sem confirmar que é o produto mais recente (sem
-            // rede) — ver ClorofilaRepository.buscarPontoOuAproximado.
-            if (ponto.desatualizada)
-              Text(
-                l10n.intelligenceClorofilaDesatualizada,
-                style: const TextStyle(color: Colors.orange),
-              ),
-            const SizedBox(height: 4),
-            Text(l10n.mapaClorofilaFonte(ponto.source)),
-            const SizedBox(height: 4),
-            // Coordenada de onde o dado foi medido de verdade — sempre
-            // mostrada, não só quando aproximado: o pixel do satélite tem
-            // ~2km de resolução, então nunca é exatamente o ponto tocado
-            // no mapa mesmo num resultado "exato".
-            Text(
-              l10n.mapaClorofilaCoordenadaDado(
-                  formatarCoordenadasDMSCompacta(ponto.latitude, ponto.longitude)),
-              style: TextStyle(fontSize: 12, color: corRotulo(context)),
-            ),
-            if (ponto.aproximado) ...[
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.info_outline, size: 16, color: Colors.amber),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      l10n.mapaClorofilaAproximadoAviso,
-                      style: const TextStyle(fontSize: 12, color: Colors.amber),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 12),
-            Text(
-              l10n.mapaClorofilaDisclaimer,
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() => _clorofilaPontos =
-                  _clorofilaPontos.where((p) => p != ponto).toList());
-            },
-            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.fechar),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Índice de Produtividade Blue Ocean (clorofila-a + temperatura) ───────
-
-  /// Liga/desliga a camada. Mesmo padrão de [_alternarClorofila]: primeira
-  /// vez abre o seletor de posição, com pontos já marcados só some/mostra.
-  void _alternarIndiceProdutividade() {
-    if (_consultaPontoAtiva == _TipoConsultaPonto.indiceProdutividade) {
-      setState(() => _consultaPontoAtiva = null);
-      return;
-    }
-    if (_mostrarIndiceProdutividade) {
-      setState(() => _mostrarIndiceProdutividade = false);
-      return;
-    }
-    if (_indicePontos.isEmpty) {
-      _iniciarConsultaIndiceProdutividade();
-    } else {
-      setState(() => _mostrarIndiceProdutividade = true);
-    }
-  }
-
-  /// Abre o seletor de posição pra adicionar mais um ponto de índice, sem
-  /// mexer nos que já estão marcados — mesmo papel de
-  /// [_iniciarConsultaClorofila] pra essa camada.
-  void _iniciarConsultaIndiceProdutividade() {
-    _fecharMenuLateral();
-    setState(() {
-      _consultaPontoAtiva = _TipoConsultaPonto.indiceProdutividade;
-      _centroMira = _mapController.camera.center;
-    });
-  }
-
-  /// Botão "+" flutuante pra marcar mais um ponto de índice, visível só
-  /// enquanto a camada está ligada — mesmo papel de
-  /// [_buildAdicionarPontoClorofilaButton].
-  Widget _buildAdicionarPontoIndiceButton() {
-    var bottom = 140.0;
-    if (_mostrarClorofila) bottom += 64;
-    if (_mostrarIntelligence) bottom += 64;
-    return Positioned(
-      right: 12,
-      bottom: bottom,
-      child: FloatingActionButton(
-        heroTag: 'adicionarIndiceFab',
-        onPressed: _iniciarConsultaIndiceProdutividade,
-        tooltip: AppLocalizations.of(context).mapaAdicionarPontoIndice,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  /// Um marcador por ponto consultado, cor da faixa do índice combinado
-  /// (ver [corNivelProdutividade]) — ícone de estrela pra diferenciar
-  /// visualmente do marcador de clorofila isolada (folha).
-  List<Widget> _buildCamadaIndiceProdutividade() {
-    if (_indicePontos.isEmpty) return const [];
+    final visiveis = _camadasConsulta.where((c) => c.visivel).toList();
     return [
-      MarkerLayer(
-        markers: _indicePontos.map((indice) {
-          return Marker(
-            point: LatLng(indice.latitude, indice.longitude),
-            width: 32,
-            height: 32,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _mostrarInfoIndiceProdutividade(indice),
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: corNivelProdutividade(indice.nivel),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    ];
-  }
-
-  void _mostrarInfoIndiceProdutividade(IndiceProdutividadeBlueOcean indice) {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(l10n.mapaIndiceProdutividadeTitulo),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: corNivelProdutividade(indice.nivel),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(indice.nivel.rotulo,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(indice.explicacao, style: const TextStyle(fontSize: 13)),
-            if (indice.clorofilaData != null) ...[
-              const SizedBox(height: 8),
-              Text(l10n.mapaIndiceDadosClorofilaData(
-                  DateFormat('dd/MM/yyyy').format(indice.clorofilaData!))),
-            ],
-            const SizedBox(height: 4),
-            Text(l10n.mapaIndiceFontes),
-            const SizedBox(height: 12),
-            Text(
-              l10n.mapaIndiceDisclaimer,
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ],
+      for (var i = 0; i < visiveis.length; i++)
+        Positioned(
+          right: 12,
+          bottom: 140.0 + 64 * i,
+          child: FloatingActionButton(
+            heroTag: 'adicionarPonto_${visiveis[i].id}',
+            onPressed: () => _iniciarConsulta(visiveis[i]),
+            tooltip: visiveis[i].tooltipAdicionar(l10n),
+            child: const Icon(Icons.add),
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() => _indicePontos =
-                  _indicePontos.where((p) => p != indice).toList());
-            },
-            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.fechar),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Inteligência Oceânica (Blue Ocean Intelligence) ──────────────────────
-
-  /// Liga/desliga a camada. Mesmo padrão de [_alternarIndiceProdutividade].
-  void _alternarIntelligence() {
-    if (_consultaPontoAtiva == _TipoConsultaPonto.intelligence) {
-      setState(() => _consultaPontoAtiva = null);
-      return;
-    }
-    if (_mostrarIntelligence) {
-      setState(() => _mostrarIntelligence = false);
-      return;
-    }
-    if (_intelligencePontos.isEmpty) {
-      _iniciarConsultaIntelligence();
-    } else {
-      setState(() => _mostrarIntelligence = true);
-    }
-  }
-
-  /// Abre o seletor de posição pra adicionar mais um ponto de inteligência,
-  /// sem mexer nos que já estão marcados — mesmo papel de
-  /// [_iniciarConsultaIndiceProdutividade].
-  void _iniciarConsultaIntelligence() {
-    _fecharMenuLateral();
-    setState(() {
-      _consultaPontoAtiva = _TipoConsultaPonto.intelligence;
-      _centroMira = _mapController.camera.center;
-    });
-  }
-
-  /// Botão "+" flutuante pra marcar mais um ponto de inteligência, visível
-  /// só enquanto a camada está ligada — mesmo papel de
-  /// [_buildAdicionarPontoIndiceButton], empilhado acima dele.
-  Widget _buildAdicionarPontoIntelligenceButton() {
-    var bottom = 140.0;
-    if (_mostrarClorofila) bottom += 64;
-    if (_mostrarIndiceProdutividade) bottom += 64;
-    return Positioned(
-      right: 12,
-      bottom: bottom,
-      child: FloatingActionButton(
-        heroTag: 'adicionarIntelligenceFab',
-        onPressed: _iniciarConsultaIntelligence,
-        tooltip: AppLocalizations.of(context).mapaAdicionarPontoIntelligence,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  /// Cor do marcador pelo score — mesma faixa de `RecomendacaoScoreBadge`
-  /// (≥80 verde, ≥50 laranja, senão vermelho), pra ler igual em qualquer
-  /// lugar do app que mostre um score 0–100.
-  Color _corIntelligence(double score) {
-    if (score >= 80) return Colors.green;
-    if (score >= 50) return Colors.orange;
-    return Colors.red;
-  }
-
-  /// Um marcador por ponto consultado, cor pelo score — ícone de estrela
-  /// contornada pra diferenciar do Índice de Produtividade (estrela cheia).
-  List<Widget> _buildCamadaIntelligence() {
-    if (_intelligencePontos.isEmpty) return const [];
-    return [
-      MarkerLayer(
-        markers: _intelligencePontos.map((resultado) {
-          return Marker(
-            point: LatLng(resultado.latitude, resultado.longitude),
-            width: 32,
-            height: 32,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _mostrarInfoIntelligence(resultado),
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _corIntelligence(resultado.score),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: const Icon(Icons.auto_awesome_outlined,
-                    color: Colors.white, size: 16),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
     ];
-  }
-
-  void _mostrarInfoIntelligence(IntelligenceResult resultado) {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(l10n.mapaIntelligenceTitulo),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _corIntelligence(resultado.score),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text('${resultado.score.round()}/100 · '
-                    '${resultado.confianca.round()}% ${l10n.intelligenceConfiancaLabel}'
-                        .toLowerCase(),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(resultado.explicacao, style: const TextStyle(fontSize: 13)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() => _intelligencePontos =
-                  _intelligencePontos.where((p) => p != resultado).toList());
-            },
-            child: Text(l10n.remover, style: const TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => IntelligenceScreen(
-                    latitude: resultado.latitude,
-                    longitude: resultado.longitude,
-                  ),
-                ),
-              );
-            },
-            child: Text(l10n.mapaIntelligenceVerDetalhes),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.fechar),
-          ),
-        ],
-      ),
-    );
   }
 
   // ── Seletor de posição pra consultar temperatura/clorofila ───────────────
@@ -1985,16 +1355,10 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   // temperatura".
 
   List<Widget> _buildOverlayConsultaPonto() {
-    final tipo = _consultaPontoAtiva;
-    if (tipo == null) return const [];
+    final camada = _consultaPontoAtiva;
+    if (camada == null) return const [];
     final l10n = AppLocalizations.of(context);
-    final titulo = switch (tipo) {
-      _TipoConsultaPonto.temperatura => l10n.mapaTemperaturaTitulo,
-      _TipoConsultaPonto.clorofila => l10n.mapaClorofilaTitulo,
-      _TipoConsultaPonto.indiceProdutividade =>
-        l10n.mapaIndiceProdutividadeTitulo,
-      _TipoConsultaPonto.intelligence => l10n.mapaIntelligenceTitulo,
-    };
+    final titulo = camada.titulo(l10n);
 
     return [
       const IgnorePointer(
@@ -2062,126 +1426,32 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     ];
   }
 
+  /// Consulta a camada do retículo aberto no ponto mirado, acrescenta o
+  /// resultado aos pontos que ela já tinha e mostra o que a camada define
+  /// (ver CamadaConsultaPonto.aposConsultar). Erro vira mensagem amigável.
   Future<void> _confirmarConsultaPonto() async {
-    final tipo = _consultaPontoAtiva;
-    if (tipo == null) return;
+    final camada = _consultaPontoAtiva;
+    if (camada == null) return;
     final ponto = _centroMira;
+    final l10n = AppLocalizations.of(context);
 
     setState(() => _consultandoPonto = true);
     try {
-      if (tipo == _TipoConsultaPonto.temperatura) {
-        final resultado = await WaveForecastRepository().buscarGrade([ponto]);
-        if (!mounted) return;
-        setState(() {
-          // Acrescenta ao que já tinha (mesmo padrão de clorofila/índice)
-          // — antes, cada consulta substituía o ponto anterior; agora dá
-          // pra manter vários ao mesmo tempo (botão "+", ver
-          // _buildAdicionarPontoTemperaturaButton).
-          _gradeTemperatura = [..._gradeTemperatura, ...resultado];
-          _mostrarGradeTemperatura = true;
-          _consultaPontoAtiva = null;
-        });
-        final valor = resultado.isNotEmpty ? resultado.first.temperaturaC : null;
-        final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(valor != null
-                ? l10n.mapaTemperaturaResultado(valor.toStringAsFixed(1))
-                : l10n.mapaTemperaturaSemDado),
-          ),
-        );
-      } else if (tipo == _TipoConsultaPonto.clorofila) {
-        final resultado = await ClorofilaRepository().buscarPontoOuAproximado(
-          latitude: ponto.latitude,
-          longitude: ponto.longitude,
-        );
-        if (!mounted) return;
-        setState(() {
-          _clorofilaPontos = [..._clorofilaPontos, resultado];
-          _mostrarClorofila = true;
-          _consultaPontoAtiva = null;
-        });
-        _mostrarInfoClorofila(resultado);
-      } else if (tipo == _TipoConsultaPonto.indiceProdutividade) {
-        // Índice de Produtividade Blue Ocean — busca clorofila e
-        // temperatura em paralelo e tolera falha de uma das duas (ex: SST
-        // fora de cobertura marinha, clorofila sem dado por nuvem): o
-        // índice sai só com o que conseguiu, nunca inventa o que faltou.
-        // Só propaga erro (pro catch de baixo) se as duas falharem.
-        double? clorofilaValor;
-        DateTime? clorofilaData;
-        double? temperaturaValor;
-        Object? erro;
-        var algumSucesso = false;
-
-        await Future.wait([
-          ClorofilaRepository()
-              .buscarPontoOuAproximado(
-                  latitude: ponto.latitude, longitude: ponto.longitude)
-              .then((r) {
-            clorofilaValor = r.valorMgM3;
-            clorofilaData = r.data;
-            algumSucesso = true;
-          }).catchError((e) => erro = e),
-          WaveForecastRepository()
-              .buscar(latitude: ponto.latitude, longitude: ponto.longitude)
-              .then((r) {
-            temperaturaValor = r.current?.seaSurfaceTemperature;
-            algumSucesso = true;
-          }).catchError((e) => erro = e),
-        ]);
-
-        if (!mounted) return;
-        if (!algumSucesso) {
-          throw erro ??
-              Exception(AppLocalizations.of(context).mapaErroCalcularIndice);
-        }
-
-        final indice = IndiceProdutividadeBlueOcean.calcular(
-          latitude: ponto.latitude,
-          longitude: ponto.longitude,
-          clorofilaMgM3: clorofilaValor,
-          clorofilaData: clorofilaData,
-          temperaturaC: temperaturaValor,
-        );
-        if (!mounted) return;
-        setState(() {
-          _indicePontos = [..._indicePontos, indice];
-          _mostrarIndiceProdutividade = true;
-          _consultaPontoAtiva = null;
-        });
-        _mostrarInfoIndiceProdutividade(indice);
-      } else {
-        // Inteligência Oceânica — `IntelligenceRepository` já tolera falha
-        // parcial internamente (ver doc da classe); só propaga erro daqui
-        // se NENHUMA fonte respondeu.
-        final resultado = await IntelligenceRepository().avaliarPonto(
-          latitude: ponto.latitude,
-          longitude: ponto.longitude,
-        );
-        if (!mounted) return;
-        setState(() {
-          _intelligencePontos = [..._intelligencePontos, resultado];
-          _mostrarIntelligence = true;
-          _consultaPontoAtiva = null;
-        });
-        _mostrarInfoIntelligence(resultado);
-      }
+      final novos = await camada.consultar(ponto, l10n);
+      if (!mounted) return;
+      setState(() {
+        camada.adicionar(novos);
+        _consultaPontoAtiva = null;
+      });
+      camada.aposConsultar(
+          context, novos, (item) => _mostrarDetalheCamada(camada, item));
     } catch (e) {
       if (!mounted) return;
       setState(() => _consultaPontoAtiva = null);
-      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(mensagemErroAmigavel(e,
-              prefixo: switch (tipo) {
-                _TipoConsultaPonto.temperatura => l10n.mapaErroBuscarTemperatura,
-                _TipoConsultaPonto.clorofila => l10n.mapaErroBuscarClorofila,
-                _TipoConsultaPonto.indiceProdutividade =>
-                  l10n.mapaErroCalcularIndice,
-                _TipoConsultaPonto.intelligence =>
-                  l10n.mapaErroCalcularIntelligence,
-              })),
+          content: Text(
+              mensagemErroAmigavel(e, prefixo: camada.prefixoErro(l10n))),
         ),
       );
     } finally {
@@ -2439,20 +1709,18 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                   _itemMenuToggle(
                     icone: Icons.thermostat,
                     titulo: l10n.mapaTemperaturaTitulo,
-                    ativo: _mostrarGradeTemperatura,
-                    onTap: _alternarGradeTemperatura,
-                    carregando: _consultandoPonto &&
-                        _consultaPontoAtiva == _TipoConsultaPonto.temperatura,
+                    ativo: _camadaTemperatura.visivel,
+                    onTap: () => _alternarCamada(_camadaTemperatura),
+                    carregando: _consultando(_camadaTemperatura),
                     recurso: RecursoAtlas.mapaSst,
                   ),
                   _itemMenuToggle(
                     icone: Icons.water_drop,
                     titulo: l10n.mapaClorofilaTitulo,
                     subtitulo: l10n.mapaClorofilaSubtitulo,
-                    ativo: _mostrarClorofila,
-                    onTap: _alternarClorofila,
-                    carregando:
-                        _consultandoPonto && _consultaPontoAtiva == _TipoConsultaPonto.clorofila,
+                    ativo: _camadaClorofila.visivel,
+                    onTap: () => _alternarCamada(_camadaClorofila),
+                    carregando: _consultando(_camadaClorofila),
                     recurso: RecursoAtlas.mapaClorofila,
                   ),
                   _itemMenuToggle(
@@ -2484,21 +1752,18 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                     icone: Icons.auto_awesome,
                     titulo: l10n.mapaIndiceProdutividadeTitulo,
                     subtitulo: l10n.mapaIndiceProdutividadeSubtitulo,
-                    ativo: _mostrarIndiceProdutividade,
-                    onTap: _alternarIndiceProdutividade,
-                    carregando: _consultandoPonto &&
-                        _consultaPontoAtiva ==
-                            _TipoConsultaPonto.indiceProdutividade,
+                    ativo: _camadaIndice.visivel,
+                    onTap: () => _alternarCamada(_camadaIndice),
+                    carregando: _consultando(_camadaIndice),
                     recurso: RecursoAtlas.mapaIndiceProdutividade,
                   ),
                   _itemMenuToggle(
                     icone: Icons.auto_awesome_outlined,
                     titulo: l10n.mapaIntelligenceTitulo,
                     subtitulo: l10n.mapaIntelligenceSubtitulo,
-                    ativo: _mostrarIntelligence,
-                    onTap: _alternarIntelligence,
-                    carregando: _consultandoPonto &&
-                        _consultaPontoAtiva == _TipoConsultaPonto.intelligence,
+                    ativo: _camadaIntelligence.visivel,
+                    onTap: () => _alternarCamada(_camadaIntelligence),
+                    carregando: _consultando(_camadaIntelligence),
                     recurso: RecursoAtlas.intelligenceOceanica,
                   ),
                   if (_camadaRuas) ...[
@@ -2962,24 +2227,8 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
             _buildModoNavegacaoButton(),
           if (!_modoMarcarPonto &&
               !widget.modoPlanejarRota &&
-              _consultaPontoAtiva == null &&
-              _mostrarGradeTemperatura)
-            _buildAdicionarPontoTemperaturaButton(),
-          if (!_modoMarcarPonto &&
-              !widget.modoPlanejarRota &&
-              _consultaPontoAtiva == null &&
-              _mostrarClorofila)
-            _buildAdicionarPontoClorofilaButton(),
-          if (!_modoMarcarPonto &&
-              !widget.modoPlanejarRota &&
-              _consultaPontoAtiva == null &&
-              _mostrarIndiceProdutividade)
-            _buildAdicionarPontoIndiceButton(),
-          if (!_modoMarcarPonto &&
-              !widget.modoPlanejarRota &&
-              _consultaPontoAtiva == null &&
-              _mostrarIntelligence)
-            _buildAdicionarPontoIntelligenceButton(),
+              _consultaPontoAtiva == null)
+            ..._buildBotoesAdicionarPonto(),
           // Por cima de tudo — inclusive do scrim que fecha ao tocar fora.
           _buildMenuLateral(),
         ],
@@ -3256,10 +2505,12 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
               widget.modoPlanejarRota) {
             _centroMira = camera.center; // sem setState: ver _centroMiraNotifier
           }
-          if (_mostrarGradeTemperatura) {
-            final rotulosVisiveis = camera.zoom >= _zoomMinimoRotuloGrade;
-            if (rotulosVisiveis != _gradeRotulosVisiveis) {
-              setState(() => _gradeRotulosVisiveis = rotulosVisiveis);
+          if (_camadaTemperatura.visivel) {
+            final rotulosVisiveis =
+                camera.zoom >= CamadaTemperatura.zoomMinimoRotulo;
+            if (rotulosVisiveis != _camadaTemperatura.rotulosVisiveis) {
+              setState(
+                  () => _camadaTemperatura.rotulosVisiveis = rotulosVisiveis);
             }
           }
           // Só pausa o barco 3D em gesto de verdade do usuário — não em
@@ -3365,25 +2616,11 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
         // registrado perto daquele ponto, em qualquer viagem.
         if (_mostrarProducao && _producaoClusters.isNotEmpty)
           MarkerLayer(markers: _buildMarcadoresProducao()),
-        // Grade de temperatura da superfície do mar (SST) — quadrados
-        // coloridos com o valor em cima, cobrindo a área ao redor do centro
-        // do mapa no momento em que foi ativada.
-        if (_mostrarGradeTemperatura && _gradeTemperatura.isNotEmpty)
-          ..._buildCamadaGradeTemperatura(),
-        // Clorofila-a (NOAA CoastWatch, ERDDAP) — indicador de
-        // produtividade, nunca biomassa de peixe (ver doc de
-        // LeituraClorofilaPonto). Pode ter mais de um ponto marcado.
-        if (_mostrarClorofila && _clorofilaPontos.isNotEmpty)
-          ..._buildCamadaClorofila(),
-        // Índice de Produtividade Blue Ocean — combina clorofila-a e
-        // temperatura num único indicador por ponto (ver
-        // IndiceProdutividadeBlueOcean). Também aceita mais de um ponto.
-        if (_mostrarIndiceProdutividade && _indicePontos.isNotEmpty)
-          ..._buildCamadaIndiceProdutividade(),
-        // Inteligência Oceânica — score 0-100 por ponto (ver
-        // IntelligenceEngine). Também aceita mais de um ponto.
-        if (_mostrarIntelligence && _intelligencePontos.isNotEmpty)
-          ..._buildCamadaIntelligence(),
+        // Camadas de consulta por ponto (temperatura, clorofila, índice,
+        // Inteligência — ver camadas/), na ordem de _camadasConsulta.
+        for (final camada in _camadasConsulta)
+          if (camada.visivel && camada.temPontos)
+            ...camada.camadas((item) => _mostrarDetalheCamada(camada, item)),
         // Rota sendo planejada manualmente — cada toque no mapa adiciona um
         // ponto numerado em sequência.
         if (widget.modoPlanejarRota && _pontosRotaPlanejada.length > 1)
