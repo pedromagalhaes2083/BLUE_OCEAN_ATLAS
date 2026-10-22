@@ -20,10 +20,7 @@ import '../../../core/planos/recurso_atlas.dart';
 import '../../../core/services/geo_png_helper.dart';
 import '../../widgets/recurso_protegido.dart';
 import '../../../core/services/mbtiles_service.dart';
-import '../../cartas/presentation/solicitar_cartas_screen.dart';
 import '../../../core/services/geotiff_service.dart';
-import '../../metereologia/presentation/condicoes_ponto_screen.dart';
-import '../../termoclina/presentation/termoclina_screen.dart';
 import '../../../core/services/pontos_service.dart';
 import '../../../core/services/street_map_cache_service.dart';
 import '../../../core/utils/coordenadas_format.dart';
@@ -33,7 +30,6 @@ import '../../../core/utils/perf_log.dart';
 import '../../producao/domain/especies_comuns.dart';
 import '../../producao/domain/models/producao_registro.dart';
 import '../../recomendacao/domain/models/recomendacao.dart';
-import '../../recomendacao/widgets/recomendacao_variavel_chip.dart';
 import 'camadas/camada_clorofila.dart';
 import 'camadas/camada_consulta_ponto.dart';
 import 'camadas/camada_indice_produtividade.dart';
@@ -43,8 +39,10 @@ import '../domain/models/ponto_marcado.dart';
 import '../../rotas/domain/models/rota_planejada.dart';
 import 'meus_pontos_screen.dart';
 import '../widgets/barco_navegacao_3d.dart';
-import '../widgets/dados_oceanicos_ponto.dart';
 import '../widgets/detalhe_ponto_marcado.dart';
+import '../widgets/dialogo_info_mapa.dart';
+import '../widgets/dialogo_ponto_recomendacao.dart';
+import '../widgets/dialogos_producao.dart';
 import '../widgets/compasso_circular.dart';
 import '../widgets/download_regiao_dialog.dart';
 import '../widgets/mbtiles_tile_provider.dart';
@@ -221,7 +219,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   // ── Calor de produção ────────────────────────────────────────────────────
   bool _mostrarProducao = false;
   bool _carregandoProducao = false;
-  List<_ClusterProducao> _producaoClusters = [];
+  List<ClusterProducao> _producaoClusters = [];
 
   // ── Informações náuticas (OpenSeaMap) ────────────────────────────────────
   // Tiles públicos de marcas náuticas/boias/faróis/portos (transparentes,
@@ -628,66 +626,6 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     }
   }
 
-  void _mostrarInfoRegistroProducao(ProducaoRegistro registro) {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.set_meal, color: Colors.deepOrange),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(registro.especie, overflow: TextOverflow.ellipsis),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              formatarCoordenadasDMSCompacta(
-                registro.latitude!,
-                registro.longitude!,
-              ),
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-            ),
-            const Divider(height: 20),
-            LinhaInfoPonto(
-              icon: Icons.event_outlined,
-              label: l10n.mapaLabelData,
-              valor: _formatarDataHora(registro.dataHora),
-            ),
-            if (registro.classificacao != null &&
-                registro.quantidadeUnidades != null) ...[
-              const SizedBox(height: 8),
-              LinhaInfoPonto(
-                icon: Icons.straighten_outlined,
-                label: l10n.mapaLabelClassificacaoCurto,
-                valor:
-                    '${registro.classificacao!.label} kg · ${registro.quantidadeUnidades} un.',
-              ),
-            ],
-            const SizedBox(height: 8),
-            LinhaInfoPonto(
-              icon: Icons.scale_outlined,
-              label: l10n.mapaLabelPeso,
-              valor: '${registro.quantidadeKg.toStringAsFixed(1)} kg',
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.fechar),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Carta bundled ──────────────────────────────────────────────────────────
 
   Future<void> _loadBundledChart() async {
@@ -866,7 +804,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     // Agrupa registros próximos (~100m) somando o total em kg, pra não
     // sobrepor um marcador em cima do outro quando há vários registros na
     // mesma pescaria.
-    final grupos = <String, _ClusterProducao>{};
+    final grupos = <String, ClusterProducao>{};
     for (final r in registros) {
       final lat = (r['latitude'] as num).toDouble();
       final lon = (r['longitude'] as num).toDouble();
@@ -881,7 +819,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
       final registro = ProducaoRegistro.fromMap(r);
       final existente = grupos[chave];
       if (existente == null) {
-        grupos[chave] = _ClusterProducao(
+        grupos[chave] = ClusterProducao(
           lat: lat,
           lon: lon,
           totalKg: kg,
@@ -919,7 +857,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
         width: tamanho,
         height: tamanho,
         child: GestureDetector(
-          onTap: () => _mostrarInfoProducao(c),
+          onTap: () => mostrarDetalheGrupoProducao(context, c),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.deepOrange.withValues(alpha: 0.55),
@@ -930,113 +868,6 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
         ),
       );
     }).toList();
-  }
-
-  void _mostrarInfoProducao(_ClusterProducao cluster) {
-    // Um grupo com uma única captura não precisa de tela intermediária —
-    // vai direto pro detalhe (espécie + coordenada exata daquela captura).
-    if (cluster.registros.length == 1) {
-      _mostrarInfoRegistroProducao(cluster.registros.first);
-      return;
-    }
-
-    final l10n = AppLocalizations.of(context);
-    final especies = cluster.porEspecie.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final registrosOrdenados = cluster.registros.toList()
-      ..sort((a, b) => b.dataHora.compareTo(a.dataHora));
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.local_fire_department, color: Colors.deepOrange),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                l10n.mapaProducaoTotal(cluster.totalKg.toStringAsFixed(1)),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                formatarCoordenadasDMSCompacta(cluster.lat, cluster.lon),
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-              ),
-              const Divider(height: 20),
-              ...especies.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(e.key),
-                      Text('${e.value.toStringAsFixed(1)} kg',
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ),
-              const Divider(height: 20),
-              Text(
-                l10n.mapaProducaoCapturasIndividuais,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              ...registrosOrdenados.map(
-                (registro) => InkWell(
-                  onTap: () {
-                    Navigator.pop(dialogContext);
-                    _mostrarInfoRegistroProducao(registro);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.set_meal,
-                            size: 18, color: Colors.deepOrange),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(registro.especie),
-                              Text(
-                                formatarCoordenadasDMSCompacta(
-                                  registro.latitude!,
-                                  registro.longitude!,
-                                ),
-                                style: TextStyle(
-                                    color: Colors.grey[600], fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text('${registro.quantidadeKg.toStringAsFixed(1)} kg'),
-                        const Icon(Icons.chevron_right, size: 18),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.fechar),
-          ),
-        ],
-      ),
-    );
   }
 
   // ── Informações náuticas (OpenSeaMap) ────────────────────────────────────
@@ -1950,33 +1781,15 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   /// mostram o mesmo card, não importa se o toque veio da lista ou de um
   /// marcador no mapa.
   void _mostrarInfoPontoMarcado(PontoMarcado ponto) {
-    double? distanciaNm;
-    double? rumoGraus;
-    final gps = _gpsPosition;
-    if (gps != null) {
-      distanciaNm = calcularDistanciaNauticas(
-        gps.latitude,
-        gps.longitude,
-        ponto.latitude,
-        ponto.longitude,
-      );
-      rumoGraus = Geolocator.bearingBetween(
-        gps.latitude,
-        gps.longitude,
-        ponto.latitude,
-        ponto.longitude,
-      );
-      if (rumoGraus < 0) rumoGraus += 360;
-    }
-
+    final navegacao = _distanciaERumoDoGps(ponto.latitude, ponto.longitude);
     abrirCardFlutuantePonto(
       context,
       DetalhePontoMarcado(
         ponto: ponto,
-        distanciaNm: distanciaNm,
-        rumoGraus: rumoGraus,
+        distanciaNm: navegacao?.distanciaNm,
+        rumoGraus: navegacao?.rumoGraus,
         producao: null,
-        formatarDataHora: _formatarDataHora,
+        formatarDataHora: formatarDataHoraPonto,
         onRemovido: () async {
           if (ponto.id != null) {
             await _dbHelper.delete('ponto_marcado', id: ponto.id!);
@@ -1988,160 +1801,32 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     );
   }
 
-  /// Mesmo padrão do detalhe de um ponto marcado ([_mostrarInfoPontoMarcado])
-  /// — coordenadas, quando o dado foi recebido, distância/rumo a partir do
-  /// GPS atual — trocando o "nome"/"remover" (não fazem sentido pra um
-  /// ponto que veio pronto da API) pelas variáveis ambientais amostradas
-  /// ali (vento, corrente, temperatura etc.).
+  /// Detalhe de um ponto de recomendação (ver
+  /// `mostrarDetalhePontoRecomendacao`), com distância/rumo do GPS atual.
   void _mostrarInfoPontoRecomendacao(PontoRecomendacao ponto) {
-    final l10n = AppLocalizations.of(context);
-    double? distanciaNm;
-    double? rumoGraus;
-    final gps = _gpsPosition;
-    if (gps != null) {
-      distanciaNm = calcularDistanciaNauticas(
-        gps.latitude,
-        gps.longitude,
-        ponto.latitude,
-        ponto.longitude,
-      );
-      rumoGraus = Geolocator.bearingBetween(
-        gps.latitude,
-        gps.longitude,
-        ponto.latitude,
-        ponto.longitude,
-      );
-      if (rumoGraus < 0) rumoGraus += 360;
-    }
-
-    final criadoEm = widget.recomendacao?.criadoEm;
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.location_on, color: Colors.deepOrange),
-            const SizedBox(width: 8),
-            Expanded(child: Text(l10n.mapaPontoRecomendacaoTitulo)),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              LinhaInfoPonto(
-                icon: Icons.explore_outlined,
-                label: l10n.mapaLabelCoordenadas,
-                valor:
-                    formatarCoordenadasDMS(ponto.latitude, ponto.longitude),
-              ),
-              if (criadoEm != null) ...[
-                const Divider(height: 20),
-                LinhaInfoPonto(
-                  icon: Icons.event_outlined,
-                  label: l10n.mapaLabelRecebidoEm,
-                  valor: _formatarDataHora(criadoEm),
-                ),
-              ],
-              if (distanciaNm != null && rumoGraus != null) ...[
-                const Divider(height: 20),
-                LinhaInfoPonto(
-                  icon: Icons.social_distance_outlined,
-                  label: l10n.mapaLabelDistancia,
-                  valor: '${distanciaNm.toStringAsFixed(1)} mn',
-                ),
-                const SizedBox(height: 8),
-                LinhaInfoPonto(
-                  icon: Icons.navigation_outlined,
-                  label: l10n.mapaLabelRumo,
-                  valor: '${rumoGraus.toStringAsFixed(0)}°',
-                ),
-              ],
-              const Divider(height: 20),
-              DadosOceanicosPonto(
-                latitude: ponto.latitude,
-                longitude: ponto.longitude,
-              ),
-              if (ponto.variaveis.isNotEmpty) ...[
-                const Divider(height: 20),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: ponto.variaveis
-                        .map((v) => RecomendacaoVariavelChip(variavel: v))
-                        .toList(),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.fechar),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SolicitarCartaScreen(
-                    dbHelper: _dbHelper,
-                    latitudeInicial: ponto.latitude,
-                    longitudeInicial: ponto.longitude,
-                  ),
-                ),
-              );
-            },
-            child: Text(l10n.drawerSolicitarCarta),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CondicoesPontoScreen(
-                    latitude: ponto.latitude,
-                    longitude: ponto.longitude,
-                  ),
-                ),
-              );
-            },
-            child: Text(l10n.mapaConsultarAqui),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TermoclinaScreen(
-                    latitude: ponto.latitude,
-                    longitude: ponto.longitude,
-                  ),
-                ),
-              );
-            },
-            child: Text(l10n.termoclinaTelaTitulo),
-          ),
-        ],
-      ),
+    final navegacao = _distanciaERumoDoGps(ponto.latitude, ponto.longitude);
+    mostrarDetalhePontoRecomendacao(
+      context,
+      ponto: ponto,
+      dbHelper: _dbHelper,
+      criadoEm: widget.recomendacao?.criadoEm,
+      distanciaNm: navegacao?.distanciaNm,
+      rumoGraus: navegacao?.rumoGraus,
     );
   }
 
-  static String _formatarDataHora(DateTime dt) {
-    final d = dt.day.toString().padLeft(2, '0');
-    final mo = dt.month.toString().padLeft(2, '0');
-    final h = dt.hour.toString().padLeft(2, '0');
-    final mi = dt.minute.toString().padLeft(2, '0');
-    return '$d/$mo/${dt.year}  $h:$mi';
+  /// Distância (mn) e rumo verdadeiro (0–360°) do GPS atual até o ponto;
+  /// nulo enquanto não há fixo de GPS.
+  ({double distanciaNm, double rumoGraus})? _distanciaERumoDoGps(
+      double latitude, double longitude) {
+    final gps = _gpsPosition;
+    if (gps == null) return null;
+    final distanciaNm = calcularDistanciaNauticas(
+        gps.latitude, gps.longitude, latitude, longitude);
+    var rumoGraus = Geolocator.bearingBetween(
+        gps.latitude, gps.longitude, latitude, longitude);
+    if (rumoGraus < 0) rumoGraus += 360;
+    return (distanciaNm: distanciaNm, rumoGraus: rumoGraus);
   }
 
   // ── Metadados ──────────────────────────────────────────────────────────────
@@ -2751,7 +2436,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
                       height: 32,
                       alignment: Alignment.topCenter,
                       child: GestureDetector(
-                        onTap: () => _mostrarInfoRegistroProducao(registro),
+                        onTap: () => mostrarDetalheRegistroProducao(context, registro),
                         child: Image.asset(
                           'assets/icons/icon_cardume_vermelho.png',
                           width: 32,
@@ -3063,27 +2748,3 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
     ];
   }
 }
-
-/// Um agrupamento de registros de produção próximos entre si (~100m),
-/// somados por espécie — usado pela camada de calor de produção no mapa.
-///
-/// Guarda também os [registros] individuais do grupo: o total por espécie é
-/// só um resumo no topo do diálogo, mas cada captura tem sua própria
-/// coordenada exata (podem estar a até ~100m umas das outras dentro do
-/// mesmo grupo) e precisa ser consultável isoladamente.
-class _ClusterProducao {
-  final double lat;
-  final double lon;
-  double totalKg;
-  final Map<String, double> porEspecie;
-  final List<ProducaoRegistro> registros;
-
-  _ClusterProducao({
-    required this.lat,
-    required this.lon,
-    required this.totalKg,
-    required this.porEspecie,
-    required this.registros,
-  });
-}
-
