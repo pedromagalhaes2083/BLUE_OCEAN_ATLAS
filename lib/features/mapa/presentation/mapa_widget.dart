@@ -15,10 +15,8 @@ import 'package:sensors_plus/sensors_plus.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../core/gps/amostra_gps.dart';
 import '../../../core/gps/filtro_posicao_exibicao.dart';
-import '../../../core/planos/plano_service.dart';
 import '../../../core/planos/recurso_atlas.dart';
 import '../../../core/services/geo_png_helper.dart';
-import '../../widgets/recurso_protegido.dart';
 import '../../../core/services/mbtiles_service.dart';
 import '../../../core/services/geotiff_service.dart';
 import '../../../core/services/pontos_service.dart';
@@ -46,6 +44,7 @@ import '../widgets/dialogos_producao.dart';
 import '../widgets/compasso_circular.dart';
 import '../widgets/download_regiao_dialog.dart';
 import '../widgets/mbtiles_tile_provider.dart';
+import '../widgets/menu_lateral_mapa.dart';
 import '../widgets/meteorologia_sheet.dart';
 import '../widgets/painel_reticulo.dart';
 import '../widgets/street_map_tile_provider.dart';
@@ -146,7 +145,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   /// Alterna entre a carta náutica carregada (MBTiles/GeoTIFF) e o mapa de
   /// ruas (OpenStreetMap, com cache próprio pra uso offline depois de
   /// baixado — ver [StreetMapCacheService]). Começa ligado (Open Sea) —
-  /// pré-selecionado por padrão, ver [_seletorTipoMapa].
+  /// pré-selecionado por padrão, ver [SeletorTipoMapa].
   bool _camadaRuas = true;
 
   GeotiffResult? _geotiff;
@@ -227,7 +226,7 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   // sobrepostos ao mapa de ruas) — só faz sentido junto do OpenStreetMap
   // (_camadaRuas), nunca sobre a carta MBTiles/GeoTIFF carregada. Ligado
   // por padrão junto com _camadaRuas — selecionar "Open Sea" liga as três
-  // camadas de uma vez (ver [_seletorTipoMapa]), então o estado inicial
+  // camadas de uma vez (ver [SeletorTipoMapa]), então o estado inicial
   // acompanha isso em vez de abrir desligado e exigir um toque extra.
   bool _mostrarInfoNautica = true;
 
@@ -1249,330 +1248,149 @@ class MapaWidgetState extends State<MapaWidget> with WidgetsBindingObserver {
   void _abrirMenuLateral() => setState(() => _menuLateralAberto = true);
   void _fecharMenuLateral() => setState(() => _menuLateralAberto = false);
 
-  /// Item de toggle padrão do menu — switch à direita, ícone à esquerda
-  /// colorido quando ativo, mesmo padrão visual pras ~10 opções abaixo.
-  Widget _itemMenuToggle({
-    required IconData icone,
-    required String titulo,
-    String? subtitulo,
-    required bool ativo,
-    required VoidCallback? onTap,
-    bool carregando = false,
-    // Gate de plano (ver core/planos/) — quando informado e o plano ativo
-    // não liberar esse recurso, o toque mostra o card de upgrade em vez
-    // de ligar a camada. Hoje a matriz libera tudo pra todos os planos
-    // (ver matriz_entitlements.dart), então isso não muda nada visível
-    // ainda — é a aplicação do gate, não a definição de quem tem acesso.
-    RecursoAtlas? recurso,
-  }) {
-    final bloqueado = recurso != null && !PlanoService.possui(recurso);
-    return ListTile(
-      leading: carregando
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(icone, color: ativo ? Colors.lightBlueAccent : null),
-      title: Text(titulo),
-      subtitle: subtitulo == null ? null : Text(subtitulo),
-      trailing: bloqueado
-          ? const Icon(Icons.lock_outline, size: 20)
-          : Switch(value: ativo, onChanged: onTap == null ? null : (_) => onTap()),
-      onTap: bloqueado ? () => _mostrarCardUpgrade(recurso) : onTap,
-      enabled: bloqueado || onTap != null,
-      dense: true,
-    );
-  }
-
-  /// Seletor visual do tipo de mapa base — duas opções mutuamente
-  /// exclusivas (nunca as duas ligadas, por isso cards de escolha em vez
-  /// de dois switches separados que dariam pra ligar junto por engano):
-  /// a carta náutica carregada (MBTiles/GeoTIFF, ver `_mode`) ou o Mapa de
-  /// Ruas com as camadas do OpenSeaMap por cima (ver `_camadaRuas`).
-  /// Substitui o switch único de antes por algo mais parecido com o
-  /// seletor de tipo de mapa do Google Maps — dois cartões lado a lado,
-  /// ícone + rótulo, o escolhido com borda destacada.
-  Widget _seletorTipoMapa(AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _cartaoTipoMapa(
-              selecionado: !_camadaRuas,
-              icone: Icons.map_outlined,
-              cor: Colors.brown,
-              titulo: l10n.mapaCartaNauticaCarregadaTitulo,
-              onTap: () => setState(() => _camadaRuas = false),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _cartaoTipoMapa(
-              selecionado: _camadaRuas,
-              icone: Icons.public,
-              cor: Colors.blue,
-              titulo: l10n.mapaCamadaRuasTitulo,
-              // Escolher "Open Sea" já liga as três camadas dele de uma
-              // vez (informações náuticas, profundidade, isóbatas) — antes
-              // precisava ligar o Mapa de Ruas e depois cada uma à mão;
-              // agora selecionar o cartão já é "quero ver tudo do Open
-              // Sea". Continuam desligáveis individualmente depois, pra
-              // quem quiser só uma camada específica.
-              onTap: () => setState(() {
-                _camadaRuas = true;
-                _mostrarInfoNautica = true;
-                _mostrarProfundidade = true;
-                _mostrarCurvasProfundidade = true;
-              }),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _cartaoTipoMapa({
-    required bool selecionado,
-    required IconData icone,
-    required Color cor,
-    required String titulo,
-    required VoidCallback onTap,
-  }) {
-    final corPrimaria = Theme.of(context).colorScheme.primary;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Column(
-        children: [
-          Container(
-            height: 64,
-            decoration: BoxDecoration(
-              color: cor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: selecionado ? corPrimaria : Colors.transparent,
-                width: 2.5,
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Icon(icone, size: 30, color: cor),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            titulo,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
-              color: selecionado ? corPrimaria : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _mostrarCardUpgrade(RecursoAtlas recurso) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: CardUpgradePlano(recurso: recurso),
-        ),
-      ),
-    );
-  }
-
   Widget _buildMenuLateral() {
     final l10n = AppLocalizations.of(context);
-    return Stack(
-      children: [
-        // Fundo escurecido — toca fora do menu pra fechar, mesmo gesto de
-        // um Drawer de verdade.
-        if (_menuLateralAberto)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _fecharMenuLateral,
-              child: Container(color: Colors.black.withValues(alpha: 0.4)),
-            ),
+    return MenuLateralMapa(
+      aberto: _menuLateralAberto,
+      aoFechar: _fecharMenuLateral,
+      titulo: l10n.mapaMenuTitulo,
+      rodape: l10n.mapaAtribuicao,
+      itens: [
+        if (!widget.modoPlanejarRota) ...[
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(_modoMarcarPonto ? Icons.close : Icons.add_location_alt),
+            title: Text(_modoMarcarPonto
+                ? l10n.mapaCancelarMarcacao
+                : l10n.mapaMarcarPonto),
+            dense: true,
+            onTap: () {
+              _alternarModoMarcarPonto();
+              _fecharMenuLateral();
+            },
           ),
-        AnimatedPositioned(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-          top: 0,
-          bottom: 0,
-          right: _menuLateralAberto ? 0 : -320,
-          width: 300,
-          child: Material(
-            elevation: 8,
-            color: Theme.of(context).canvasColor,
-            child: SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 24),
-                children: [
-                  ListTile(
-                    title: Text(l10n.mapaMenuTitulo,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: _fecharMenuLateral,
-                    ),
-                  ),
-                  if (!widget.modoPlanejarRota) ...[
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: Icon(_modoMarcarPonto ? Icons.close : Icons.add_location_alt),
-                      title: Text(_modoMarcarPonto
-                          ? l10n.mapaCancelarMarcacao
-                          : l10n.mapaMarcarPonto),
-                      dense: true,
-                      onTap: () {
-                        _alternarModoMarcarPonto();
-                        _fecharMenuLateral();
-                      },
-                    ),
-                  ],
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text(l10n.mapaNavegacaoTitulo,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  _itemMenuToggle(
-                    icone: _bussolaAtiva ? Icons.explore : Icons.explore_off,
-                    titulo: l10n.mapaBussolaTitulo,
-                    subtitulo: _bussolaAtiva
-                        ? null
-                        : l10n.mapaBussolaDesligadaSubtitulo,
-                    ativo: _bussolaAtiva,
-                    onTap: _alternarBussola,
-                  ),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text(l10n.mapaCamadasTitulo,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  _seletorTipoMapa(l10n),
-                  const SizedBox(height: 8),
-                  _itemMenuToggle(
-                    icone: Icons.anchor,
-                    titulo: l10n.mapaCamadaNauticaTitulo,
-                    subtitulo: l10n.mapaCamadaNauticaSubtitulo,
-                    ativo: _mostrarInfoNautica,
-                    onTap: !_camadaRuas ? null : _alternarInfoNautica,
-                  ),
-                  _itemMenuToggle(
-                    icone: Icons.layers,
-                    titulo: l10n.mapaCamadaProfundidadeTitulo,
-                    subtitulo: l10n.mapaCamadaProfundidadeSubtitulo,
-                    ativo: _mostrarProfundidade,
-                    onTap: !_camadaRuas ? null : _alternarProfundidade,
-                  ),
-                  _itemMenuToggle(
-                    icone: Icons.timeline,
-                    titulo: l10n.mapaCamadaCurvasTitulo,
-                    subtitulo: l10n.mapaCamadaCurvasSubtitulo,
-                    ativo: _mostrarCurvasProfundidade,
-                    onTap: !_camadaRuas ? null : _alternarCurvasProfundidade,
-                  ),
-                  _itemMenuToggle(
-                    icone: Icons.route,
-                    titulo: l10n.mapaCamadaTrilhaViagemTitulo,
-                    subtitulo: l10n.mapaCamadaTrilhaViagemSubtitulo,
-                    ativo: _mostrarTrilhaViagem,
-                    onTap: _alternarTrilhaViagem,
-                    recurso: RecursoAtlas.mapaTrilhaViagem,
-                  ),
-                  _itemMenuToggle(
-                    icone: Icons.thermostat,
-                    titulo: l10n.mapaTemperaturaTitulo,
-                    ativo: _camadaTemperatura.visivel,
-                    onTap: () => _alternarCamada(_camadaTemperatura),
-                    carregando: _consultando(_camadaTemperatura),
-                    recurso: RecursoAtlas.mapaSst,
-                  ),
-                  _itemMenuToggle(
-                    icone: Icons.water_drop,
-                    titulo: l10n.mapaClorofilaTitulo,
-                    subtitulo: l10n.mapaClorofilaSubtitulo,
-                    ativo: _camadaClorofila.visivel,
-                    onTap: () => _alternarCamada(_camadaClorofila),
-                    carregando: _consultando(_camadaClorofila),
-                    recurso: RecursoAtlas.mapaClorofila,
-                  ),
-                  _itemMenuToggle(
-                    icone: Icons.local_fire_department,
-                    titulo: l10n.mapaCamadaProducaoTitulo,
-                    ativo: _mostrarProducao,
-                    onTap: _alternarProducao,
-                    carregando: _carregandoProducao,
-                  ),
-                  _itemMenuToggle(
-                    icone: Icons.image_outlined,
-                    titulo: l10n.mapaCamadaOverlayTitulo,
-                    subtitulo: l10n.mapaCamadaOverlaySubtitulo,
-                    ativo: _overlayAtiva,
-                    onTap: _overlayCarregando
-                        ? null
-                        : () => _alternarOverlay(!_overlayAtiva),
-                    carregando: _overlayCarregando,
-                  ),
-                  if (_overlayAtiva || _overlayValidada)
-                    ListTile(
-                      dense: true,
-                      contentPadding: const EdgeInsets.only(left: 72, right: 16),
-                      title: Text(l10n.mapaEscolherImagem),
-                      onTap: _overlayCarregando ? null : _abrirDialogoSelecionarOverlay,
-                    ),
-                  const Divider(height: 1),
-                  _itemMenuToggle(
-                    icone: Icons.auto_awesome,
-                    titulo: l10n.mapaIndiceProdutividadeTitulo,
-                    subtitulo: l10n.mapaIndiceProdutividadeSubtitulo,
-                    ativo: _camadaIndice.visivel,
-                    onTap: () => _alternarCamada(_camadaIndice),
-                    carregando: _consultando(_camadaIndice),
-                    recurso: RecursoAtlas.mapaIndiceProdutividade,
-                  ),
-                  _itemMenuToggle(
-                    icone: Icons.auto_awesome_outlined,
-                    titulo: l10n.mapaIntelligenceTitulo,
-                    subtitulo: l10n.mapaIntelligenceSubtitulo,
-                    ativo: _camadaIntelligence.visivel,
-                    onTap: () => _alternarCamada(_camadaIntelligence),
-                    carregando: _consultando(_camadaIntelligence),
-                    recurso: RecursoAtlas.intelligenceOceanica,
-                  ),
-                  if (_camadaRuas) ...[
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.download),
-                      title: Text(l10n.mapaBaixarRegiao),
-                      dense: true,
-                      onTap: () {
-                        _abrirDownloadRegiao();
-                        _fecharMenuLateral();
-                      },
-                    ),
-                  ],
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text(
-                      l10n.mapaAtribuicao,
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        ],
+        const Divider(height: 1),
+        TituloSecaoMenu(l10n.mapaNavegacaoTitulo),
+        ItemMenuToggle(
+          icone: _bussolaAtiva ? Icons.explore : Icons.explore_off,
+          titulo: l10n.mapaBussolaTitulo,
+          subtitulo: _bussolaAtiva ? null : l10n.mapaBussolaDesligadaSubtitulo,
+          ativo: _bussolaAtiva,
+          onTap: _alternarBussola,
         ),
+        const Divider(height: 1),
+        TituloSecaoMenu(l10n.mapaCamadasTitulo),
+        SeletorTipoMapa(
+          camadaRuas: _camadaRuas,
+          tituloCarta: l10n.mapaCartaNauticaCarregadaTitulo,
+          tituloRuas: l10n.mapaCamadaRuasTitulo,
+          aoEscolherCarta: () => setState(() => _camadaRuas = false),
+          // Escolher "Open Sea" já liga as três camadas dele de uma vez
+          // (informações náuticas, profundidade, isóbatas) — antes precisava
+          // ligar o Mapa de Ruas e depois cada uma à mão. Continuam
+          // desligáveis individualmente depois.
+          aoEscolherRuas: () => setState(() {
+            _camadaRuas = true;
+            _mostrarInfoNautica = true;
+            _mostrarProfundidade = true;
+            _mostrarCurvasProfundidade = true;
+          }),
+        ),
+        const SizedBox(height: 8),
+        ItemMenuToggle(
+          icone: Icons.anchor,
+          titulo: l10n.mapaCamadaNauticaTitulo,
+          subtitulo: l10n.mapaCamadaNauticaSubtitulo,
+          ativo: _mostrarInfoNautica,
+          onTap: !_camadaRuas ? null : _alternarInfoNautica,
+        ),
+        ItemMenuToggle(
+          icone: Icons.layers,
+          titulo: l10n.mapaCamadaProfundidadeTitulo,
+          subtitulo: l10n.mapaCamadaProfundidadeSubtitulo,
+          ativo: _mostrarProfundidade,
+          onTap: !_camadaRuas ? null : _alternarProfundidade,
+        ),
+        ItemMenuToggle(
+          icone: Icons.timeline,
+          titulo: l10n.mapaCamadaCurvasTitulo,
+          subtitulo: l10n.mapaCamadaCurvasSubtitulo,
+          ativo: _mostrarCurvasProfundidade,
+          onTap: !_camadaRuas ? null : _alternarCurvasProfundidade,
+        ),
+        ItemMenuToggle(
+          icone: Icons.route,
+          titulo: l10n.mapaCamadaTrilhaViagemTitulo,
+          subtitulo: l10n.mapaCamadaTrilhaViagemSubtitulo,
+          ativo: _mostrarTrilhaViagem,
+          onTap: _alternarTrilhaViagem,
+          recurso: RecursoAtlas.mapaTrilhaViagem,
+        ),
+        _itemCamadaConsulta(_camadaTemperatura, Icons.thermostat,
+            recurso: RecursoAtlas.mapaSst),
+        _itemCamadaConsulta(_camadaClorofila, Icons.water_drop,
+            subtitulo: l10n.mapaClorofilaSubtitulo,
+            recurso: RecursoAtlas.mapaClorofila),
+        ItemMenuToggle(
+          icone: Icons.local_fire_department,
+          titulo: l10n.mapaCamadaProducaoTitulo,
+          ativo: _mostrarProducao,
+          onTap: _alternarProducao,
+          carregando: _carregandoProducao,
+        ),
+        ItemMenuToggle(
+          icone: Icons.image_outlined,
+          titulo: l10n.mapaCamadaOverlayTitulo,
+          subtitulo: l10n.mapaCamadaOverlaySubtitulo,
+          ativo: _overlayAtiva,
+          onTap: _overlayCarregando
+              ? null
+              : () => _alternarOverlay(!_overlayAtiva),
+          carregando: _overlayCarregando,
+        ),
+        if (_overlayAtiva || _overlayValidada)
+          ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.only(left: 72, right: 16),
+            title: Text(l10n.mapaEscolherImagem),
+            onTap: _overlayCarregando ? null : _abrirDialogoSelecionarOverlay,
+          ),
+        const Divider(height: 1),
+        _itemCamadaConsulta(_camadaIndice, Icons.auto_awesome,
+            subtitulo: l10n.mapaIndiceProdutividadeSubtitulo,
+            recurso: RecursoAtlas.mapaIndiceProdutividade),
+        _itemCamadaConsulta(_camadaIntelligence, Icons.auto_awesome_outlined,
+            subtitulo: l10n.mapaIntelligenceSubtitulo,
+            recurso: RecursoAtlas.intelligenceOceanica),
+        if (_camadaRuas) ...[
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.download),
+            title: Text(l10n.mapaBaixarRegiao),
+            dense: true,
+            onTap: () {
+              _abrirDownloadRegiao();
+              _fecharMenuLateral();
+            },
+          ),
+        ],
       ],
+    );
+  }
+
+  /// Toggle de uma camada de consulta por ponto — liga/desliga, spinner
+  /// durante a consulta.
+  Widget _itemCamadaConsulta(CamadaConsultaPonto camada, IconData icone,
+      {String? subtitulo, RecursoAtlas? recurso}) {
+    return ItemMenuToggle(
+      icone: icone,
+      titulo: camada.titulo(AppLocalizations.of(context)),
+      subtitulo: subtitulo,
+      ativo: camada.visivel,
+      onTap: () => _alternarCamada(camada),
+      carregando: _consultando(camada),
+      recurso: recurso,
     );
   }
 
